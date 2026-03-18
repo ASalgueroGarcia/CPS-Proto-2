@@ -246,6 +246,20 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!114 &262766464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc1515ab76e54f068e2f2207940fab32, type: 3}
+  m_Name: Player/Special
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
+  m_Asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_ActionId: f1cad671-89ac-4c94-90fe-388948778734
 --- !u!114 &628976395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -431,14 +445,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFSM
   currentState: 0
   controller: {fileID: 1241168961}
+  bodyRenderer: {fileID: 7789775959781056315}
   moveAction: {fileID: 1160282544}
   dashAction: {fileID: 628976395}
   attackAction: {fileID: 1818274771}
+  specialAttackAction: {fileID: 262766464}
   speed: 14
   dashSpeed: 30
   gravity: 25
   dashDuration: 0.2
-  dashTimer: 0
+  weaponBaseDamage: 10
+  baseCritChance: 0.05
+  wasHit: 0
+  attackRange: 2
+  specialRange: 5
+  comboStep: 0
+  comboResetTime: 1
+  specialCooldown: 10
 --- !u!4 &1241168966 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2555076493307438739, guid: 8b19ec7071dd03b489e7a3e9c53bcfd3, type: 3}
@@ -675,6 +698,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1241168961}
   m_SourcePrefab: {fileID: 100100000, guid: 8b19ec7071dd03b489e7a3e9c53bcfd3, type: 3}
+--- !u!23 &7789775959781056315 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8553509520374789420, guid: 8b19ec7071dd03b489e7a3e9c53bcfd3, type: 3}
+  m_PrefabInstance: {fileID: 7789775959781056314}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
