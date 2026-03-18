@@ -1,11 +1,20 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class Node : MonoBehaviour
 {
-    private List<Node> _parentNodes = new List<Node>();
-    private List<Node> _childNodes = new List<Node>();
+    [Header("Node Settings")] 
+    [SerializeField] private NodeTypeEnum type;
+    
+    private readonly List<Node> _parentNodes = new List<Node>();
+    private readonly List<Node> _childNodes = new List<Node>();
+
+    private readonly float _min = 0;
+    private readonly float _max= 3;
     private bool _isActive = false;
+    private bool _isStartingNode = false;
+
     private LineRenderer _lr;
 
     private void Awake()
@@ -16,6 +25,43 @@ public class Node : MonoBehaviour
         _lr.startWidth = 0.2f;
         _lr.endWidth = 0.2f;
         _lr.enabled = false;
+    }
+
+    private void Start()
+    {
+        GenerateNodeType();
+    }
+
+    private void GenerateNodeType()
+    {
+        switch ((int)Random.Range(_min, _max))
+        {
+            case 0:
+                type = NodeTypeEnum.Combat;
+                break;
+            case 1:
+                type = NodeTypeEnum.Merchant;
+                break;
+            case 2:
+                type = NodeTypeEnum.MiniBoss;
+                break;
+            case 3:
+                type = NodeTypeEnum.Treasure;
+                break;
+            default:
+                Debug.LogError("ERROR: Incorrect Index given.");
+                break;
+        }
+    }
+
+    public NodeTypeEnum GetNodeType()
+    {
+        return type;
+    }
+
+    public Transform GetNodeTransform()
+    {
+        return this.gameObject.transform;
     }
 
     public void SetChildNode(Node childNode)
@@ -35,6 +81,16 @@ public class Node : MonoBehaviour
     public void SetNodeAsActive()
     {
         _isActive = true;
+    }
+
+    public void SetStartingNode()
+    {
+        _isStartingNode = true;
+    }
+
+    public bool IsStartingNode()
+    {
+        return _isStartingNode;
     }
 
     public void ToggleNode()
