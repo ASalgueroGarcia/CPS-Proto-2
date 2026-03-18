@@ -19,6 +19,7 @@ public class PlayerFSM : MonoBehaviour
     [Header("Components")]
     public CharacterController controller;
     public MeshRenderer bodyRenderer; 
+    public Health playerHealth; // Link the Health script here
 
     [Header("Input Actions")]
     public InputActionReference moveAction;
@@ -27,10 +28,10 @@ public class PlayerFSM : MonoBehaviour
     public InputActionReference specialAttackAction;
 
     [Header("Identification")]
-    public LayerMask enemyLayer; // The "Magic Number" mask for target layers
+    public LayerMask enemyLayer; 
 
     [Header("Movement Stats")]
-    public float speed = 8f;
+    public float speed = 14f;
     public float dashSpeed = 30f;
     public float gravity = 25f;
     
@@ -58,17 +59,27 @@ public class PlayerFSM : MonoBehaviour
     private Vector3 dashDirection = Vector3.zero;
     private float verticalVelocity = 0f;
     private Color originalColor;
+    private float visualFlashTimer = 0;
 
     // --- 2. SETUP INPUTS ---
     
     private void OnEnable()
     {
+        if (playerHealth == null) playerHealth = GetComponent<Health>();
+        if (enemyLayer.value == 0) enemyLayer = LayerMask.GetMask("Enemy");
+
         moveAction.action.Enable();
         dashAction.action.Enable();
         attackAction.action.Enable();
         if (specialAttackAction != null) specialAttackAction.action.Enable();
         
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
+        
+        // Setup health event to trigger combo breaks
+        if (playerHealth != null)
+        {
+            playerHealth.OnDamageTaken.AddListener(OnPlayerDamage);
+        }
     }
 
     private void OnDisable()
@@ -77,11 +88,24 @@ public class PlayerFSM : MonoBehaviour
         dashAction.action.Disable();
         attackAction.action.Disable();
         if (specialAttackAction != null) specialAttackAction.action.Disable();
+        
+        if (playerHealth != null)
+        {
+            playerHealth.OnDamageTaken.RemoveListener(OnPlayerDamage);
+        }
+    }
+
+    private void OnPlayerDamage(float damage)
+    {
+        wasHit = true;
+        ResetCombo();
+        FlashColor(Color.magenta);
     }
 
     void Update()
     {
         if (specialTimer > 0) specialTimer -= Time.deltaTime;
+        if (visualFlashTimer > 0) visualFlashTimer -= Time.deltaTime;
 
         if (comboStep > 0 && Time.time - lastAttackTime > comboResetTime)
         {
@@ -221,20 +245,33 @@ public class PlayerFSM : MonoBehaviour
         }
 
         FlashColor(flashColor);
-        CheckHit(attackRange, currentDamage, currentCritChance);
+        CheckHit(attackRange, currentDamage, currentCritChance, flashColor);
         SwitchState(PlayerState.Attacking);
     }
 
-    private void CheckHit(float range, float damage, float crit)
+    private void CheckHit(float range, float damage, float crit, Color vfxColor)
     {
-        // PERFORMANCE: Physics now only checks the layers included in 'enemyLayer'
+        Vector3 hitPosition = transform.position + transform.forward * 1.5f;
+        
+        GameObject vfx = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        vfx.transform.position = hitPosition;
+        vfx.transform.localScale = Vector3.one * range;
+        vfx.GetComponent<Collider>().enabled = false;
+        
+        // Simple color setup for built-in shader
+        vfx.GetComponent<MeshRenderer>().material.color = new Color(vfxColor.r, vfxColor.g, vfxColor.b, 0.4f);
+        
+        Destroy(vfx, 0.1f);
+
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position + transform.forward, range, enemyLayer);
         foreach (Collider enemy in hitEnemies)
         {
-            CombatDummy dummy = enemy.GetComponent<CombatDummy>();
-            if (dummy != null)
+            Health enemyHealth = enemy.GetComponent<Health>();
+            if (enemyHealth != null)
             {
-                dummy.TakeDamage(damage, crit);
+                bool isCrit = Random.value < crit;
+                float finalDamage = isCrit ? damage * 2 : damage;
+                enemyHealth.TakeDamage(finalDamage);
             }
         }
     }
@@ -246,6 +283,7 @@ public class PlayerFSM : MonoBehaviour
 
     public void OnPlayerHit()
     {
+        // Still available for manual calls if needed
         wasHit = true;
         ResetCombo();
         FlashColor(Color.magenta); 
@@ -257,13 +295,14 @@ public class PlayerFSM : MonoBehaviour
         if (bodyRenderer != null)
         {
             bodyRenderer.material.color = color;
+            visualFlashTimer = 0.15f;
             Invoke("ResetColor", 0.15f);
         }
     }
 
     private void ResetColor()
     {
-        if (bodyRenderer != null) bodyRenderer.material.color = originalColor;
+        if (bodyRenderer != null && visualFlashTimer <= 0) bodyRenderer.material.color = originalColor;
     }
 
     private void HandleAttackingState()
@@ -276,7 +315,7 @@ public class PlayerFSM : MonoBehaviour
     {
         specialTimer = specialCooldown;
         FlashColor(Color.cyan);
-        CheckHit(specialRange, weaponBaseDamage * 2, 0.40f);
+        CheckHit(specialRange, weaponBaseDamage * 2, 0.40f, Color.cyan);
         Debug.Log("SPECIAL ATTACK! AOE Pushback.");
         SwitchState(PlayerState.SpecialAttacking);
     }
@@ -298,5 +337,35 @@ public class PlayerFSM : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position + transform.forward, attackRange);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position + transform.forward, specialRange);
+    }
+
+    private void OnGUI()
+    {
+        if (playerHealth == null) return;
+
+        Vector2 pos = new Vector2(20, 20);
+        Vector2 size = new Vector2(200, 20);
+        
+        GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
+        GUI.color = Color.green;
+        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
+        GUI.color = Color.white;
+        
+        if (specialTimer > 0)
+        {
+            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
+        }
+        else
+        {
+            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
+        }
+
+        GUI.Label(new Rect(pos.x, pos.y + 50, 200, 20), "Combo Step: " + comboStep);
+
+        // Add a clickable GUI button for quick testing
+        if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health"))
+        {
+            playerHealth.ResetAllHealthsInScene();
+        }
     }
 }
