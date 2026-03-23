@@ -38,6 +38,7 @@ public class PlayerFSM : MonoBehaviour
     [Header("Dash")]
     public float dashDuration = 0.2f;
     private float dashTimer = 0;
+    private TrailRenderer dashTrail;
 
     [Header("Combat Stats")]
     public float weaponBaseDamage = 10f; 
@@ -66,7 +67,14 @@ public class PlayerFSM : MonoBehaviour
     private void OnEnable()
     {
         if (playerHealth == null) playerHealth = GetComponent<Health>();
+        if (dashTrail == null)  dashTrail = GetComponent<TrailRenderer>();
         if (enemyLayer.value == 0) enemyLayer = LayerMask.GetMask("Enemy");
+
+        if (dashTrail != null)
+        {
+            dashTrail.emitting = false;
+            dashTrail.Clear();
+        }
 
         moveAction.action.Enable();
         dashAction.action.Enable();
@@ -196,6 +204,13 @@ public class PlayerFSM : MonoBehaviour
     {
         dashDirection = direction != Vector3.zero ? direction : transform.forward;
         dashTimer = dashDuration;
+        dashDirection.y = 0;
+        // FlashColor(Color.deepPink);
+        if (dashTrail != null)
+        {
+            dashTrail.Clear();
+            dashTrail.emitting = true;
+        }
         SwitchState(PlayerState.Dashing);
     }
 
@@ -203,7 +218,12 @@ public class PlayerFSM : MonoBehaviour
     {
         moveDirection = dashDirection * dashSpeed;
         dashTimer -= Time.deltaTime;
-        if (dashTimer <= 0) SwitchState(PlayerState.Idle);
+        if (dashTimer <= 0)
+        {
+            dashTrail.Clear();
+            dashTrail.emitting = false;
+            SwitchState(PlayerState.Idle);
+        }
     }
 
     // --- COMBAT LOGIC ---
@@ -307,7 +327,7 @@ public class PlayerFSM : MonoBehaviour
 
     private void HandleAttackingState()
     {
-        moveDirection = Vector3.zero;
+        // moveDirection = Vector3.zero;    // the player can during attack
         if (Time.time - lastAttackTime > 0.3f) SwitchState(PlayerState.Idle);
     }
 
