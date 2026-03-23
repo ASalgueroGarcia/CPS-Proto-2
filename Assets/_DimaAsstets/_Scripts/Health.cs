@@ -11,6 +11,9 @@ public class Health : MonoBehaviour
     public UnityEvent<float> OnDamageTaken;
     public UnityEvent OnDeath;
 
+    [Header("Settings")]
+    public bool autoResetOnDeath = false;
+
     private void Start()
     {
         currentHealth = maxHealth;
@@ -36,8 +39,10 @@ public class Health : MonoBehaviour
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
         
-        // For prototype testing: Auto-respawn/reset health
-        Invoke("ResetHealth", 1.0f);
+        if (autoResetOnDeath)
+        {
+            Invoke("ResetHealth", 1.0f);
+        }
     }
 
     public void ResetHealth()

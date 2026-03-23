@@ -13,9 +13,10 @@ GameObject:
   - component: {fileID: 1060075833598731945}
   - component: {fileID: 3573027864899436712}
   - component: {fileID: 3189739835610764788}
+  - component: {fileID: 7495161855600288883}
   m_Layer: 0
   m_Name: MerchantNode
-  m_TagString: Untagged
+  m_TagString: Node
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -127,3 +128,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e24f53b7a2302944bb2abcaf39a6009f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
+  type: 0
+--- !u!114 &7495161855600288883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6594863356324457601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1422b873a93f0bd48a8129560189b309, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NodeBehaviour
+  nodeSceneIndexes: 01000000

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class Node : MonoBehaviour
 {
@@ -11,7 +10,7 @@ public class Node : MonoBehaviour
     private readonly List<Node> _childNodes = new List<Node>();
 
     private readonly float _min = 0;
-    private readonly float _max= 3;
+    private readonly float _max= 100;
     private bool _isActive = false;
     private bool _isStartingNode = false;
 
@@ -25,33 +24,17 @@ public class Node : MonoBehaviour
         _lr.startWidth = 0.2f;
         _lr.endWidth = 0.2f;
         _lr.enabled = false;
-    }
-
-    private void Start()
-    {
+        
+        GetComponent<NodeBehaviour>().SetNode(this);
+        
         GenerateNodeType();
     }
 
     private void GenerateNodeType()
     {
-        switch ((int)Random.Range(_min, _max))
-        {
-            case 0:
-                type = NodeTypeEnum.Combat;
-                break;
-            case 1:
-                type = NodeTypeEnum.Merchant;
-                break;
-            case 2:
-                type = NodeTypeEnum.MiniBoss;
-                break;
-            case 3:
-                type = NodeTypeEnum.Treasure;
-                break;
-            default:
-                Debug.LogError("ERROR: Incorrect Index given.");
-                break;
-        }
+        type = Random.Range(_min, _max + 1) <= 75 ? NodeTypeEnum.Combat : NodeTypeEnum.Merchant;
+
+        //Debug.Log(this.gameObject.name + type);
     }
 
     public NodeTypeEnum GetNodeType()
