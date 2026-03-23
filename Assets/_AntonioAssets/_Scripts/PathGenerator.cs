@@ -10,9 +10,8 @@ public class NodeLayer
 
 public class PathGenerator : MonoBehaviour
 {
-    [Header("Map Variables")] [SerializeField]
-    private int minLayerNodes;
-
+    [Header("Map Variables")] 
+    [SerializeField] private int minLayerNodes;
     [SerializeField] private int maxLayerNodes;
     [SerializeField] private int maxLayers;
     [SerializeField] private int pathNum;
@@ -21,10 +20,15 @@ public class PathGenerator : MonoBehaviour
     [SerializeField] private NodeLayer[] nodeLayers;
 
     [Header("Node Prefabs")] 
+    [SerializeField] private GameObject placeholderNode;
     [SerializeField] private GameObject combatNode;
     [SerializeField] private GameObject merchantNode;
     [SerializeField] private GameObject miniBossNode;
     [SerializeField] private GameObject treasureNode;
+    [SerializeField] private GameObject bossNode;
+    
+    [Header("Boss Node")]
+    [SerializeField] private Node finalNode;
 
     private int _startCoord = 0;
 
@@ -63,7 +67,6 @@ public class PathGenerator : MonoBehaviour
             if (node.IsStartingNode())
             {
                 SpawnNode(NodeTypeEnum.Combat, node.GetNodeTransform());
-                node.GetComponent<MeshRenderer>().enabled = false;
             }
         }
 
@@ -74,7 +77,6 @@ public class PathGenerator : MonoBehaviour
                 var node = _map[l][n];
                 
                 SpawnNode(node.GetNodeType(), node.GetNodeTransform());
-                node.GetComponent<MeshRenderer>().enabled = false;
             }
         }
     }
@@ -83,17 +85,14 @@ public class PathGenerator : MonoBehaviour
     {
         switch (nodeType)
         {
+            case NodeTypeEnum.Placeholder:
+                Instantiate(placeholderNode, nodeTransform);
+                break;
             case NodeTypeEnum.Combat:
                 Instantiate(combatNode, nodeTransform);
                 break;
             case NodeTypeEnum.Merchant:
                 Instantiate(merchantNode, nodeTransform);
-                break;
-            case NodeTypeEnum.MiniBoss:
-                Instantiate(miniBossNode, nodeTransform);
-                break;
-            case NodeTypeEnum.Treasure:
-                Instantiate(treasureNode, nodeTransform);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null);
@@ -151,13 +150,25 @@ public class PathGenerator : MonoBehaviour
 
         ConnectNextNode(nextLayerIndex, nextIndex);
     }
+    
+    private void ConnectToBossNode()
+    {
+        for (var i = 0; i < maxLayerNodes; i++)
+        {
+            _map[maxLayers-1][i].SetChildNode(finalNode);
+        }
+
+        Instantiate(bossNode, finalNode.GetNodeTransform());
+    }
 
     private void GeneratePath()
     {
         ChooseStartingNode();
         ConnectNextNode(0, _startCoord);
         SetActiveNodes();
+        ConnectToBossNode();
     }
+
 
     private void SetActiveNodes()
     {
