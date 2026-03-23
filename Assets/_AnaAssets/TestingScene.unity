@@ -502,14 +502,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFSM
   currentState: 0
   controller: {fileID: 763210791}
+  bodyRenderer: {fileID: 0}
+  playerHealth: {fileID: 0}
   moveAction: {fileID: 1160282544}
   dashAction: {fileID: 628976395}
   attackAction: {fileID: 1818274771}
-  speed: 14
-  dashSpeed: 30
+  specialAttackAction: {fileID: 0}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  speed: 5
+  dashSpeed: 20
   gravity: 25
   dashDuration: 0.2
-  dashTimer: 0
+  weaponBaseDamage: 10
+  baseCritChance: 0.05
+  wasHit: 0
+  attackRange: 2
+  specialRange: 5
+  comboStep: 0
+  comboResetTime: 1
+  specialCooldown: 10
 --- !u!1 &825342033
 GameObject:
   m_ObjectHideFlags: 0
@@ -842,7 +855,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   target: {fileID: 763210790}
   offset: {x: 0, y: 15, z: -10}
-  smoothSpeed: 0.125
+  currentVelocity: {x: 0, y: 0, z: 0}
+  smoothTime: 0.4
   lockX: 1
 --- !u!81 &1302982506
 AudioListener:
