@@ -4,30 +4,39 @@ public class CameraFollow : MonoBehaviour
 {
     public Transform target;
     public Vector3 offset = new Vector3(0, 15, -10);
-    public float smoothSpeed = 0.125f;
+    
+    [Header("Movement Settings")]
+    public float smoothTime = 0.3f;
+    public bool lockX = false;
+    
+    [Header("Rotation Settings")]
+    public float rotationSpeed = 5f; // Added a separate speed for rotation
 
-    [Header("Settings")]
-    public bool lockX = true;
+    private Vector3 currentVelocity = Vector3.zero;
 
     void LateUpdate()
     {
         if (target != null)
         {
-            // Calculate desired position based on target and offset
+            // 1. Calculate desired position
             Vector3 desiredPosition = target.position + offset;
 
-            // Lock X position if enabled, keeping it at the offset's X value
+            // Lock X position if enabled
             if (lockX)
             {
                 desiredPosition.x = offset.x;
             }
 
-            // Smoothly interpolate to the desired position
-            Vector3 smoothedPosition = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
-            transform.position = smoothedPosition;
+            // 2. Not! Smoothly move the camera
+            // transform.position = Vector3.SmoothDamp(transform.position, desiredPosition, ref currentVelocity, smoothTime);
+            transform.position = new Vector3(desiredPosition.x, desiredPosition.y, desiredPosition.z);
 
-            // Maintain a fixed look at the target (or a point relative to it)
-            transform.LookAt(new Vector3(target.position.x, target.position.y, target.position.z));
+            // 3. Calculate rotation target (using the PLAYER's Y and Z, not the desired position)
+            Vector3 lookTarget = new Vector3(transform.position.x, target.position.y, target.position.z);
+            
+            // 4. Smoothly rotate towards the target
+            Quaternion targetRotation = Quaternion.LookRotation(lookTarget - transform.position);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
     }
 }
