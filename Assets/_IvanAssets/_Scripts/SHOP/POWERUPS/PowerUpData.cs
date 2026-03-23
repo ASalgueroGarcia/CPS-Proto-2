@@ -8,7 +8,7 @@ public class PowerUpData : ScriptableObject
     public string powerUpName;
     public string powerUpDescription;
     public Sprite powerUpIcon;
-
+    public float price;
     [System.Serializable]
 
     // EFFECT.
@@ -21,10 +21,24 @@ public class PowerUpData : ScriptableObject
     // TYPES -> TO ADD WHATEVER.
     public enum PowerUpType
     {
-        Damage,
-        Burn,
-        Speed,
-        Invisibility
+        // DAMAGE
+        NormalDamage,
+        CriticalDamage,
+        SpecialDamage,
+        
+        // SPEED & MOVEMENT
+        NormalSpeed,
+        DashSpeed,
+
+        // COMBAT
+        Stun,
+
+        // HEALTH
+        Health,
+
+        // LOOT OF THE ENEMYS / SPAWN RATES
+        enemyLoot,
+        enemySpawn
     }
     public PowerUpEffect[] effects;
 }
