@@ -1,65 +1,61 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Unity.Mathematics;
 
 // PLAYER MANAGER FOR THE STATS OF THE PLAYER W THE ITEMS TOO.
 public class PlayerStatsManager : MonoBehaviour
 {
-    [Header("HEALTH STATS")]
-    [SerializeField] private float baseHealth = 100.0f; // HEALTH SCRIPT.
-    private float currentHealth; // <- CHANGE....
+    // REFS.
+    private Health healthPlayer;
+    private PlayerFSM playerController;
+
+    // HEALTH.
+    private float currentHealth;
     private float maxHealth;
 
-    [Header("NORMAL DAMAGE STATS")]
-    [SerializeField] private float baseNomalDamage = 10.0f; // SCISSORS DAMAGE.
-    [SerializeField] private float baseCriticalDamage = 25.0f; 
-    [SerializeField] private float baseSpecialDamage = 20.0f; 
-    [SerializeField] private float baseAttackSpeed = 1.0f;
+    // DAMAGE.
     private float currentNormalDamage;
     private float currentCriticalDamage;
     private float currentSpecialDamage;
-    private float currentCritChance = 0.10f;
+    private float currentCritChance;
     private float currentAttackSpeed;
 
-    [Header("SPEED STATS")]
-    [SerializeField] private float baseSpeed = 5.0f;
-    [SerializeField] private float baseDashSpeed = 30.0f;
+    // SPEED.
     private float currentSpeed;
     private float currentDashSpeed;
 
-    // How many items do u collect? ->
+    // How many items do u collect? -> INVENTORY.
     private int inventoryItems = 0;
     private List<PowerUpData> listOfInventoryItems = new List<PowerUpData>();
 
-    // REFS.
-    private PlayerFSM playerFSM;
-    //private PlayerHealth playerHealth;
-
     private void Start()
     {
-        // initializations.
-        currentHealth = baseHealth;
-        maxHealth = baseHealth;
-        currentNormalDamage = baseNomalDamage;
-        currentCriticalDamage = baseCriticalDamage;
-        currentSpecialDamage = baseSpecialDamage;
-        currentSpeed = baseSpeed;
-        currentDashSpeed = baseDashSpeed;
-        currentAttackSpeed = baseAttackSpeed;
+        playerController = GetComponent<PlayerFSM>();
+        healthPlayer = GetComponent<Health>();
 
-        // PLAYER CONTROLLER -> FIND.
-        playerFSM = GetComponent<PlayerFSM>();
-        Prints(); // PRINT ALL -> delete this, just for debugg.
+        // INITS.
+        if (playerController != null)
+        {
+            currentSpeed = playerController.speed;
+            currentDashSpeed = playerController.dashSpeed;
+            currentNormalDamage = playerController.weaponBaseDamage;
+            currentCritChance = playerController.baseCritChance;
+        }
+
+        if (healthPlayer != null)
+        {
+            currentHealth = healthPlayer.currentHealth;
+            maxHealth = healthPlayer.maxHealth;
+        }
+        Prints();
     }
-
     public void ApplyPowerUpEffect(PowerUpData powerUp)
-    {    Debug.Log("★ APPLYING POWERUP ★");  // ← VE SI LLEGA AQUÍ
-
-
+    {
         if(powerUp == null)
         {
             return;
         }
-        inventoryItems++;
+        inventoryItems++; /////
         listOfInventoryItems.Add(powerUp);
 
         // APPLY THE POWERUP DEPENDS OF THE CHOICE OF THE PLAYER.
@@ -71,8 +67,8 @@ public class PlayerStatsManager : MonoBehaviour
                 // DAMAGE.
                 case PowerUpData.PowerUpType.NormalDamage:
                     currentNormalDamage += effect.value;
-                    if (playerFSM != null){
-                        playerFSM.weaponBaseDamage = currentNormalDamage;
+                    if (playerController != null){
+                        playerController.weaponBaseDamage = currentNormalDamage;
                     }
                     break;
 
@@ -87,25 +83,30 @@ public class PlayerStatsManager : MonoBehaviour
                 // SPEED.
                 case PowerUpData.PowerUpType.NormalSpeed:
                     currentSpeed += effect.value;
-                    if (playerFSM != null){
-                        playerFSM.speed = currentSpeed;
+                    if (playerController != null){
+                        playerController.speed = currentSpeed;
                     }
                     break;
 
                 case PowerUpData.PowerUpType.DashSpeed:
                     currentDashSpeed += effect.value;
-                    if (playerFSM != null){
-                        playerFSM.dashSpeed = currentDashSpeed;
+                    if (playerController != null){
+                        playerController.dashSpeed = currentDashSpeed;
                     }
                     break;
 
                 case PowerUpData.PowerUpType.Stun:
                     break;
 
-                // DEFENSE
+                // DEFENSE & HEALTH
                 case PowerUpData.PowerUpType.Health:
                     currentHealth += effect.value;
                     maxHealth += effect.value;
+                    if (healthPlayer != null)
+                    {
+                        healthPlayer.maxHealth = maxHealth;
+                        healthPlayer.currentHealth = Mathf.Min(healthPlayer.currentHealth + effect.value, maxHealth);
+                    }
                     break;
 
                 // LOOT
@@ -119,19 +120,28 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
             }
         }
+        Debug.Log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         Prints();
     }
     public void ResetAllThePlayerStats()
     {
-        currentHealth = baseHealth;
-        maxHealth = baseHealth;
-        currentNormalDamage = baseNomalDamage;
-        currentCriticalDamage = baseCriticalDamage;
-        currentSpecialDamage = baseSpecialDamage;
-        currentSpeed = baseSpeed;
-        currentDashSpeed = baseDashSpeed;
-        currentAttackSpeed = baseAttackSpeed;
-        currentCritChance = 0.1f;
+        if (playerController != null)
+        {
+            currentSpeed = playerController.speed;
+            currentDashSpeed = playerController.dashSpeed;
+            currentNormalDamage = playerController.weaponBaseDamage;
+            currentCritChance = playerController.baseCritChance;
+        }
+
+        if (healthPlayer != null)
+        {
+            currentHealth = healthPlayer.currentHealth;
+            maxHealth = healthPlayer.maxHealth;
+        }
+
+        currentCriticalDamage = 25.0f;
+        currentSpecialDamage = 20.0f;
+        currentAttackSpeed = 1.0f;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
     }
