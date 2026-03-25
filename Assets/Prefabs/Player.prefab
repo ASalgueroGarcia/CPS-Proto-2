@@ -125,9 +125,10 @@ GameObject:
   - component: {fileID: 8553509520374789420}
   - component: {fileID: 186005365927067952}
   - component: {fileID: 2000000000000000001}
-  - component: {fileID: 3278282642403133201}
-  - component: {fileID: 6777873317746875283}
-  - component: {fileID: 8585763020830616576}
+  - component: {fileID: 5312524189877231247}
+  - component: {fileID: 8105590780488350188}
+  - component: {fileID: 1948906283882408760}
+  - component: {fileID: 4927418630432793926}
   m_Layer: 7
   m_Name: Player
   m_TagString: Player
@@ -252,7 +253,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   autoResetOnDeath: 0
---- !u!114 &3278282642403133201
+--- !u!114 &5312524189877231247
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -265,7 +266,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFSM
   currentState: 0
-  controller: {fileID: 6777873317746875283}
+  controller: {fileID: 8105590780488350188}
   bodyRenderer: {fileID: 8553509520374789420}
   playerHealth: {fileID: 2000000000000000001}
   moveAction: {fileID: 0}
@@ -274,7 +275,7 @@ MonoBehaviour:
   specialAttackAction: {fileID: 0}
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   speed: 14
   dashSpeed: 30
   gravity: 25
@@ -287,7 +288,7 @@ MonoBehaviour:
   comboStep: 0
   comboResetTime: 1
   specialCooldown: 10
---- !u!143 &6777873317746875283
+--- !u!143 &8105590780488350188
 CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -312,7 +313,7 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!96 &8585763020830616576
+--- !u!96 &1948906283882408760
 TrailRenderer:
   serializedVersion: 4
   m_ObjectHideFlags: 0
@@ -422,3 +423,15 @@ TrailRenderer:
   m_Autodestruct: 0
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
+--- !u!114 &4927418630432793926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7663913259433112868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 537b1490d5d214041a6b022704cb11d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStatsManager

@@ -1,5 +1,58 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1694959281188478196
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 964397416188051994}
+  - component: {fileID: 2030548338368893369}
+  m_Layer: 0
+  m_Name: --ENEMY_SPAWNER--
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &964397416188051994
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1694959281188478196}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -1, z: -0, w: 0}
+  m_LocalPosition: {x: -2.16462, y: -0.35999995, z: -2.1477299}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8092237044608918409}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2030548338368893369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1694959281188478196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcb5f1ef21d3c014ea92e0be4b34bb9c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemySpawner
+  enemyPrefabs:
+  - {fileID: 1732052607803408439, guid: d588ba4d4413a2747879fc3dd095e20c, type: 3}
+  - {fileID: 1007924606823391567, guid: 52dc244fb8a5bc047905dfa403db234f, type: 3}
+  - {fileID: 8195882128523390324, guid: 50bcb89052d4caf47b00190ccc357fcf, type: 3}
+  spawnAreaSize: {x: 56.4, y: 61.6}
+  raycastHeight: 20
+  maxNavMeshDistance: 2
+  autoSpawn: 1
+  spawnInterval: 3
 --- !u!1 &6040150633993881009
 GameObject:
   m_ObjectHideFlags: 0
@@ -64,6 +117,7 @@ Transform:
   m_Children:
   - {fileID: 8821988690398510230}
   - {fileID: 3524622658927924981}
+  - {fileID: 964397416188051994}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!1 &9009455214830951866
