@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
 [System.Serializable]
@@ -23,21 +24,37 @@ public class PathGenerator : MonoBehaviour
     [SerializeField] private GameObject placeholderNode;
     [SerializeField] private GameObject combatNode;
     [SerializeField] private GameObject merchantNode;
-    [SerializeField] private GameObject miniBossNode;
-    [SerializeField] private GameObject treasureNode;
+    //[SerializeField] private GameObject miniBossNode;
+    //[SerializeField] private GameObject treasureNode;
     [SerializeField] private GameObject bossNode;
     
     [Header("Boss Node")]
     [SerializeField] private Node finalNode;
 
     private int _startCoord = 0;
+    private bool _hasBeenGenerated = false;
+    private bool _isBossConnected = false;
 
     private Node _startingNode;
     private Node _currNode;
     private Node _prevNode;
     private Node _nextNode;
-
     private Node[][] _map;
+
+    
+    public static PathGenerator Instance;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(Instance);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
 
     private void Start()
     {
@@ -49,6 +66,8 @@ public class PathGenerator : MonoBehaviour
             _map[i] = nodeLayers[i].nodes;
         }
 
+        if(_hasBeenGenerated) return;
+        
         for (var i = 0; i < pathNum; i++)
         {
             GeneratePath();
@@ -59,23 +78,11 @@ public class PathGenerator : MonoBehaviour
 
     private void AssignLocations()
     {
-        // First layer MUST be combat nodes
-        for (var i = 0; i < maxLayerNodes; i++)
-        {
-            var node = _map[0][i];
-            
-            if (node.IsStartingNode())
-            {
-                SpawnNode(NodeTypeEnum.Combat, node.GetNodeTransform());
-            }
-        }
-
-        for (var l = 1; l < maxLayers; l++)
+        for (var l = 0; l < maxLayers; l++)
         {
             for (var n = 0; n < maxLayerNodes; n++)
             {
                 var node = _map[l][n];
-                
                 SpawnNode(node.GetNodeType(), node.GetNodeTransform());
             }
         }
@@ -83,20 +90,28 @@ public class PathGenerator : MonoBehaviour
 
     private void SpawnNode(NodeTypeEnum nodeType, Transform nodeTransform)
     {
+        nodeTransform.GetComponent<Node>().SetType(nodeType);
+        GameObject spawnedNode = null;
+
         switch (nodeType)
         {
             case NodeTypeEnum.Placeholder:
-                Instantiate(placeholderNode, nodeTransform);
-                break;
+                Instantiate(placeholderNode, nodeTransform, false);
+                return;
             case NodeTypeEnum.Combat:
-                Instantiate(combatNode, nodeTransform);
+                spawnedNode = Instantiate(combatNode, nodeTransform, false);
                 break;
             case NodeTypeEnum.Merchant:
-                Instantiate(merchantNode, nodeTransform);
+                spawnedNode = Instantiate(merchantNode, nodeTransform, false);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null);
         }
+
+        var nodeBehaviour = spawnedNode.GetComponent<NodeBehaviour>();
+        var button = spawnedNode.GetComponentInChildren<Button>();
+
+        if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
     }
 
     private void ChooseStartingNode()
@@ -107,13 +122,13 @@ public class PathGenerator : MonoBehaviour
         if (!_startingNode.IsStartingNode())
         {
             _startingNode.SetStartingNode();
+            _startingNode.SetType(NodeTypeEnum.Combat);
             _currNode = _startingNode;
         }
         else
         {
             ChooseStartingNode();
         }
-        
         
         //Debug.Log("Starting node: [0," + _startCoord + "]");
     }
@@ -153,22 +168,18 @@ public class PathGenerator : MonoBehaviour
     
     private void ConnectToBossNode()
     {
+        if (_isBossConnected) return;
+        
         for (var i = 0; i < maxLayerNodes; i++)
         {
             _map[maxLayers-1][i].SetChildNode(finalNode);
         }
 
         Instantiate(bossNode, finalNode.GetNodeTransform());
+        finalNode.SetNodeAsActive(); 
+        finalNode.ToggleNode();
+        _isBossConnected = true;
     }
-
-    private void GeneratePath()
-    {
-        ChooseStartingNode();
-        ConnectNextNode(0, _startCoord);
-        SetActiveNodes();
-        ConnectToBossNode();
-    }
-
 
     private void SetActiveNodes()
     {
@@ -176,9 +187,18 @@ public class PathGenerator : MonoBehaviour
         {
             for (var j = 0; j < _map[i].Length; j++)
             {
-                _map[i][j].ToggleNode();
-                //Debug.Log($"Node: [{i},{j}] is {_map[i][j].isActiveAndEnabled}.");
+                var node = _map[i][j];
+                node.ToggleNode();
             }
         }
+    }
+    
+    private void GeneratePath()
+    {
+        ChooseStartingNode();
+        ConnectNextNode(0, _startCoord);
+        ConnectToBossNode();
+        SetActiveNodes();
+        _hasBeenGenerated = true;
     }
 }

@@ -9,7 +9,12 @@ public class SceneController : MonoBehaviour
     [SerializeField] private GameObject[] combatLevels;
     [SerializeField] private GameObject shopLevel;
 
+    [Header("Map References")]
+    [SerializeField] private Canvas mapCanvas;
+
+    private GameObject _spawnedInstance;
     private NodeTypeEnum _pendingLevelType;
+    private const string CurrentLevelScene = "SetScene";
 
     private void Awake()
     {
@@ -26,18 +31,44 @@ public class SceneController : MonoBehaviour
 
     public void LoadLevel(NodeTypeEnum levelType)
     {
+        Debug.Log("LoadLevel called with: " + levelType);
+        mapCanvas.gameObject.SetActive(false);
         _pendingLevelType = levelType;
         SceneManager.sceneLoaded += OnSceneLoaded;
-        SceneManager.LoadScene("SetScene");
+        SceneManager.LoadScene(CurrentLevelScene, LoadSceneMode.Additive);
+    }
+
+    public void UnloadLevel()
+    {
+        SceneManager.UnloadSceneAsync(CurrentLevelScene);
+        mapCanvas.gameObject.SetActive(true);
+        if (_spawnedInstance) Destroy(_spawnedInstance);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        if (scene.name != CurrentLevelScene) return;
+        Debug.Log("OnSceneLoaded - pending type: " + _pendingLevelType);
+    
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        GameObject prefab = null;
 
-        var prefab = _pendingLevelType == NodeTypeEnum.Combat ? 
-            combatLevels[Random.Range(0, combatLevels.Length)] : shopLevel;
+        switch (_pendingLevelType)
+        {
+            case NodeTypeEnum.Combat:
+                Debug.Log("Spawning combat level");
+                prefab = combatLevels[Random.Range(0, combatLevels.Length)];
+                break;
+            case NodeTypeEnum.Merchant:
+                Debug.Log("Spawning shop level");
+                prefab = shopLevel;
+                break;
+            default:
+                Debug.Log("Spawning default (combat) - type was: " + _pendingLevelType);
+                prefab = combatLevels[Random.Range(0, combatLevels.Length)];
+                break;
+        }
 
-        Instantiate(prefab);
+        _spawnedInstance = Instantiate(prefab);
     }
 }
