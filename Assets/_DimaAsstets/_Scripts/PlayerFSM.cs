@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerFSM : MonoBehaviour
 {
     // --- 1. STATE DEFINITIONS ---
-    public enum PlayerState 
+    public enum PlayerState
     {
         Idle,
         Moving,
@@ -13,47 +13,38 @@ public class PlayerFSM : MonoBehaviour
         SpecialAttacking
     }
 
-    [Header("State Tracker")]
-    public PlayerState currentState = PlayerState.Idle;
+    [Header("State Tracker")] public PlayerState currentState = PlayerState.Idle;
 
-    [Header("Components")]
-    public CharacterController controller;
-    public MeshRenderer bodyRenderer; 
+    [Header("Components")] public CharacterController controller;
+    public MeshRenderer bodyRenderer;
     public Health playerHealth; // Link the Health script here
 
-    [Header("Input Actions")]
-    public InputActionReference moveAction;
+    [Header("Input Actions")] public InputActionReference moveAction;
     public InputActionReference dashAction;
     public InputActionReference attackAction;
     public InputActionReference specialAttackAction;
 
-    [Header("Identification")]
-    public LayerMask enemyLayer; 
+    [Header("Identification")] public LayerMask enemyLayer;
 
-    [Header("Movement Stats")]
-    public float speed = 14f;
+    [Header("Movement Stats")] public float speed = 14f;
     public float dashSpeed = 30f;
     public float gravity = 25f;
-    
-    [Header("Dash")]
-    public float dashDuration = 0.2f;
+
+    [Header("Dash")] public float dashDuration = 0.2f;
     private float dashTimer = 0;
     private TrailRenderer dashTrail;
 
-    [Header("Combat Stats")]
-    public float weaponBaseDamage = 10f; 
+    [Header("Combat Stats")] public float weaponBaseDamage = 10f;
     public float baseCritChance = 0.05f;
-    public bool wasHit = false; 
+    public bool wasHit = false;
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
 
-    [Header("Combo Settings")]
-    public int comboStep = 0; 
+    [Header("Combo Settings")] public int comboStep = 0;
     public float comboResetTime = 1.0f;
     private float lastAttackTime = 0;
 
-    [Header("Special Attack")]
-    public float specialCooldown = 10f;
+    [Header("Special Attack")] public float specialCooldown = 10f;
     private float specialTimer = 0;
 
     private Vector3 moveDirection = Vector3.zero;
@@ -63,11 +54,11 @@ public class PlayerFSM : MonoBehaviour
     private float visualFlashTimer = 0;
 
     // --- 2. SETUP INPUTS ---
-    
+
     private void OnEnable()
     {
         if (playerHealth == null) playerHealth = GetComponent<Health>();
-        if (dashTrail == null)  dashTrail = GetComponent<TrailRenderer>();
+        if (dashTrail == null) dashTrail = GetComponent<TrailRenderer>();
         if (enemyLayer.value == 0) enemyLayer = LayerMask.GetMask("Enemy");
 
         if (dashTrail != null)
@@ -80,9 +71,9 @@ public class PlayerFSM : MonoBehaviour
         dashAction.action.Enable();
         attackAction.action.Enable();
         if (specialAttackAction != null) specialAttackAction.action.Enable();
-        
+
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
-        
+
         // Setup health event to trigger combo breaks
         if (playerHealth != null)
         {
@@ -92,11 +83,11 @@ public class PlayerFSM : MonoBehaviour
 
     private void OnDisable()
     {
-        moveAction.action.Disable();
-        dashAction.action.Disable();
-        attackAction.action.Disable();
-        if (specialAttackAction != null) specialAttackAction.action.Disable();
-        
+        if (moveAction != null && moveAction.action != null) moveAction.action.Disable();
+        if (dashAction != null && dashAction.action != null) dashAction.action.Disable();
+        if (attackAction != null && attackAction.action != null) attackAction.action.Disable();
+        if (specialAttackAction != null && specialAttackAction.action != null) specialAttackAction.action.Disable();
+
         if (playerHealth != null)
         {
             playerHealth.OnDamageTaken.RemoveListener(OnPlayerDamage);
@@ -168,7 +159,12 @@ public class PlayerFSM : MonoBehaviour
         CheckForCombatInputs();
         if (currentState != PlayerState.Moving) return;
 
-        Vector2 input = moveAction.action.ReadValue<Vector2>();
+        Vector2 input = Vector2.zero;
+        if (moveAction != null && moveAction.action != null)
+        {
+            input = moveAction.action.ReadValue<Vector2>();
+        }
+
         if (input == Vector2.zero)
         {
             SwitchState(PlayerState.Idle);
@@ -211,6 +207,7 @@ public class PlayerFSM : MonoBehaviour
             dashTrail.Clear();
             dashTrail.emitting = true;
         }
+
         SwitchState(PlayerState.Dashing);
     }
 
@@ -233,7 +230,7 @@ public class PlayerFSM : MonoBehaviour
         if (wasHit)
         {
             ResetCombo();
-            wasHit = false; 
+            wasHit = false;
         }
 
         lastAttackTime = Time.time;
@@ -256,7 +253,7 @@ public class PlayerFSM : MonoBehaviour
                 currentDamage *= 1.3f;
                 currentCritChance += 0.20f;
                 flashColor = Color.red;
-                ResetCombo(); 
+                ResetCombo();
                 break;
             default:
                 ResetCombo();
@@ -272,15 +269,15 @@ public class PlayerFSM : MonoBehaviour
     private void CheckHit(float range, float damage, float crit, Color vfxColor)
     {
         Vector3 hitPosition = transform.position + transform.forward * 1.5f;
-        
+
         GameObject vfx = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         vfx.transform.position = hitPosition;
         vfx.transform.localScale = Vector3.one * range;
         vfx.GetComponent<Collider>().enabled = false;
-        
+
         // Simple color setup for built-in shader
         vfx.GetComponent<MeshRenderer>().material.color = new Color(vfxColor.r, vfxColor.g, vfxColor.b, 0.4f);
-        
+
         Destroy(vfx, 0.1f);
 
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position + transform.forward, range, enemyLayer);
@@ -306,7 +303,7 @@ public class PlayerFSM : MonoBehaviour
         // Still available for manual calls if needed
         wasHit = true;
         ResetCombo();
-        FlashColor(Color.magenta); 
+        FlashColor(Color.magenta);
         Debug.Log("<color=red>Player Hit! Combo Broken.</color>");
     }
 
@@ -365,12 +362,13 @@ public class PlayerFSM : MonoBehaviour
 
         Vector2 pos = new Vector2(20, 20);
         Vector2 size = new Vector2(200, 20);
-        
+
         GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
         GUI.color = Color.green;
-        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
+        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y),
+            "PLAYER HP: " + (int)playerHealth.currentHealth);
         GUI.color = Color.white;
-        
+
         if (specialTimer > 0)
         {
             GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
@@ -385,7 +383,7 @@ public class PlayerFSM : MonoBehaviour
         // Add a clickable GUI button for quick testing
         if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health"))
         {
-            playerHealth.ResetAllHealthsInScene();
+            playerHealth.ResetHealth();
         }
     }
 }
