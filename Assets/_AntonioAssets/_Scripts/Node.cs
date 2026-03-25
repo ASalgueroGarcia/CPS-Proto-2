@@ -5,6 +5,11 @@ public class Node : MonoBehaviour
 {
     [Header("Node Settings")] 
     [SerializeField] private NodeTypeEnum type;
+
+    [Header("References")]
+    [SerializeField] private LineBetweenObjects line;
+    [SerializeField] private Canvas canvas;
+    [SerializeField] private bool generateType;
     
     private readonly List<Node> _parentNodes = new List<Node>();
     private readonly List<Node> _childNodes = new List<Node>();
@@ -14,24 +19,18 @@ public class Node : MonoBehaviour
     private bool _isActive = false;
     private bool _isStartingNode = false;
 
-    private LineRenderer _lr;
+    private LineBetweenObjects _lbo;
+    private readonly HashSet<Node> _connectedChildren = new HashSet<Node>();
 
     private void Awake()
     {
-        _lr = gameObject.AddComponent<LineRenderer>();
-        _lr.startColor = Color.red;
-        _lr.endColor = Color.green;
-        _lr.startWidth = 0.2f;
-        _lr.endWidth = 0.2f;
-        _lr.enabled = false;
-        
-        GetComponent<NodeBehaviour>().SetNode(this);
-        
+        canvas = FindObjectOfType<Canvas>();
         GenerateNodeType();
     }
 
     private void GenerateNodeType()
     {
+        if (!generateType) return;
         type = Random.Range(_min, _max + 1) <= 75 ? NodeTypeEnum.Combat : NodeTypeEnum.Merchant;
 
         //Debug.Log(this.gameObject.name + type);
@@ -82,18 +81,23 @@ public class Node : MonoBehaviour
 
         if (!_isActive || _childNodes == null) return;
 
-        _lr.positionCount = _childNodes.Count * 2;
-        _lr.enabled = true;
-        
-        for (var i = 0; i < _childNodes.Count; i++)
+        foreach (var child in _childNodes)
         {
-            _lr.SetPosition(i * 2, transform.position);
-            _lr.SetPosition(i * 2 + 1, _childNodes[i].transform.position);
+            if (!child._isActive || _connectedChildren.Contains(child)) continue;
+        
+            var connectingLine = Instantiate(line, canvas.transform);
+            connectingLine.SetObjects(this.gameObject, child.gameObject);
+            _connectedChildren.Add(child);
         }
     }
 
     public bool HasNode(Node node)
     {
         return _childNodes.Contains(node);
+    }
+
+    public void SetType(NodeTypeEnum nodeType)
+    {
+        type = nodeType;
     }
 }
