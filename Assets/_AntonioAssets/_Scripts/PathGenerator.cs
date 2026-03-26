@@ -21,12 +21,12 @@ public class PathGenerator : MonoBehaviour
     [SerializeField] private NodeLayer[] nodeLayers;
 
     [Header("Node Prefabs")] 
-    [SerializeField] private GameObject placeholderNode;
     [SerializeField] private GameObject combatNode;
     [SerializeField] private GameObject merchantNode;
+    [SerializeField] private GameObject bossNode;
+    //[SerializeField] private GameObject placeholderNode;
     //[SerializeField] private GameObject miniBossNode;
     //[SerializeField] private GameObject treasureNode;
-    [SerializeField] private GameObject bossNode;
     
     [Header("Boss Node")]
     [SerializeField] private Node finalNode;
@@ -95,9 +95,6 @@ public class PathGenerator : MonoBehaviour
 
         switch (nodeType)
         {
-            case NodeTypeEnum.Placeholder:
-                Instantiate(placeholderNode, nodeTransform, false);
-                return;
             case NodeTypeEnum.Combat:
                 spawnedNode = Instantiate(combatNode, nodeTransform, false);
                 break;

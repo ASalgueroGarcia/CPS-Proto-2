@@ -20,7 +20,6 @@ public class UIManager : MonoBehaviour
     private PlayerStatsManager playerStats;
     private Health playerHealth;
     private bool isPaused = false;
-
     private void Start()
     {
         playerStats = FindFirstObjectByType<PlayerStatsManager>();
@@ -34,6 +33,8 @@ public class UIManager : MonoBehaviour
         {
             pauseAction.action.performed += OnPausePressed;
         }
+
+        //SceneController.Instance._onMapLoaded += Resume;
     }
 
     private void OnDestroy()
@@ -42,6 +43,7 @@ public class UIManager : MonoBehaviour
         {
             pauseAction.action.performed -= OnPausePressed;
         }
+        //SceneController.Instance._onMapLoaded -= Resume;
     }
 
     private void OnPausePressed(InputAction.CallbackContext context)
