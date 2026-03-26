@@ -2413,33 +2413,14 @@ MonoBehaviour:
   combatLevels:
   - {fileID: 7895251268816406009, guid: e7953329b9014b74d880e53159886859, type: 3}
   shopLevel: {fileID: 7895251268816406009, guid: 23ec3634fed4a2244a3599c25c25e7c5, type: 3}
---- !u!1 &1673249033
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1614651966}
-  - component: {fileID: 1614651968}
-  - component: {fileID: 1614651967}
-  - component: {fileID: 1614651969}
-  - component: {fileID: 1614651970}
-  m_Layer: 5
-  m_Name: Node_102
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
+  mapCanvas: {fileID: 874075483}
 --- !u!224 &1614651966
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614651965}
+  m_GameObject: {fileID: 1673249033}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -2458,7 +2439,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614651965}
+  m_GameObject: {fileID: 1673249033}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
@@ -2488,7 +2469,7 @@ CanvasRenderer:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614651965}
+  m_GameObject: {fileID: 1673249033}
   m_CullTransparentMesh: 1
 --- !u!114 &1614651969
 MonoBehaviour:
@@ -2496,7 +2477,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614651965}
+  m_GameObject: {fileID: 1673249033}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e24f53b7a2302944bb2abcaf39a6009f, type: 3}
@@ -2512,12 +2493,32 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1614651965}
+  m_GameObject: {fileID: 1673249033}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1422b873a93f0bd48a8129560189b309, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeBehaviour
+--- !u!1 &1673249033
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1614651966}
+  - component: {fileID: 1614651968}
+  - component: {fileID: 1614651967}
+  - component: {fileID: 1614651969}
+  - component: {fileID: 1614651970}
+  m_Layer: 5
+  m_Name: Node_102
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
 --- !u!1 &1783556107
 GameObject:
   m_ObjectHideFlags: 0
