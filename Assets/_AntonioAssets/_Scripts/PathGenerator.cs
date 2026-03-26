@@ -65,15 +65,42 @@ public class PathGenerator : MonoBehaviour
         {
             _map[i] = nodeLayers[i].nodes;
         }
-
+    
         if(_hasBeenGenerated) return;
-        
+
+        CreateMap();
+    }
+
+    private void CreateMap()
+    {
         for (var i = 0; i < pathNum; i++)
         {
             GeneratePath();
         }
 
         AssignLocations();
+    }
+
+    public void ResetMap()
+    {
+        _hasBeenGenerated = false;
+        _isBossConnected = false;
+        _startingNode = null;
+        _currNode = null;
+        _prevNode = null;
+        _nextNode = null;
+
+        if (finalNode) finalNode.ResetNode();
+
+        for (var i = 0; i < _map.Length; i++)
+        {
+            for (var j = 0; j < _map[i].Length; j++)
+            {
+                _map[i][j].ResetNode();
+            }
+        }
+
+        CreateMap();
     }
 
     private void AssignLocations()

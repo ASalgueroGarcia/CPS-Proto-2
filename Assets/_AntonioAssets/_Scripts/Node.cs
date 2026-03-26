@@ -27,6 +27,23 @@ public class Node : MonoBehaviour
         canvas = FindObjectOfType<Canvas>();
         GenerateNodeType();
     }
+    
+    public void ResetNode()
+    {
+        _isActive = false;
+        _isStartingNode = false;
+        _connectedChildren.Clear();
+        _parentNodes.Clear();
+        _childNodes.Clear();
+        gameObject.SetActive(true);
+    
+        foreach (Transform child in transform)
+        {
+            Destroy(child.gameObject);
+        }
+    
+        GenerateNodeType();
+    }
 
     private void GenerateNodeType()
     {
@@ -35,7 +52,7 @@ public class Node : MonoBehaviour
 
         //Debug.Log(this.gameObject.name + type);
     }
-
+    
     public NodeTypeEnum GetNodeType()
     {
         return type;
