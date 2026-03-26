@@ -20,6 +20,7 @@ public class UIManager : MonoBehaviour
     private PlayerStatsManager playerStats;
     private Health playerHealth;
     private bool isPaused = false;
+    
     private void Start()
     {
         playerStats = FindFirstObjectByType<PlayerStatsManager>();
@@ -67,7 +68,16 @@ public class UIManager : MonoBehaviour
     public void StartGame()
     {
         Time.timeScale = 1f;
+        SceneManager.sceneLoaded += OnMapSceneLoaded;
         SceneManager.LoadScene("_MapScene");
+    }
+
+    private static void OnMapSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != "_MapScene") return;
+        SceneManager.sceneLoaded -= OnMapSceneLoaded;
+    
+        if (PathGenerator.Instance) PathGenerator.Instance.ResetMap();
     }
 
     public void QuitGame()
