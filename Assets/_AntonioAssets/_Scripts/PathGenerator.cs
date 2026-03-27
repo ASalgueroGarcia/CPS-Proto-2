@@ -1,5 +1,7 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -11,8 +13,7 @@ public class NodeLayer
 
 public class PathGenerator : MonoBehaviour
 {
-    [Header("Map Variables")] 
-    [SerializeField] private int minLayerNodes;
+    [Header("Map Variables")]
     [SerializeField] private int maxLayerNodes;
     [SerializeField] private int maxLayers;
     [SerializeField] private int pathNum;
@@ -41,47 +42,50 @@ public class PathGenerator : MonoBehaviour
     private Node _nextNode;
     private Node[][] _map;
 
-    
-    public static PathGenerator Instance;
-
-    private void Awake()
+    private void OnEnable()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(Instance);
-            return;
-        }
-
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void Start()
+    private void OnDisable()
     {
-        // Convert the serialized NodeLayer[] into the Node[][] _map
-        _map = new Node[nodeLayers.Length][];
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
-        for (var i = 0; i < nodeLayers.Length; i++)
-        {
-            _map[i] = nodeLayers[i].nodes;
-        }
-    
-        if(_hasBeenGenerated) return;
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        //if(_hasBeenGenerated) ResetMap();
 
+        if (scene.name != "_MapScene") return;
+        
+        Debug.Log("Scene Loaded");
+        
         CreateMap();
     }
 
     private void CreateMap()
     {
+        InitializeMap();
+
         for (var i = 0; i < pathNum; i++)
         {
-            GeneratePath();
-        }
-
-        AssignLocations();
+            GeneratePath(); 
+        } 
+        
+        AssignLocations(); 
     }
 
-    public void ResetMap()
+    private void InitializeMap()
+    {
+        _map = new Node[nodeLayers.Length][];
+        
+        for (var i = 0; i < nodeLayers.Length; i++)
+        {
+            _map[i] = nodeLayers[i].nodes; 
+        }
+    }
+
+    private void ResetMap()
     {
         _hasBeenGenerated = false;
         _isBossConnected = false;
@@ -99,8 +103,6 @@ public class PathGenerator : MonoBehaviour
                 _map[i][j].ResetNode();
             }
         }
-
-        CreateMap();
     }
 
     private void AssignLocations()
@@ -138,21 +140,29 @@ public class PathGenerator : MonoBehaviour
         if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
     }
 
-    private void ChooseStartingNode()
-    {
-        _startCoord = (int)Random.Range(minLayerNodes, maxLayerNodes);
+    private void ChooseStartingNode() 
+    { 
+        _startCoord = (int)Random.Range(0, _map[0].Length); 
         _startingNode = _map[0][_startCoord];
 
+        if (!_startingNode)
+        {
+            Debug.Log("No Starting node found");
+            ResetMap();
+            InitializeMap();
+            return;
+        }
+        
         if (!_startingNode.IsStartingNode())
         {
-            _startingNode.SetStartingNode();
-            _startingNode.SetType(NodeTypeEnum.Combat);
+            _startingNode.SetStartingNode(); 
+            _startingNode.SetType(NodeTypeEnum.Combat); 
             _currNode = _startingNode;
         }
         else
         {
             ChooseStartingNode();
-        }
+        } 
         
         //Debug.Log("Starting node: [0," + _startCoord + "]");
     }

@@ -35,7 +35,6 @@ public class Node : MonoBehaviour
         _connectedChildren.Clear();
         _parentNodes.Clear();
         _childNodes.Clear();
-        gameObject.SetActive(true);
     
         foreach (Transform child in transform)
         {
