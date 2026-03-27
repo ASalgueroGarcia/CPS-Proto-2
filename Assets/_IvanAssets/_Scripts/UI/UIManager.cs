@@ -103,4 +103,9 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 1f;
         SceneManager.LoadScene("UI_Basic");
     }
+    public void ReturnToMap()
+    {
+        Time.timeScale = 1f;
+        SceneController.Instance.UnloadLevel();
+    }
 }

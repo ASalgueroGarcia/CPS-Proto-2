@@ -16,7 +16,7 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Testing/Auto-Spawn")]
     [SerializeField] private bool autoSpawn = true;
-    [SerializeField] private float spawnInterval = 3f;
+    [SerializeField] public float spawnInterval = 3f;
     private float nextSpawnTime;
 
     private void Update()
