@@ -908,6 +908,100 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &445235196
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 445235199}
+  - component: {fileID: 445235197}
+  - component: {fileID: 445235198}
+  m_Layer: 0
+  m_Name: '@Managers'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &445235197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445235196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7988d7639d33de4c975a41da71d2edb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PathGenerator
+  maxLayerNodes: 4
+  maxLayers: 5
+  pathNum: 4
+  nodeLayers:
+  - nodes:
+    - {fileID: 158932672}
+    - {fileID: 966554392}
+    - {fileID: 1218509648}
+    - {fileID: 1157731743}
+  - nodes:
+    - {fileID: 1353453368}
+    - {fileID: 1000955028}
+    - {fileID: 1614651969}
+    - {fileID: 1887221910}
+  - nodes:
+    - {fileID: 544826095}
+    - {fileID: 1206093211}
+    - {fileID: 1127906681}
+    - {fileID: 130741233}
+  - nodes:
+    - {fileID: 258802198}
+    - {fileID: 129002924}
+    - {fileID: 1940316767}
+    - {fileID: 17901537}
+  - nodes:
+    - {fileID: 469932778}
+    - {fileID: 519914472}
+    - {fileID: 1941971112}
+    - {fileID: 1783556111}
+  combatNode: {fileID: 5564795284793723044, guid: 526aae9b62e842548a8cb79466d3670a, type: 3}
+  merchantNode: {fileID: 1393616209942037964, guid: de381aa7147d43a4cad8cc4a0c76c986, type: 3}
+  bossNode: {fileID: 6990962331775730609, guid: 78df274e0650fd240938eca39de9676e, type: 3}
+  finalNode: {fileID: 1975202755}
+--- !u!114 &445235198
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445235196}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be9ae540e2186234c80dc2eefaa5e91f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneController
+  combatLevels:
+  - {fileID: 7895251268816406009, guid: e7953329b9014b74d880e53159886859, type: 3}
+  shopLevel: {fileID: 7895251268816406009, guid: 23ec3634fed4a2244a3599c25c25e7c5, type: 3}
+  mapCanvas: {fileID: 874075483}
+--- !u!4 &445235199
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 445235196}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &469932774
 GameObject:
   m_ObjectHideFlags: 0
@@ -1401,7 +1495,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1182975999}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1703819226}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
@@ -2318,101 +2412,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1422b873a93f0bd48a8129560189b309, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeBehaviour
---- !u!1 &1522222976
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1522222977}
-  - component: {fileID: 1522222978}
-  - component: {fileID: 1522222979}
-  m_Layer: 0
-  m_Name: '@Managers'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1522222977
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1522222976}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1522222978
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1522222976}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7988d7639d33de4c975a41da71d2edb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PathGenerator
-  minLayerNodes: 0
-  maxLayerNodes: 4
-  maxLayers: 5
-  pathNum: 4
-  nodeLayers:
-  - nodes:
-    - {fileID: 158932672}
-    - {fileID: 966554392}
-    - {fileID: 1218509648}
-    - {fileID: 1157731743}
-  - nodes:
-    - {fileID: 1353453368}
-    - {fileID: 1000955028}
-    - {fileID: 1614651969}
-    - {fileID: 1887221910}
-  - nodes:
-    - {fileID: 544826095}
-    - {fileID: 1206093211}
-    - {fileID: 1127906681}
-    - {fileID: 130741233}
-  - nodes:
-    - {fileID: 258802198}
-    - {fileID: 129002924}
-    - {fileID: 1940316767}
-    - {fileID: 17901537}
-  - nodes:
-    - {fileID: 469932778}
-    - {fileID: 519914472}
-    - {fileID: 1941971112}
-    - {fileID: 1783556111}
-  combatNode: {fileID: 5564795284793723044, guid: 526aae9b62e842548a8cb79466d3670a, type: 3}
-  merchantNode: {fileID: 1393616209942037964, guid: de381aa7147d43a4cad8cc4a0c76c986, type: 3}
-  bossNode: {fileID: 6990962331775730609, guid: 78df274e0650fd240938eca39de9676e, type: 3}
-  finalNode: {fileID: 1975202755}
---- !u!114 &1522222979
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1522222976}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be9ae540e2186234c80dc2eefaa5e91f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SceneController
-  combatLevels:
-  - {fileID: 7895251268816406009, guid: e7953329b9014b74d880e53159886859, type: 3}
-  shopLevel: {fileID: 7895251268816406009, guid: 23ec3634fed4a2244a3599c25c25e7c5, type: 3}
-  mapCanvas: {fileID: 874075483}
 --- !u!224 &1614651966
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2518,6 +2517,38 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!1 &1703819225
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1703819226}
+  m_Layer: 0
+  m_Name: --UI--
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1703819226
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1703819225}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 874075484}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1783556107
 GameObject:
   m_ObjectHideFlags: 0
@@ -3047,7 +3078,7 @@ MonoBehaviour:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
+  - {fileID: 445235199}
   - {fileID: 746751650}
-  - {fileID: 874075484}
+  - {fileID: 1703819226}
   - {fileID: 1171553993}
-  - {fileID: 1522222977}
