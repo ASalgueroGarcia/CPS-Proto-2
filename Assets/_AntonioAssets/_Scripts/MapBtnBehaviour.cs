@@ -4,6 +4,13 @@ public class MapBtnBehaviour : MonoBehaviour
 {
     public void ReturnToMap()
     {
-        SceneController.Instance.UnloadLevel();
+        if (SceneController.Instance != null)
+        {
+            SceneController.Instance.UnloadLevel();
+        }
+        else
+        {
+            Debug.LogError("SceneController instance is null! Cannot return to map.");
+        }
     }
 }

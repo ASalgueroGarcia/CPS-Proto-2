@@ -46,6 +46,12 @@ public abstract class EnemyBase : MonoBehaviour
         agent.speed = speed;
 
         health.OnDeath.AddListener(HandleDeath);
+
+        // Ensure UI is setup
+        if (GetComponent<EnemyUIAutoSetup>() == null)
+        {
+            gameObject.AddComponent<EnemyUIAutoSetup>();
+        }
     }
 
     protected virtual void HandleDeath()

@@ -38,11 +38,7 @@ public class Health : MonoBehaviour
     {
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
-        
-        if (autoResetOnDeath)
-        {
-            Invoke("ResetHealth", 1.0f);
-        }
+        Destroy(gameObject, 0.1f);
     }
 
     public void ResetHealth()

@@ -355,35 +355,4 @@ public class PlayerFSM : MonoBehaviour
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position + transform.forward, specialRange);
     }
-
-    private void OnGUI()
-    {
-        if (playerHealth == null) return;
-
-        Vector2 pos = new Vector2(20, 20);
-        Vector2 size = new Vector2(200, 20);
-
-        GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
-        GUI.color = Color.green;
-        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y),
-            "PLAYER HP: " + (int)playerHealth.currentHealth);
-        GUI.color = Color.white;
-
-        if (specialTimer > 0)
-        {
-            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
-        }
-        else
-        {
-            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
-        }
-
-        GUI.Label(new Rect(pos.x, pos.y + 50, 200, 20), "Combo Step: " + comboStep);
-
-        // Add a clickable GUI button for quick testing
-        if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health"))
-        {
-            playerHealth.ResetHealth();
-        }
-    }
 }

@@ -47,7 +47,7 @@ public class EnemySpawner : MonoBehaviour
             {
                 // navHit.position is guaranteed to be a valid spot on the NavMesh
                 GameObject prefabToSpawn = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
-                Instantiate(prefabToSpawn, navHit.position, Quaternion.identity);
+                Instantiate(prefabToSpawn, navHit.position, Quaternion.identity, transform);
                 return;
             }
         }
