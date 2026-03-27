@@ -8,6 +8,7 @@ public class PlayerStatsManager : MonoBehaviour
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
+    private EnemySpawner enemySpawner;
 
     // HEALTH.
     private float currentHealth;
@@ -114,13 +115,12 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.enemySpawn:
+                    enemySpawner.spawnInterval = 1.0f;
                     break;
-
                 default:
                     break;
             }
         }
-        Debug.Log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         Prints();
     }
     public void ResetAllThePlayerStats()
