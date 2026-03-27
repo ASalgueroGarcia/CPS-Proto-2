@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using TMPro;
 
 public class UIManager : MonoBehaviour
 {
@@ -192,7 +193,7 @@ public class UIManager : MonoBehaviour
 
     private void OnPausePressed(InputAction.CallbackContext context)
     {
-        if (_isPaused){
+        if (isPaused){
             Resume();
         }
         else{
@@ -256,7 +257,7 @@ public class UIManager : MonoBehaviour
         }
         inGamePauseButton.gameObject.SetActive(false);
         Time.timeScale = 0f;
-        _isPaused = true;
+        isPaused = true;
     }
 
     public void Resume()
@@ -269,7 +270,7 @@ public class UIManager : MonoBehaviour
         }
         
         Time.timeScale = 1f;
-        _isPaused = false;
+        isPaused = false;
     }
     
     public void ReturnToMap()
