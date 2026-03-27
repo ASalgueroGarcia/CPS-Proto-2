@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7384795080942294897}
   - component: {fileID: 8380254660107509245}
   - component: {fileID: 8719221858524156891}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Glasses
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -252,6 +252,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   autoResetOnDeath: 0
+  isInvulnerable: 0
 --- !u!143 &6753685163580755908
 CharacterController:
   m_ObjectHideFlags: 0
@@ -321,6 +322,6 @@ NavMeshAgent:
   m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 2
-  m_BaseOffset: 1
+  m_BaseOffset: 2.5
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4

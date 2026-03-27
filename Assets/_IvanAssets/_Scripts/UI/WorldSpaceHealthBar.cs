@@ -32,17 +32,23 @@ public class WorldSpaceHealthBar : MonoBehaviour
 
     private void Update()
     {
-        // Billboard effect: Make the UI face the camera
-        if (mainCamera != null)
-        {
-            transform.LookAt(transform.position + mainCamera.transform.rotation * Vector3.forward,
-                             mainCamera.transform.rotation * Vector3.up);
-        }
-
         if (health != null && healthSlider != null)
         {
             healthSlider.value = health.currentHealth;
             UpdateHealthBar();
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (mainCamera == null || !mainCamera.isActiveAndEnabled)
+        {
+            mainCamera = Camera.main;
+        }
+
+        if (mainCamera != null)
+        {
+            transform.rotation = mainCamera.transform.rotation;
         }
     }
 
@@ -55,8 +61,5 @@ public class WorldSpaceHealthBar : MonoBehaviour
         {
             fillImage.color = colorGradient.Evaluate(healthPercent);
         }
-        
-        // Hide if full health (optional, but clean)
-        // gameObject.SetActive(healthPercent < 1.0f);
     }
 }

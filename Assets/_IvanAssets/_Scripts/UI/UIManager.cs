@@ -275,6 +275,13 @@ public class UIManager : MonoBehaviour
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
-        SceneController.Instance.UnloadLevel();
+        if (SceneController.Instance != null)
+        {
+            SceneController.Instance.UnloadLevel();
+        }
+        else
+        {
+            Debug.LogError("SceneController instance is null! Cannot return to map.");
+        }
     }
 }

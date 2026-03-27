@@ -9,8 +9,7 @@ using TMPro;
 [RequireComponent(typeof(Health))]
 public class EnemyUIAutoSetup : MonoBehaviour
 {
-    [Header("UI Settings")]
-    public Vector3 offset = new Vector3(0, 2.5f, 0);
+    [Header("UI Settings")] public Vector3 offset = new Vector3(0, 2.5f, 0);
     public Vector2 canvasSize = new Vector2(200, 50);
     public float scaleFactor = 0.01f; // Small scale to look normal in world space
 
@@ -34,14 +33,14 @@ public class EnemyUIAutoSetup : MonoBehaviour
 
         Canvas canvas = canvasObj.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
-        
+
         // This makes it not pixelated:
         CanvasScaler scaler = canvasObj.AddComponent<CanvasScaler>();
         scaler.dynamicPixelsPerUnit = 10; // High quality text rendering in world space
 
         // 2. Add WorldSpaceHealthBar script
         WorldSpaceHealthBar healthBar = canvasObj.AddComponent<WorldSpaceHealthBar>();
-        
+
         // 3. Create Slider Background
         GameObject sliderObj = new GameObject("HealthSlider");
         sliderObj.transform.SetParent(canvasObj.transform, false);
@@ -49,13 +48,13 @@ public class EnemyUIAutoSetup : MonoBehaviour
         sliderRect.sizeDelta = canvasSize;
 
         healthSlider = sliderObj.AddComponent<Slider>();
-        
+
         // 4. Background Image
         GameObject bgObj = new GameObject("Background");
         bgObj.transform.SetParent(sliderObj.transform, false);
+        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
         Image bgImage = bgObj.AddComponent<Image>();
         bgImage.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero;
         bgRect.anchorMax = Vector2.one;
         bgRect.sizeDelta = Vector2.zero;
@@ -70,9 +69,9 @@ public class EnemyUIAutoSetup : MonoBehaviour
 
         GameObject fillObj = new GameObject("Fill");
         fillObj.transform.SetParent(fillArea.transform, false);
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
         Image fillImage = fillObj.AddComponent<Image>();
         fillImage.color = Color.red;
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
         fillRect.sizeDelta = Vector2.zero;
 
         healthSlider.fillRect = fillRect;
@@ -80,16 +79,16 @@ public class EnemyUIAutoSetup : MonoBehaviour
         healthSlider.minValue = 0;
         healthSlider.maxValue = enemyHealth.maxHealth;
         healthSlider.value = enemyHealth.currentHealth;
-
+        
         // 6. Name Text (TMP)
         GameObject nameObj = new GameObject("EnemyName");
         nameObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform nameRect = nameObj.AddComponent<RectTransform>();
         TextMeshProUGUI nameText = nameObj.AddComponent<TextMeshProUGUI>();
         nameText.text = gameObject.name.Replace("(Clone)", "");
         nameText.fontSize = 24;
         nameText.alignment = TextAlignmentOptions.Center;
         nameText.color = Color.white;
-        RectTransform nameRect = nameObj.GetComponent<RectTransform>();
         nameRect.anchoredPosition = new Vector2(0, 35);
         nameRect.sizeDelta = new Vector2(200, 50);
 
