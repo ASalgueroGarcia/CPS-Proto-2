@@ -13,7 +13,6 @@ public class SceneController : MonoBehaviour
 
     [Header("Map References")]
     [SerializeField] private Canvas mapCanvas;
-
     private GameObject _spawnedInstance;
     private NodeTypeEnum _pendingLevelType;
     private const string CurrentLevelScene = "SetScene";
@@ -74,7 +73,6 @@ public class SceneController : MonoBehaviour
                 prefab = combatLevels[Random.Range(0, combatLevels.Length)];
                 break;
         }
-
         _spawnedInstance = Instantiate(prefab);
     }
 }

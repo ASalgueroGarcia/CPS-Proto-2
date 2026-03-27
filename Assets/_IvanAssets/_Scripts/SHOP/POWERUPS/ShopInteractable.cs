@@ -18,6 +18,8 @@ public class ShopInteractable : MonoBehaviour
         if(shopManager == null){
             shopManager = FindFirstObjectByType<ShopManager>();
         }
+        EUI.SetActive(false);
+
     }
 
     private void OnTriggerEnter(Collider other)
