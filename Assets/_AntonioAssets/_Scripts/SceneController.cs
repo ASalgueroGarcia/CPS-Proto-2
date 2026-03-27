@@ -75,4 +75,9 @@ public class SceneController : MonoBehaviour
         }
         _spawnedInstance = Instantiate(prefab);
     }
+
+    public Canvas GetMapCanvas()
+    {
+        return mapCanvas;
+    }
 }

@@ -24,7 +24,7 @@ public class Node : MonoBehaviour
 
     private void Awake()
     {
-        canvas = FindObjectOfType<Canvas>();
+        canvas = FindFirstObjectByType<Canvas>();
         GenerateNodeType();
     }
     
