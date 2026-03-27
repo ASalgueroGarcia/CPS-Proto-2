@@ -8,11 +8,14 @@ public class PlayerStatsManager : MonoBehaviour
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
-    private EnemySpawner enemySpawner;
+    private WaveManager waveManager;
 
     // HEALTH.
     private float currentHealth;
     private float maxHealth;
+
+    // CURRENCY.
+    private int currentCoins = 0;
 
     // DAMAGE.
     private float currentNormalDamage;
@@ -33,6 +36,7 @@ public class PlayerStatsManager : MonoBehaviour
     {
         playerController = GetComponent<PlayerFSM>();
         healthPlayer = GetComponent<Health>();
+        waveManager = FindFirstObjectByType<WaveManager>();
 
         // INITS.
         if (playerController != null)
@@ -50,6 +54,22 @@ public class PlayerStatsManager : MonoBehaviour
         }
         Prints();
     }
+    public void AddCoins(int amount)
+    {
+        currentCoins += amount;
+        Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
+    }
+
+    public void Heal(float amount)
+    {
+        if (healthPlayer != null)
+        {
+            healthPlayer.currentHealth = Mathf.Min(healthPlayer.currentHealth + amount, healthPlayer.maxHealth);
+            currentHealth = healthPlayer.currentHealth;
+            Debug.Log($"Healed for {amount}. Current health: {currentHealth}/{maxHealth}");
+        }
+    }
+
     public void ApplyPowerUpEffect(PowerUpData powerUp)
     {
         if(powerUp == null)
@@ -115,7 +135,12 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.enemySpawn:
-                    enemySpawner.spawnInterval = 1.0f;
+                    // WaveManager doesn't have spawnInterval yet, maybe increase budget?
+                    if (waveManager != null)
+                    {
+                        // Placeholder for wave modification
+                        Debug.Log("Increasing wave difficulty via powerup");
+                    }
                     break;
                 default:
                     break;

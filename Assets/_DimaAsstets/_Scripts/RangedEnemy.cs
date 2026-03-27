@@ -101,12 +101,13 @@ public class RangedEnemy : EnemyBase
 
         if (projectilePrefab != null)
         {
-            projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
+            projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity, transform.parent);
         }
         else
         {
             // Fallback: create a simple sphere if prefab is missing
             projObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projObj.transform.parent = transform.parent;
             projObj.transform.position = spawnPos;
             projObj.transform.localScale = Vector3.one * 0.5f;
             projObj.GetComponent<SphereCollider>().isTrigger = true;

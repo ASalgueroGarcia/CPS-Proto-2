@@ -46,6 +46,12 @@ public abstract class EnemyBase : MonoBehaviour
         agent.speed = speed;
 
         health.OnDeath.AddListener(HandleDeath);
+
+        // Ensure UI is setup
+        if (GetComponent<EnemyUIAutoSetup>() == null)
+        {
+            gameObject.AddComponent<EnemyUIAutoSetup>();
+        }
     }
 
     protected virtual void HandleDeath()
@@ -74,6 +80,16 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Update()
     {
+        if (playerTransform == null || !playerTransform.gameObject.activeInHierarchy)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null) 
+            {
+                playerTransform = playerObj.transform;
+                playerHealth = playerObj.GetComponent<Health>();
+            }
+        }
+
         if (playerTransform == null) return;
         
         float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
