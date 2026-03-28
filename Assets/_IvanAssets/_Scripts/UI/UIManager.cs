@@ -14,29 +14,26 @@ public class UIManager : MonoBehaviour
 
     [Header("MAIN MENU")]
     [SerializeField] private Canvas mainMenuCanvas;
-    
-/*    [Header("GAME UI")]
-    [SerializeField] private TextMeshProUGUI healthText;
-    [SerializeField] private TextMeshProUGUI speedText;
-    [SerializeField] private TextMeshProUGUI damageText;
-*/
+    [SerializeField] private GameObject eolCanvas;
 
     private bool _isPaused = false;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
     private static UIManager _instance;
 
+    public static UIManager Instance => _instance;
+
     private void Awake()
     {
         if (_instance != null && _instance != this)
         {
             gameObject.SetActive(false);
-            Destroy(_instance);
+            Destroy(this.gameObject);
             return;
         }
 
         _instance = this;
-        DontDestroyOnLoad(_instance);
+        DontDestroyOnLoad(gameObject);
     }
 
     private void Start()
@@ -48,10 +45,33 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(false);
         }
 
+        if (eolCanvas == null)
+        {
+            Transform eol = transform.Find("EoLCanvas");
+            if (eol != null) eolCanvas = eol.gameObject;
+        }
+
+        if (eolCanvas != null)
+        {
+            eolCanvas.SetActive(false);
+        }
+
         if (pauseAction != null)
         {
             pauseAction.action.Enable();
             pauseAction.action.performed += OnPausePressed;
+        }
+    }
+
+    public void ShowEoLCanvas()
+    {
+        if (eolCanvas != null)
+        {
+            eolCanvas.SetActive(true);
+            // Optionally pause the game or show cursor
+            // Time.timeScale = 0f;
+            // Cursor.lockState = CursorLockMode.None;
+            // Cursor.visible = true;
         }
     }
 

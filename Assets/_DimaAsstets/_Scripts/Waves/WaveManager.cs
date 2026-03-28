@@ -30,6 +30,7 @@ public class WaveManager : MonoBehaviour
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
+    private List<GameObject> activePickups = new List<GameObject>();
 
     [Header("Rewards Placeholders")]
     [SerializeField] private GameObject coinPrefab;
@@ -191,7 +192,13 @@ public class WaveManager : MonoBehaviour
             if (coinPrefab != null)
             {
                 Vector3 dropPos = centerPos + new Vector3(Random.Range(-1f, 1f), 0.5f, Random.Range(-1f, 1f));
-                Instantiate(coinPrefab, dropPos, Quaternion.identity);
+                GameObject coinObj = Instantiate(coinPrefab, dropPos, Quaternion.identity);
+                activePickups.Add(coinObj);
+                Coin coin = coinObj.GetComponent<Coin>();
+                if (coin != null)
+                {
+                    coin.OnCollected += () => OnPickupCollected(coinObj);
+                }
             }
         }
 
@@ -200,8 +207,31 @@ public class WaveManager : MonoBehaviour
         {
             if (healthDropPrefab != null)
             {
-                Instantiate(healthDropPrefab, centerPos + Vector3.up * 0.5f, Quaternion.identity);
+                GameObject healthObj = Instantiate(healthDropPrefab, centerPos + Vector3.up * 0.5f, Quaternion.identity);
+                activePickups.Add(healthObj);
+                HealthPickup health = healthObj.GetComponent<HealthPickup>();
+                if (health != null)
+                {
+                    health.OnCollected += () => OnPickupCollected(healthObj);
+                }
             }
+        }
+
+        // If no pickups were spawned, show EoLCanvas immediately
+        if (activePickups.Count == 0)
+        {
+            if (UIManager.Instance != null)
+                UIManager.Instance.ShowEoLCanvas();
+        }
+    }
+
+    private void OnPickupCollected(GameObject pickup)
+    {
+        activePickups.Remove(pickup);
+        if (activePickups.Count == 0)
+        {
+            if (UIManager.Instance != null)
+                UIManager.Instance.ShowEoLCanvas();
         }
     }
 
