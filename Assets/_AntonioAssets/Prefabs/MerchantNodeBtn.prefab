@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 4745516216005150175}
   - component: {fileID: 1703880684362053629}
   - component: {fileID: -577598398095126815}
+  - component: {fileID: 2016366646091288940}
   m_Layer: 5
   m_Name: MerchantNodeBtn
   m_TagString: Untagged
@@ -147,8 +148,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 2
+  lineHolder: {fileID: 0}
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
-  canvas: {fileID: 0}
   generateType: 0
 --- !u!114 &-577598398095126815
 MonoBehaviour:
@@ -162,3 +163,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1422b873a93f0bd48a8129560189b309, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NodeBehaviour
+--- !u!114 &2016366646091288940
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1393616209942037964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1e9d4f334ed1604996654040b7cbb89, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NodeButtonHover
+  hoverScale: 1.2
+  scaleSpeed: 8

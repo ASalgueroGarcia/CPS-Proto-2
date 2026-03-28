@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class NodeBehaviour : MonoBehaviour
 {
@@ -11,4 +12,5 @@ public class NodeBehaviour : MonoBehaviour
 
         if (node) sceneController.LoadLevel(node.GetNodeType());
     }
+    
 }
