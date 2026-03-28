@@ -5,6 +5,7 @@ public class Node : MonoBehaviour
 {
     [Header("Node Settings")] 
     [SerializeField] private NodeTypeEnum type;
+    [SerializeField] private GameObject lineHolder;
 
     [Header("References")]
     [SerializeField] private LineBetweenObjects line;
@@ -25,6 +26,7 @@ public class Node : MonoBehaviour
     private void Awake()
     {
         canvas = FindFirstObjectByType<Canvas>();
+        lineHolder = GameObject.Find("LineHolder");
         GenerateNodeType();
     }
     
@@ -101,7 +103,7 @@ public class Node : MonoBehaviour
         {
             if (!child._isActive || _connectedChildren.Contains(child)) continue;
         
-            var connectingLine = Instantiate(line, canvas.transform);
+            var connectingLine = Instantiate(line, lineHolder.transform);
             connectingLine.SetObjects(this.gameObject, child.gameObject);
             _connectedChildren.Add(child);
         }

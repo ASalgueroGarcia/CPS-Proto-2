@@ -52,6 +52,8 @@ public class PlayerFSM : MonoBehaviour
     private float verticalVelocity = 0f;
     private Color originalColor;
     private float visualFlashTimer = 0;
+    
+    public static bool IsPaused = false;
 
     // --- 2. SETUP INPUTS ---
 
@@ -183,6 +185,8 @@ public class PlayerFSM : MonoBehaviour
 
     private void CheckForCombatInputs()
     {
+        if (IsPaused) return;
+        
         if (dashAction.action.WasPressedThisFrame())
         {
             StartDash(moveDirection.normalized);
