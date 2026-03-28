@@ -10,8 +10,12 @@ public class MapBtnBehaviour : MonoBehaviour
     {
         if (SceneController.Instance)
         {
-            if (pauseMenu.activeSelf) pauseMenu.SetActive(!pauseMenu.activeSelf);
-            if (eolCanvas.activeSelf) ToggleEoLCanvas();
+            if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
+            if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
+            
+            // Also resume time if it was paused
+            Time.timeScale = 1f;
+            
             SceneController.Instance.UnloadLevel();
         }
         else
@@ -22,6 +26,9 @@ public class MapBtnBehaviour : MonoBehaviour
 
     public void ToggleEoLCanvas()
     {
-        eolCanvas.SetActive(!eolCanvas.activeSelf);
+        if (eolCanvas != null)
+        {
+            eolCanvas.SetActive(!eolCanvas.activeSelf);
+        }
     }
 }

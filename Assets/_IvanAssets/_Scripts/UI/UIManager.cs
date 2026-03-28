@@ -49,25 +49,73 @@ public class UIManager : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        SceneManager.sceneUnloaded += OnSceneUnloaded;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        SceneManager.sceneUnloaded -= OnSceneUnloaded;
+    }
+
+    private void OnSceneUnloaded(Scene scene)
+    {
+        RefreshHUDVisibility();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Hide Player UI in Main Menu and Map Scene
-        if (_playerUICanvasObj != null)
+        // Try to find the canvas if it's lost
+        if (_playerUICanvasObj == null)
         {
-            _playerUICanvasObj.SetActive(scene.name != "MainMenu" && scene.name != "_MapScene");
+            Transform playerUITransform = transform.Find("PlayerUICanvas");
+            if (playerUITransform != null) _playerUICanvasObj = playerUITransform.gameObject;
         }
+
+        // Force resume if entering a gameplay room to prevent being stuck in pause state
+        if (scene.name == "SetScene")
+        {
+            Resume();
+        }
+
+        // Hide Player UI in Main Menu and Map Scene
+        RefreshHUDVisibility();
 
         // Refresh references when a new scene is loaded
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         _playerHealth = FindFirstObjectByType<Health>();
         _playerFSM = FindFirstObjectByType<PlayerFSM>();
+    }
+
+    private void RefreshHUDVisibility()
+    {
+        if (_playerUICanvasObj == null) return;
+
+        // In this game, gameplay happens when 'SetScene' is loaded additively.
+        // The 'Active Scene' usually stays as '_MapScene'.
+        bool setSceneLoaded = false;
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            if (SceneManager.GetSceneAt(i).name == "SetScene")
+            {
+                setSceneLoaded = true;
+                break;
+            }
+        }
+
+        string currentBaseScene = SceneManager.GetActiveScene().name;
+        bool isMenu = currentBaseScene == "MainMenu" || currentBaseScene == "UI_Basic";
+        
+        // UI should be visible ONLY if SetScene is loaded AND we aren't in a main menu
+        bool shouldBeVisible = setSceneLoaded && !isMenu;
+        
+        if (_playerUICanvasObj.activeSelf != shouldBeVisible)
+        {
+            _playerUICanvasObj.SetActive(shouldBeVisible);
+        }
+
+        // Clear text if hiding to prevent ghosting
+        if (!shouldBeVisible && healthText != null) healthText.text = "";
     }
 
     private void Start()
@@ -134,11 +182,7 @@ public class UIManager : MonoBehaviour
         }
 
         // Initial visibility check
-        if (_playerUICanvasObj != null)
-        {
-            string currentScene = SceneManager.GetActiveScene().name;
-            _playerUICanvasObj.SetActive(currentScene != "MainMenu" && currentScene != "_MapScene");
-        }
+        RefreshHUDVisibility();
     }
 
     private void EnsureUIElementsExist()
@@ -286,9 +330,15 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
+        // Safety check: Ensure HUD stays hidden in non-gameplay scenes
+        RefreshHUDVisibility();
+
         if (_isPaused) return;
 
-        UpdatePlayerUI();
+        if (_playerUICanvasObj != null && _playerUICanvasObj.activeSelf)
+        {
+            UpdatePlayerUI();
+        }
     }
 
     private void UpdatePlayerUI()
@@ -335,10 +385,14 @@ public class UIManager : MonoBehaviour
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
+        // Forcibly hide HUD before transition
+        if (_playerUICanvasObj != null) _playerUICanvasObj.SetActive(false);
+
         // Reset stats if possible
         if (_playerStats == null) _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         if (_playerStats != null) _playerStats.ResetAllThePlayerStats();
         
+        RefreshHUDVisibility();
         SceneManager.LoadScene("_MapScene");
     }
 
@@ -371,12 +425,14 @@ public class UIManager : MonoBehaviour
         
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = _isPaused;
+        PlayerFSM.IsPaused = false;
     }
     
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
+        _isPaused = false;
+        PlayerFSM.IsPaused = false;
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 
