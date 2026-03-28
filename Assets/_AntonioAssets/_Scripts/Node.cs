@@ -9,7 +9,6 @@ public class Node : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private LineBetweenObjects line;
-    [SerializeField] private Canvas canvas;
     [SerializeField] private bool generateType;
     
     private readonly List<Node> _parentNodes = new List<Node>();
@@ -25,7 +24,6 @@ public class Node : MonoBehaviour
 
     private void Awake()
     {
-        canvas = FindFirstObjectByType<Canvas>();
         lineHolder = GameObject.Find("LineHolder");
         GenerateNodeType();
     }
