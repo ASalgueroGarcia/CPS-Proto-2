@@ -308,6 +308,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f15657619eb16545a3ebf8d954b11d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapBtnBehaviour
+  pauseMenu: {fileID: 1403546187}
 --- !u!114 &130167407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -925,7 +926,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 1698998720}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: Resume
         m_Mode: 1
@@ -1755,7 +1756,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1130066285
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1935,7 +1936,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1403546188
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2006,7 +2007,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1403546187}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_ConstrainProportionsScale: 0
@@ -2153,6 +2154,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1460926242}
   m_CullTransparentMesh: 1
+--- !u!114 &1590468724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fc1515ab76e54f068e2f2207940fab32, type: 3}
+  m_Name: UI/PAUSE
+  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
+  m_Asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  m_ActionId: d3068435-64ca-44a8-9114-d0e89f0afe9d
 --- !u!1 &1698998718
 GameObject:
   m_ObjectHideFlags: 0
@@ -2199,9 +2214,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b45d049fee8856e4293df068fe5495b6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
-  pausePanel: {fileID: 1214736036}
-  pauseAction: {fileID: 1950081951}
+  pausePanel: {fileID: 1403546187}
+  pauseAction: {fileID: 1590468724}
   inGamePauseButton: {fileID: 1460926244}
+  returnToMapBtn: {fileID: 130167407}
   mainMenuCanvas: {fileID: 1130066287}
 --- !u!1 &1715104294
 GameObject:
@@ -2463,20 +2479,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1872399024}
   m_CullTransparentMesh: 1
---- !u!114 &1950081951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fc1515ab76e54f068e2f2207940fab32, type: 3}
-  m_Name: UI/PAUSE
-  m_EditorClassIdentifier: Unity.InputSystem::UnityEngine.InputSystem.InputActionReference
-  m_Asset: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  m_ActionId: d3068435-64ca-44a8-9114-d0e89f0afe9d
 --- !u!1 &1975775037
 GameObject:
   m_ObjectHideFlags: 0

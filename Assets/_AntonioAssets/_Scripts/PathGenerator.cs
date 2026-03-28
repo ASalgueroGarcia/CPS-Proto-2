@@ -1,4 +1,5 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.SceneManagement;
@@ -33,7 +34,6 @@ public class PathGenerator : MonoBehaviour
     [SerializeField] private Node finalNode;
 
     private int _startCoord = 0;
-    private bool _hasBeenGenerated = false;
     private bool _isBossConnected = false;
 
     private Node _startingNode;
@@ -54,8 +54,6 @@ public class PathGenerator : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        //if(_hasBeenGenerated) ResetMap();
-
         if (scene.name != "_MapScene") return;
         
         Debug.Log("Scene Loaded");
@@ -73,6 +71,7 @@ public class PathGenerator : MonoBehaviour
         } 
         
         AssignLocations(); 
+        MakeStartingNodesInteractable();
     }
 
     private void InitializeMap()
@@ -87,7 +86,6 @@ public class PathGenerator : MonoBehaviour
 
     private void ResetMap()
     {
-        _hasBeenGenerated = false;
         _isBossConnected = false;
         _startingNode = null;
         _currNode = null;
@@ -226,6 +224,20 @@ public class PathGenerator : MonoBehaviour
             }
         }
     }
+
+    private void MakeStartingNodesInteractable()
+    {
+        for (var i = 0; i < maxLayers; i++)
+        {
+            for (var j = 0; j < _map[i].Length; j++)
+            {
+                var node = _map[i][j];
+                var nodeBtn = node.GetComponentInChildren<Button>();
+
+                nodeBtn.interactable = nodeBtn && node.IsStartingNode();
+            }
+        }
+    }
     
     private void GeneratePath()
     {
@@ -233,6 +245,5 @@ public class PathGenerator : MonoBehaviour
         ConnectNextNode(0, _startCoord);
         ConnectToBossNode();
         SetActiveNodes();
-        _hasBeenGenerated = true;
     }
 }
