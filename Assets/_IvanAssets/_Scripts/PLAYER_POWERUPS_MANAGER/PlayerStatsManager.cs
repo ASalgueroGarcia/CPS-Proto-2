@@ -167,6 +167,7 @@ public class PlayerStatsManager : MonoBehaviour
         currentCriticalDamage = 25.0f;
         currentSpecialDamage = 20.0f;
         currentAttackSpeed = 1.0f;
+        currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
     }

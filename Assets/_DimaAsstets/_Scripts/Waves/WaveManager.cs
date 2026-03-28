@@ -30,6 +30,7 @@ public class WaveManager : MonoBehaviour
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
+    private List<GameObject> activePickups = new List<GameObject>();
 
     [Header("Rewards Placeholders")]
     [SerializeField] private GameObject coinPrefab;
@@ -59,6 +60,8 @@ public class WaveManager : MonoBehaviour
 
     private void SpawnWave()
     {
+        if (roomCleared) return; // Safety check: don't spawn waves if room is already cleared
+
         currentWaveIndex++;
         config = RoomConfigs.Get(currentRoomType);
         
@@ -109,6 +112,12 @@ public class WaveManager : MonoBehaviour
                 else break;
             }
         }
+        
+        // If we failed to spawn any enemies for some reason, check if room is cleared
+        if (activeEnemies.Count == 0 && !roomCleared)
+        {
+            CheckWaveCompletion();
+        }
     }
 
     private bool TrySpawnEnemy(GameObject prefab)
@@ -131,37 +140,26 @@ public class WaveManager : MonoBehaviour
 
     private void OnEnemyDeath(GameObject enemy)
     {
+        if (roomCleared) return;
+
         activeEnemies.Remove(enemy);
         if (activeEnemies.Count == 0)
         {
-            RoomConfig config = RoomConfigs.Get(currentRoomType);
-            
-            if (currentWaveIndex < config.maxWaves)
-            {
-                float finalChance = config.baseWaveChance;
-                
-                if (totalEnemiesInCurrentWave > 0)
-                {
-                    float slimoPercent = (float)slimoCountInCurrentWave / totalEnemiesInCurrentWave;
-                    float heavyPercent = (float)heavyCountInCurrentWave / totalEnemiesInCurrentWave;
+            CheckWaveCompletion();
+        }
+    }
 
-                    if (slimoPercent > 0.6f) finalChance += 0.2f;
-                    if (heavyPercent > 0.5f) finalChance -= 0.2f;
-                }
-
-                if (Random.value < finalChance)
-                {
-                    Invoke(nameof(SpawnWave), 2f);
-                }
-                else
-                {
-                    OnRoomCleared();
-                }
-            }
-            else
-            {
-                OnRoomCleared();
-            }
+    private void CheckWaveCompletion()
+    {
+        RoomConfig currentConfig = RoomConfigs.Get(currentRoomType);
+        
+        if (currentWaveIndex < currentConfig.maxWaves)
+        {
+            Invoke(nameof(SpawnWave), 2f);
+        }
+        else
+        {
+            OnRoomCleared();
         }
     }
 
@@ -170,12 +168,16 @@ public class WaveManager : MonoBehaviour
         if (roomCleared) return;
         roomCleared = true;
         Debug.Log($"<color=green>Room Cleared!</color> Room Type: {currentRoomType}");
+        
+        // Cancel any pending wave spawns just in case
+        CancelInvoke(nameof(SpawnWave));
+        
         SpawnRewards();
     }
 
     private void SpawnRewards()
     {
-        RoomConfig config = RoomConfigs.Get(currentRoomType);
+        RoomConfig roomConfig = RoomConfigs.Get(currentRoomType);
         
         // Find ground center
         Vector3 centerPos = transform.position;
@@ -186,30 +188,59 @@ public class WaveManager : MonoBehaviour
         }
 
         // Spawn currency
-        for (int i = 0; i < config.expectedCurrency; i++)
+        for (int i = 0; i < roomConfig.expectedCurrency; i++)
         {
             if (coinPrefab != null)
             {
                 Vector3 dropPos = centerPos + new Vector3(Random.Range(-1f, 1f), 0.5f, Random.Range(-1f, 1f));
-                Instantiate(coinPrefab, dropPos, Quaternion.identity);
+                GameObject coinObj = Instantiate(coinPrefab, dropPos, Quaternion.identity);
+                activePickups.Add(coinObj);
+                Coin coin = coinObj.GetComponent<Coin>();
+                if (coin != null)
+                {
+                    coin.OnCollected += () => OnPickupCollected(coinObj);
+                }
             }
         }
 
         // Health drop
-        if (Random.value < config.healthDropChance)
+        if (Random.value < roomConfig.healthDropChance)
         {
             if (healthDropPrefab != null)
             {
-                Instantiate(healthDropPrefab, centerPos + Vector3.up * 0.5f, Quaternion.identity);
+                GameObject healthObj = Instantiate(healthDropPrefab, centerPos + Vector3.up * 0.5f, Quaternion.identity);
+                activePickups.Add(healthObj);
+                HealthPickup health = healthObj.GetComponent<HealthPickup>();
+                if (health != null)
+                {
+                    health.OnCollected += () => OnPickupCollected(healthObj);
+                }
             }
+        }
+
+        // If no pickups were spawned, show EoLCanvas immediately
+        if (activePickups.Count == 0)
+        {
+            if (UIManager.Instance != null)
+                UIManager.Instance.ShowEoLCanvas();
+        }
+    }
+
+    private void OnPickupCollected(GameObject pickup)
+    {
+        activePickups.Remove(pickup);
+        if (activePickups.Count == 0)
+        {
+            if (UIManager.Instance != null)
+                UIManager.Instance.ShowEoLCanvas();
         }
     }
 
     private bool TryGetRandomPoint(out Vector3 result)
     {
         float randomX = Random.Range(-spawnAreaSize.x / 2f, spawnAreaSize.x / 2f);
-        float randomZ = Random.Range(-spawnAreaSize.y / 2f, spawnAreaSize.y / 2f);
-        Vector3 origin = new Vector3(transform.position.x + randomX, transform.position.y + raycastHeight, transform.position.z + randomZ);
+        float randomY = Random.Range(-spawnAreaSize.y / 2f, spawnAreaSize.y / 2f);
+        Vector3 origin = new Vector3(transform.position.x + randomX, transform.position.y + raycastHeight, transform.position.z + randomY);
 
         if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2))
         {
@@ -246,7 +277,7 @@ public static class RoomConfigs
     private static Dictionary<RoomType, RoomConfig> configs = new Dictionary<RoomType, RoomConfig>
     {
         { RoomType.Entrance, new RoomConfig { budget = 4, baseWaveChance = 0f, maxWaves = 1, enemyPool = new List<EnemyType>{EnemyType.Slimo}, expectedCurrency = 1, healthDropChance = 0f }},
-        { RoomType.Medium, new RoomConfig { budget = 6, baseWaveChance = 0.15f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged}, expectedCurrency = 2, healthDropChance = 0.1f }},
+        { RoomType.Medium, new RoomConfig { budget = 6, baseWaveChance = 0.15f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged}, expectedCurrency = 2, healthDropChance = 0.1f }},    
         { RoomType.MediumHard, new RoomConfig { budget = 9, baseWaveChance = 0.30f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 2, healthDropChance = 0.2f }},
         { RoomType.Hard, new RoomConfig { budget = 12, baseWaveChance = 0.45f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 3, healthDropChance = 0.3f }},
         { RoomType.MiniBoss, new RoomConfig { budget = 16, baseWaveChance = 0.60f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 4, healthDropChance = 0.6f }},

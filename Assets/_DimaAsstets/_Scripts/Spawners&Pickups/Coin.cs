@@ -1,8 +1,9 @@
 using UnityEngine;
 
-public class HealthPickup : MonoBehaviour
+public class Coin : MonoBehaviour
 {
-    [SerializeField] private float healAmount = 20f;
+    public event System.Action OnCollected;
+    [SerializeField] private int amount = 1;
 
     private void OnTriggerEnter(Collider other)
     {
@@ -11,7 +12,8 @@ public class HealthPickup : MonoBehaviour
             PlayerStatsManager stats = other.GetComponent<PlayerStatsManager>();
             if (stats != null)
             {
-                stats.Heal(healAmount);
+                stats.AddCoins(amount);
+                OnCollected?.Invoke();
                 Destroy(gameObject);
             }
         }

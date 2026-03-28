@@ -1,3 +1,4 @@
+using System;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -17,6 +18,12 @@ public class CameraFollow : MonoBehaviour
     [Header("Rotation Settings")] public float rotationSpeed = 5f; // Added a separate speed for rotation
 
     private Vector3 currentVelocity = Vector3.zero;
+
+    private void Start()
+    {
+        if (target == null)
+            target = GameObject.FindGameObjectWithTag("Player").transform;
+    }
 
     void LateUpdate()
     {

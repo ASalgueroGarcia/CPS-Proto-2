@@ -3,19 +3,21 @@ using UnityEngine;
 
 public class Node : MonoBehaviour
 {
-    [Header("Node Settings")] 
-    [SerializeField] private NodeTypeEnum type;
+    [Header("Node Settings")] [SerializeField]
+    private NodeTypeEnum type;
+
     [SerializeField] private GameObject lineHolder;
 
-    [Header("References")]
-    [SerializeField] private LineBetweenObjects line;
+    [Header("References")] [SerializeField]
+    private LineBetweenObjects line;
+
     [SerializeField] private bool generateType;
-    
+
     private readonly List<Node> _parentNodes = new List<Node>();
     private readonly List<Node> _childNodes = new List<Node>();
 
     private readonly float _min = 0;
-    private readonly float _max= 100;
+    private readonly float _max = 100;
     private bool _isActive = false;
     private bool _isStartingNode = false;
 
@@ -27,7 +29,7 @@ public class Node : MonoBehaviour
         lineHolder = GameObject.Find("LineHolder");
         GenerateNodeType();
     }
-    
+
     public void ResetNode()
     {
         _isActive = false;
@@ -35,12 +37,13 @@ public class Node : MonoBehaviour
         _connectedChildren.Clear();
         _parentNodes.Clear();
         _childNodes.Clear();
-    
+
         foreach (Transform child in transform)
         {
-            Destroy(child.gameObject);
+            if (child != null)
+                Destroy(child.gameObject);
         }
-    
+
         GenerateNodeType();
     }
 
@@ -51,7 +54,7 @@ public class Node : MonoBehaviour
 
         //Debug.Log(this.gameObject.name + type);
     }
-    
+
     public NodeTypeEnum GetNodeType()
     {
         return type;
@@ -100,7 +103,7 @@ public class Node : MonoBehaviour
         foreach (var child in _childNodes)
         {
             if (!child._isActive || _connectedChildren.Contains(child)) continue;
-        
+
             var connectingLine = Instantiate(line, lineHolder.transform);
             connectingLine.SetObjects(this.gameObject, child.gameObject);
             _connectedChildren.Add(child);
