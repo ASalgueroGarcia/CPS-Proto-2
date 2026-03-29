@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PlayerFSM : MonoBehaviour
 {
@@ -224,7 +225,6 @@ public class PlayerFSM : MonoBehaviour
     }
 
     // --- COMBAT LOGIC ---
-
     private void PerformNormalAttack()
     {
         if (wasHit)
@@ -384,6 +384,25 @@ public class PlayerFSM : MonoBehaviour
         if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health"))
         {
             playerHealth.ResetHealth();
+        }
+    }
+
+    // --KNOCKBACK TRAP EFFECT--
+    public void ApplyKnockback(Vector3 direction, float force, float duration)
+    {
+        verticalVelocity = force * 1.5f;
+        Vector3 horizontalDir = new Vector3(direction.x, 0, direction.z).normalized;
+        StartCoroutine(KnockbackCoroutine(horizontalDir, force, duration));
+    }
+
+    private IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration)
+    {
+        float t = 0f;
+        while (t < duration)
+        {
+            controller.Move(direction * force * Time.deltaTime);
+            t += Time.deltaTime;
+            yield return null;
         }
     }
 }

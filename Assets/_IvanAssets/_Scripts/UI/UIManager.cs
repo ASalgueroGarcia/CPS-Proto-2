@@ -12,7 +12,7 @@ public class UIManager : MonoBehaviour
 
     [SerializeField] private Button inGamePauseButton;
 
-/*    [Header("GAME UI")]
+/*   [Header("GAME UI")]
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI speedText;
     [SerializeField] private TextMeshProUGUI damageText;

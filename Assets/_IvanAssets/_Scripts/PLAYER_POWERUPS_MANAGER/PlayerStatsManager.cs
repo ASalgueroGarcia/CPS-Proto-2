@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Unity.Mathematics;
 
 // PLAYER MANAGER FOR THE STATS OF THE PLAYER W THE ITEMS TOO.
 public class PlayerStatsManager : MonoBehaviour
