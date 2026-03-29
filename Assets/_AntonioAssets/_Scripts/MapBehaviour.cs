@@ -1,7 +1,5 @@
 using System;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -12,7 +10,7 @@ public class NodeLayer
     public Node[] nodes;
 }
 
-public class PathGenerator : MonoBehaviour
+public class MapBehaviour : MonoBehaviour
 {
     [Header("Map Variables")]
     [SerializeField] private int maxLayerNodes;
@@ -30,11 +28,12 @@ public class PathGenerator : MonoBehaviour
     //[SerializeField] private GameObject miniBossNode;
     //[SerializeField] private GameObject treasureNode;
     
-    [Header("Boss Node")]
+    [Header("Node References")]
     [SerializeField] private Node finalNode;
 
     private int _startCoord = 0;
     private bool _isBossConnected = false;
+    private int _currNodeIndex;
 
     private Node _startingNode;
     private Node _currNode;
@@ -70,7 +69,8 @@ public class PathGenerator : MonoBehaviour
             GeneratePath(); 
         } 
         
-        AssignLocations(); 
+        SetActiveNodes();
+        AssignLocations();
         MakeStartingNodesInteractable();
     }
 
@@ -80,7 +80,7 @@ public class PathGenerator : MonoBehaviour
         
         for (var i = 0; i < nodeLayers.Length; i++)
         {
-            _map[i] = nodeLayers[i].nodes; 
+            _map[i] = nodeLayers[i].nodes;
         }
     }
 
@@ -215,16 +215,20 @@ public class PathGenerator : MonoBehaviour
 
     private void SetActiveNodes()
     {
+        var nodeCounter = 0;
+        
         for (var i = 0; i < maxLayers; i++)
         {
             for (var j = 0; j < _map[i].Length; j++)
             {
                 var node = _map[i][j];
                 node.ToggleNode();
+                node.SetNodeIndex(nodeCounter);
+                nodeCounter++;
             }
         }
     }
-
+    
     private void MakeStartingNodesInteractable()
     {
         for (var i = 0; i < maxLayers; i++)
@@ -244,6 +248,34 @@ public class PathGenerator : MonoBehaviour
         ChooseStartingNode();
         ConnectNextNode(0, _startCoord);
         ConnectToBossNode();
-        SetActiveNodes();
+    }
+
+    public void CompletedNode()
+    {
+        for (var i = 0; i < maxLayers; i++)
+        {
+            for (var j = 0; j < _map[i].Length; j++)
+            {
+                var node = _map[i][j];
+
+                Debug.Log($"Node index {node.GetNodeIndex()}, Current Node Index: {_currNodeIndex}");
+                
+                if (node.GetNodeIndex() == _currNodeIndex)
+                {
+                    Debug.Log("Activating children.");
+                    node.ActivateChildren();
+                    node.GetComponentInChildren<Button>().interactable = false;
+                }
+                else
+                {
+                    node.GetComponentInChildren<Button>().interactable = false;
+                }
+            }
+        }
+    }
+
+    public void SetCurrentNodeIndex(int index)
+    {
+        _currNodeIndex = index;
     }
 }

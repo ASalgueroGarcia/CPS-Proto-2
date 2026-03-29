@@ -1,16 +1,17 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Node : MonoBehaviour
 {
-    [Header("Node Settings")] [SerializeField]
-    private NodeTypeEnum type;
-
+    [Header("Node Settings")] 
+    [SerializeField] private NodeTypeEnum type;
     [SerializeField] private GameObject lineHolder;
+    [SerializeField] private int nodeIndex;
 
-    [Header("References")] [SerializeField]
-    private LineBetweenObjects line;
-
+    [Header("References")] 
+    [SerializeField] private LineBetweenObjects line;
     [SerializeField] private bool generateType;
 
     private readonly List<Node> _parentNodes = new List<Node>();
@@ -118,5 +119,28 @@ public class Node : MonoBehaviour
     public void SetType(NodeTypeEnum nodeType)
     {
         type = nodeType;
+    }
+
+    public void SetNodeIndex(int index)
+    {
+        nodeIndex = index;
+    }
+
+    public int GetNodeIndex()
+    {
+        return nodeIndex;
+    }
+
+    public void ActivateChildren()
+    {
+        Debug.Log($"Button object: {gameObject.name}, Parent: {transform.parent?.name}, " +
+                  $"Node: {gameObject.name}, Type: {GetNodeType()}, " +
+                  $"Index: {transform.parent?.GetComponent<Node>().GetNodeIndex()}", this);
+        
+        foreach (var child in _childNodes)
+        {
+            var btn = child.GetComponentInChildren<Button>();
+            if (btn != null) btn.interactable = true;
+        }
     }
 }
