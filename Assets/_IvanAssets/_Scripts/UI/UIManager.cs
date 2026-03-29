@@ -13,13 +13,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button inGamePauseButton;
     [SerializeField] private Button returnToMapBtn;
 
-    [Header("MAIN MENU")]
-    [SerializeField] private Canvas mainMenuCanvas;
-    [SerializeField] private GameObject eolCanvas;
-    [SerializeField] private GameObject deathCanvas;
-
-    [Header("GAME UI")]
-    [SerializeField] private Slider playerHealthSlider;
+/*   [Header("GAME UI")]
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI speedText;
     [SerializeField] private TextMeshProUGUI damageText;

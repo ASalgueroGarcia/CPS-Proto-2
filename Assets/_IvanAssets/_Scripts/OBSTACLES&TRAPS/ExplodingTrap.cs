@@ -1,106 +1,73 @@
+using System;
+using System.Collections;
 using UnityEngine;
 
-public class ExplodingTrap : MonoBehaviour
+public class ExplodingTrap : TrapBase
 {
-    [Header("STATS SETTINGS")]
-    [SerializeField] private float damageToPlayer = 40.0f;
-    [SerializeField] private float damageToEnemys = 50.0f;
+    [Header("EXPLODING TRAP SETTINGS")]
     [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
+    [SerializeField] private float knockbackEffect = 10.0f;
+    private bool isTriggered = false;
 
-    private float explosionTimer = 0f;
-    private bool exploded = false;
-    private MeshRenderer meshRenderer; // 4 the color change.
-    private SphereCollider tCollider;
-    private Color originalColor;
-    PlayerStatsManager s;
-    // only 4 visual explotion.
-     [SerializeField]private Color explosionColor = Color.yellow;
+    [SerializeField] private Renderer trapRender;
 
-    private void Start()
-    {
-        tCollider = GetComponent<SphereCollider>();
-        meshRenderer = GetComponent<MeshRenderer>();
-
-        if (meshRenderer != null){
-            originalColor = meshRenderer.material.color;
-
-        }
-        // Configurar el trigger
-        if (tCollider != null){
-            tCollider.radius = explosionRadius;
-        }
-    }
-
-    private void Update()
-    {
-        if (exploded) return;
-        if(explosionTimer > 0)
-        {
-            explosionTimer -= Time.deltaTime;
-
-            if(meshRenderer != null)
-            {
-                // color change while wait
-                float timeWaiting = 1f - (explosionTimer / delayBetweenTrigger);
-                meshRenderer.material.color = Color.Lerp(originalColor, explosionColor, timeWaiting);
-            }
-
-            // Explotar solo cuando el timer llegue a 0
-            if (explosionTimer <= 0)
-            {
-                Explosion();
-            }
-        }
-    }
-
+    // detect -> player or enemy tag.
     private void OnTriggerEnter(Collider other)
     {
-        // the already trap exploded?
-        if (exploded)return;
+        if (isTriggered)return;
 
-        if (other.CompareTag("Enemy") || other.CompareTag("Player"))
+        if (other.CompareTag("Player") || other.CompareTag("Enemy"))
         {
-            explosionTimer = delayBetweenTrigger;
+            StartCoroutine(ExplodeC());
+            isTriggered = true;
         }
     }
-    private void Explosion()
+
+    // Coroutine
+    IEnumerator ExplodeC()
     {
-        exploded = true;
-        Collider[] collsInRad = Physics.OverlapSphere(transform.position, explosionRadius);
+        if (trapRender != null){
+            trapRender.material.color = Color.yellow;
+                Debug.Log("Color cambiado a amarillo");
+        }
 
-        // FOR LOOP NORMAL
-        for (int k = 0; k < collsInRad.Length;k++)
+        if (trapRender != null){
+            trapRender.material.color = Color.red;
+                Debug.Log("Color cambiado a rojo");
+        }
+
+        yield return new WaitForSeconds(delayBetweenTrigger);
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
+        for (int i = 0; i < hits.Length; i++)
         {
-            Collider colDet = collsInRad[k];
+            Vector3 dir = (hits[i].transform.position - transform.position).normalized + Vector3.up * 1.5f;
 
-            // ENEMY IN RANGE?
-            if (colDet.CompareTag("Enemy"))
+            if (hits[i].CompareTag("Player"))
             {
-                Health enemyHealth = colDet.GetComponent<Health>();
-                if (enemyHealth != null)
+                hits[i].GetComponent<Health>()?.TakeDamage(damageToPlayer);
+                var playerController = hits[i].GetComponent<PlayerFSM>();
+                if (playerController != null)
                 {
-                    enemyHealth.TakeDamage(damageToEnemys);
+                    playerController.ApplyKnockback(dir.normalized, knockbackEffect, 0.2f);
                 }
             }
-
-            if (colDet.CompareTag("Player"))
+            else if (hits[i].CompareTag("Enemy"))
             {
-                Health playerHealth = colDet.GetComponent<Health>();
-                if (playerHealth != null)
+                hits[i].GetComponent<Health>()?.TakeDamage(damageToEnemy);
+                Rigidbody rb = hits[i].GetComponent<Rigidbody>();
+                if (rb != null)
                 {
-                    playerHealth.TakeDamage(damageToPlayer);
-                            s.Prints();
-
+                    rb.AddForce(dir.normalized * knockbackEffect, ForceMode.Impulse);
                 }
             }
         }
-
         Destroy(gameObject);
-    }    
-private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
     }
+
+    public override void TrapActive() {}
+    public override void TrapDesactive() {}
+    public override void OnPlayerEnter(GameObject player) {}
+    public override void OnEnemyEnter(GameObject enemy) {}
 }
