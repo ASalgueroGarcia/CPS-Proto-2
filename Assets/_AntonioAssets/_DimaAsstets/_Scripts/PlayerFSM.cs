@@ -53,6 +53,8 @@ public class PlayerFSM : MonoBehaviour
     private float verticalVelocity = 0f;
     private Color originalColor;
     private float visualFlashTimer = 0;
+    
+    public static bool IsPaused = false;
 
     // --- 2. SETUP INPUTS ---
 
@@ -60,7 +62,15 @@ public class PlayerFSM : MonoBehaviour
     {
         if (playerHealth == null) playerHealth = GetComponent<Health>();
         if (dashTrail == null) dashTrail = GetComponent<TrailRenderer>();
-        if (enemyLayer.value == 0) enemyLayer = LayerMask.GetMask("Enemy");
+
+        // Ensure enemyLayer is set to the correct mask if it's currently 0
+        if (enemyLayer.value == 0)
+        {
+            enemyLayer = 1 << LayerMask.NameToLayer("Enemy");
+            // If the layer doesn't exist, fallback to 0 (all layers) or just log
+            if (enemyLayer.value == 0)
+                Debug.LogWarning("PlayerFSM: 'Enemy' layer not found! Hit detection might fail.");
+        }
 
         if (dashTrail != null)
         {
@@ -145,14 +155,23 @@ public class PlayerFSM : MonoBehaviour
         controller.Move(finalMove * Time.deltaTime);
     }
 
+    // private void HandleIdleState()
+    // {
+    //     moveDirection = Vector3.zero;
+    //     CheckForCombatInputs();
+    //     if (currentState != PlayerState.Idle) return;
+    //
+    //     Vector2 input = moveAction.action.ReadValue<Vector2>();
+    //     if (input != Vector2.zero) SwitchState(PlayerState.Moving);
+    // }
+
     private void HandleIdleState()
     {
-        moveDirection = Vector3.zero;
         CheckForCombatInputs();
         if (currentState != PlayerState.Idle) return;
 
-        Vector2 input = moveAction.action.ReadValue<Vector2>();
-        if (input != Vector2.zero) SwitchState(PlayerState.Moving);
+        UpdateMovementAndRotation(); // <--- Use the helper here
+        if (moveDirection != Vector3.zero) SwitchState(PlayerState.Moving);
     }
 
     private void HandleMovingState()
@@ -160,24 +179,15 @@ public class PlayerFSM : MonoBehaviour
         CheckForCombatInputs();
         if (currentState != PlayerState.Moving) return;
 
-        Vector2 input = Vector2.zero;
-        if (moveAction != null && moveAction.action != null)
-        {
-            input = moveAction.action.ReadValue<Vector2>();
-        }
+        UpdateMovementAndRotation();
 
-        if (input == Vector2.zero)
-        {
-            SwitchState(PlayerState.Idle);
-            return;
-        }
-
-        moveDirection = new Vector3(input.x, 0, input.y).normalized * speed;
-        if (moveDirection != Vector3.zero) transform.forward = new Vector3(moveDirection.x, 0, moveDirection.z);
+        if (moveDirection == Vector3.zero) SwitchState(PlayerState.Idle);
     }
 
     private void CheckForCombatInputs()
     {
+        if (IsPaused) return;
+        
         if (dashAction.action.WasPressedThisFrame())
         {
             StartDash(moveDirection.normalized);
@@ -227,6 +237,7 @@ public class PlayerFSM : MonoBehaviour
     // --- COMBAT LOGIC ---
     private void PerformNormalAttack()
     {
+        UpdateMovementAndRotation();
         if (wasHit)
         {
             ResetCombo();
@@ -293,6 +304,18 @@ public class PlayerFSM : MonoBehaviour
         }
     }
 
+    private void UpdateMovementAndRotation()
+    {
+        Vector2 input = moveAction.action.ReadValue<Vector2>();
+        if (input != Vector2.zero)
+        {
+            moveDirection = new Vector3(input.x, 0, input.y).normalized * speed;
+            transform.forward = new Vector3(moveDirection.x, 0, moveDirection.z);
+        }
+        else
+            moveDirection = Vector3.zero;
+    }
+
     private void ResetCombo()
     {
         comboStep = 0;
@@ -324,12 +347,13 @@ public class PlayerFSM : MonoBehaviour
 
     private void HandleAttackingState()
     {
-        // moveDirection = Vector3.zero;    // the player can during attack
+        UpdateMovementAndRotation();
         if (Time.time - lastAttackTime > 0.3f) SwitchState(PlayerState.Idle);
     }
 
     private void PerformSpecialAttack()
     {
+        UpdateMovementAndRotation();
         specialTimer = specialCooldown;
         FlashColor(Color.cyan);
         CheckHit(specialRange, weaponBaseDamage * 2, 0.40f, Color.cyan);
@@ -345,6 +369,29 @@ public class PlayerFSM : MonoBehaviour
 
     private void SwitchState(PlayerState newState)
     {
+        // Deactivate collision with enemies when dashing
+        if (newState == PlayerState.Dashing)
+        {
+            if (playerHealth != null) playerHealth.isInvulnerable = true;
+
+            int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
+            if (enemyLayerIndex != -1)
+            {
+                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, true);
+            }
+        }
+        // Reactivate collision when stopping dash
+        else if (currentState == PlayerState.Dashing)
+        {
+            if (playerHealth != null) playerHealth.isInvulnerable = false;
+
+            int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
+            if (enemyLayerIndex != -1)
+            {
+                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
+            }
+        }
+
         currentState = newState;
     }
 

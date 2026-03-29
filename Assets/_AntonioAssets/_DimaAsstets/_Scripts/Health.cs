@@ -13,6 +13,7 @@ public class Health : MonoBehaviour
 
     [Header("Settings")]
     public bool autoResetOnDeath = false;
+    public bool isInvulnerable = false;
 
     private void Start()
     {
@@ -21,6 +22,8 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
+        if (isInvulnerable) return;
+
         currentHealth -= amount;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         
@@ -38,11 +41,7 @@ public class Health : MonoBehaviour
     {
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
-        
-        if (autoResetOnDeath)
-        {
-            Invoke("ResetHealth", 1.0f);
-        }
+        Destroy(gameObject, 0.1f);
     }
 
     public void ResetHealth()

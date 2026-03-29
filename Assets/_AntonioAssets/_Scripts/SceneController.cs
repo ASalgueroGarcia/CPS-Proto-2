@@ -13,6 +13,8 @@ public class SceneController : MonoBehaviour
 
     [Header("Map References")]
     [SerializeField] private Canvas mapCanvas;
+    [SerializeField] private GameObject mapCamera;
+    [SerializeField] private GameObject mapEventSystem;
     private GameObject _spawnedInstance;
     private NodeTypeEnum _pendingLevelType;
     private const string CurrentLevelScene = "SetScene";
@@ -21,15 +23,7 @@ public class SceneController : MonoBehaviour
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            gameObject.SetActive(false);
-            Destroy(gameObject);
-            return;
-        }
-
         Instance = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     
@@ -37,6 +31,8 @@ public class SceneController : MonoBehaviour
     {
         //Debug.Log("LoadLevel called with: " + levelType);
         mapCanvas.gameObject.SetActive(false);
+        if (mapCamera != null) mapCamera.SetActive(false);
+        if (mapEventSystem != null) mapEventSystem.SetActive(false);
         _pendingLevelType = levelType;
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.LoadScene(CurrentLevelScene, LoadSceneMode.Additive);
@@ -47,6 +43,8 @@ public class SceneController : MonoBehaviour
         SceneManager.UnloadSceneAsync(CurrentLevelScene);
         //_onMapLoaded?.Invoke();
         mapCanvas.gameObject.SetActive(true);
+        if (mapCamera != null) mapCamera.SetActive(true);
+        if (mapEventSystem != null) mapEventSystem.SetActive(true);
         if (_spawnedInstance) Destroy(_spawnedInstance);
     }
 
@@ -74,5 +72,10 @@ public class SceneController : MonoBehaviour
                 break;
         }
         _spawnedInstance = Instantiate(prefab);
+    }
+
+    public Canvas GetMapCanvas()
+    {
+        return mapCanvas;
     }
 }

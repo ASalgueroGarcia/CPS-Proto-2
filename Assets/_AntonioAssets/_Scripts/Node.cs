@@ -1,21 +1,24 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Node : MonoBehaviour
 {
     [Header("Node Settings")] 
     [SerializeField] private NodeTypeEnum type;
+    [SerializeField] private GameObject lineHolder;
+    [SerializeField] private int nodeIndex;
 
-    [Header("References")]
+    [Header("References")] 
     [SerializeField] private LineBetweenObjects line;
-    [SerializeField] private Canvas canvas;
     [SerializeField] private bool generateType;
-    
+
     private readonly List<Node> _parentNodes = new List<Node>();
     private readonly List<Node> _childNodes = new List<Node>();
 
     private readonly float _min = 0;
-    private readonly float _max= 100;
+    private readonly float _max = 100;
     private bool _isActive = false;
     private bool _isStartingNode = false;
 
@@ -24,10 +27,10 @@ public class Node : MonoBehaviour
 
     private void Awake()
     {
-        canvas = FindObjectOfType<Canvas>();
+        lineHolder = GameObject.Find("LineHolder");
         GenerateNodeType();
     }
-    
+
     public void ResetNode()
     {
         _isActive = false;
@@ -35,13 +38,13 @@ public class Node : MonoBehaviour
         _connectedChildren.Clear();
         _parentNodes.Clear();
         _childNodes.Clear();
-        gameObject.SetActive(true);
-    
+
         foreach (Transform child in transform)
         {
-            Destroy(child.gameObject);
+            if (child != null)
+                Destroy(child.gameObject);
         }
-    
+
         GenerateNodeType();
     }
 
@@ -52,7 +55,7 @@ public class Node : MonoBehaviour
 
         //Debug.Log(this.gameObject.name + type);
     }
-    
+
     public NodeTypeEnum GetNodeType()
     {
         return type;
@@ -101,8 +104,8 @@ public class Node : MonoBehaviour
         foreach (var child in _childNodes)
         {
             if (!child._isActive || _connectedChildren.Contains(child)) continue;
-        
-            var connectingLine = Instantiate(line, canvas.transform);
+
+            var connectingLine = Instantiate(line, lineHolder.transform);
             connectingLine.SetObjects(this.gameObject, child.gameObject);
             _connectedChildren.Add(child);
         }
@@ -116,5 +119,28 @@ public class Node : MonoBehaviour
     public void SetType(NodeTypeEnum nodeType)
     {
         type = nodeType;
+    }
+
+    public void SetNodeIndex(int index)
+    {
+        nodeIndex = index;
+    }
+
+    public int GetNodeIndex()
+    {
+        return nodeIndex;
+    }
+
+    public void ActivateChildren()
+    {
+        Debug.Log($"Button object: {gameObject.name}, Parent: {transform.parent?.name}, " +
+                  $"Node: {gameObject.name}, Type: {GetNodeType()}, " +
+                  $"Index: {transform.parent?.GetComponent<Node>().GetNodeIndex()}", this);
+        
+        foreach (var child in _childNodes)
+        {
+            var btn = child.GetComponentInChildren<Button>();
+            if (btn != null) btn.interactable = true;
+        }
     }
 }

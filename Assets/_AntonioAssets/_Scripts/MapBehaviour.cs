@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -9,10 +10,9 @@ public class NodeLayer
     public Node[] nodes;
 }
 
-public class PathGenerator : MonoBehaviour
+public class MapBehaviour : MonoBehaviour
 {
-    [Header("Map Variables")] 
-    [SerializeField] private int minLayerNodes;
+    [Header("Map Variables")]
     [SerializeField] private int maxLayerNodes;
     [SerializeField] private int maxLayers;
     [SerializeField] private int pathNum;
@@ -28,12 +28,12 @@ public class PathGenerator : MonoBehaviour
     //[SerializeField] private GameObject miniBossNode;
     //[SerializeField] private GameObject treasureNode;
     
-    [Header("Boss Node")]
+    [Header("Node References")]
     [SerializeField] private Node finalNode;
 
     private int _startCoord = 0;
-    private bool _hasBeenGenerated = false;
     private bool _isBossConnected = false;
+    private int _currNodeIndex;
 
     private Node _startingNode;
     private Node _currNode;
@@ -41,49 +41,51 @@ public class PathGenerator : MonoBehaviour
     private Node _nextNode;
     private Node[][] _map;
 
-    
-    public static PathGenerator Instance;
-
-    private void Awake()
+    private void OnEnable()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(Instance);
-            return;
-        }
-
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-    private void Start()
+    private void OnDisable()
     {
-        // Convert the serialized NodeLayer[] into the Node[][] _map
-        _map = new Node[nodeLayers.Length][];
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
-        for (var i = 0; i < nodeLayers.Length; i++)
-        {
-            _map[i] = nodeLayers[i].nodes;
-        }
-    
-        if(_hasBeenGenerated) return;
-
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name != "_MapScene") return;
+        
+        Debug.Log("Scene Loaded");
+        
         CreateMap();
     }
 
     private void CreateMap()
     {
+        InitializeMap();
+
         for (var i = 0; i < pathNum; i++)
         {
-            GeneratePath();
-        }
-
+            GeneratePath(); 
+        } 
+        
+        SetActiveNodes();
         AssignLocations();
+        MakeStartingNodesInteractable();
     }
 
-    public void ResetMap()
+    private void InitializeMap()
     {
-        _hasBeenGenerated = false;
+        _map = new Node[nodeLayers.Length][];
+        
+        for (var i = 0; i < nodeLayers.Length; i++)
+        {
+            _map[i] = nodeLayers[i].nodes;
+        }
+    }
+
+    private void ResetMap()
+    {
         _isBossConnected = false;
         _startingNode = null;
         _currNode = null;
@@ -99,8 +101,6 @@ public class PathGenerator : MonoBehaviour
                 _map[i][j].ResetNode();
             }
         }
-
-        CreateMap();
     }
 
     private void AssignLocations()
@@ -138,21 +138,29 @@ public class PathGenerator : MonoBehaviour
         if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
     }
 
-    private void ChooseStartingNode()
-    {
-        _startCoord = (int)Random.Range(minLayerNodes, maxLayerNodes);
+    private void ChooseStartingNode() 
+    { 
+        _startCoord = (int)Random.Range(0, _map[0].Length); 
         _startingNode = _map[0][_startCoord];
 
+        if (!_startingNode)
+        {
+            Debug.Log("No Starting node found");
+            ResetMap();
+            InitializeMap();
+            return;
+        }
+        
         if (!_startingNode.IsStartingNode())
         {
-            _startingNode.SetStartingNode();
-            _startingNode.SetType(NodeTypeEnum.Combat);
+            _startingNode.SetStartingNode(); 
+            _startingNode.SetType(NodeTypeEnum.Combat); 
             _currNode = _startingNode;
         }
         else
         {
             ChooseStartingNode();
-        }
+        } 
         
         //Debug.Log("Starting node: [0," + _startCoord + "]");
     }
@@ -207,12 +215,30 @@ public class PathGenerator : MonoBehaviour
 
     private void SetActiveNodes()
     {
+        var nodeCounter = 0;
+        
         for (var i = 0; i < maxLayers; i++)
         {
             for (var j = 0; j < _map[i].Length; j++)
             {
                 var node = _map[i][j];
                 node.ToggleNode();
+                node.SetNodeIndex(nodeCounter);
+                nodeCounter++;
+            }
+        }
+    }
+    
+    private void MakeStartingNodesInteractable()
+    {
+        for (var i = 0; i < maxLayers; i++)
+        {
+            for (var j = 0; j < _map[i].Length; j++)
+            {
+                var node = _map[i][j];
+                var nodeBtn = node.GetComponentInChildren<Button>();
+
+                nodeBtn.interactable = nodeBtn && node.IsStartingNode();
             }
         }
     }
@@ -222,7 +248,34 @@ public class PathGenerator : MonoBehaviour
         ChooseStartingNode();
         ConnectNextNode(0, _startCoord);
         ConnectToBossNode();
-        SetActiveNodes();
-        _hasBeenGenerated = true;
+    }
+
+    public void CompletedNode()
+    {
+        for (var i = 0; i < maxLayers; i++)
+        {
+            for (var j = 0; j < _map[i].Length; j++)
+            {
+                var node = _map[i][j];
+
+                Debug.Log($"Node index {node.GetNodeIndex()}, Current Node Index: {_currNodeIndex}");
+                
+                if (node.GetNodeIndex() == _currNodeIndex)
+                {
+                    Debug.Log("Activating children.");
+                    node.ActivateChildren();
+                    node.GetComponentInChildren<Button>().interactable = false;
+                }
+                else
+                {
+                    node.GetComponentInChildren<Button>().interactable = false;
+                }
+            }
+        }
+    }
+
+    public void SetCurrentNodeIndex(int index)
+    {
+        _currNodeIndex = index;
     }
 }
