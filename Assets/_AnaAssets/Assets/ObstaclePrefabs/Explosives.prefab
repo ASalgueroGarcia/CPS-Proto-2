@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9222499466802112294}
   - component: {fileID: 1327838360410673843}
   - component: {fileID: 7112475354147113470}
+  - component: {fileID: 1723537971575447211}
   m_Layer: 0
   m_Name: Explosives
   m_TagString: Untagged
@@ -114,3 +115,22 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0.000000059604645, y: 0, z: -0.00000008940697}
+--- !u!114 &1723537971575447211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8307797233946085825}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e594a1741225bf64aaca45723636cf13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ExplodingTrap
+  TrapRadius: 0
+  damageToEnemy: 0
+  damageToPlayer: 0
+  explosionRadius: 5
+  delayBetweenTrigger: 1.5
+  knockbackEffect: 10
+  trapRender: {fileID: 1327838360410673843}
