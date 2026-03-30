@@ -21,6 +21,7 @@ public class Node : MonoBehaviour
     private readonly float _max = 100;
     private bool _isActive = false;
     private bool _isStartingNode = false;
+    private bool _isEndingNode = false;
 
     private LineBetweenObjects _lbo;
     private readonly HashSet<Node> _connectedChildren = new HashSet<Node>();
@@ -35,6 +36,7 @@ public class Node : MonoBehaviour
     {
         _isActive = false;
         _isStartingNode = false;
+        _isEndingNode = false;
         _connectedChildren.Clear();
         _parentNodes.Clear();
         _childNodes.Clear();
@@ -54,6 +56,47 @@ public class Node : MonoBehaviour
         type = Random.Range(_min, _max + 1) <= 75 ? NodeTypeEnum.Combat : NodeTypeEnum.Merchant;
 
         //Debug.Log(this.gameObject.name + type);
+    }
+    
+    public void ToggleNode()
+    {
+        gameObject.SetActive(_isActive);
+
+        if (!_isActive || _childNodes == null) return;
+
+        foreach (var child in _childNodes)
+        {
+            if (!child._isActive || _connectedChildren.Contains(child)) continue;
+
+            var connectingLine = Instantiate(line, lineHolder.transform);
+            connectingLine.SetObjects(this.gameObject, child.gameObject);
+            _connectedChildren.Add(child);
+        }
+    }
+    
+    public void ActivateChildren(Node endingNode = null)
+    {
+        Debug.Log($"Node: {gameObject.name} has {_childNodes.Count} children");
+
+        if (_childNodes.Count == 0)
+        {
+            Debug.LogWarning($"No children found on node {gameObject.name}!");
+            return;
+        }
+
+        foreach (var child in _childNodes)
+        {
+            // If this child is the ending node, enable it via its own button
+            if (endingNode != null && child == endingNode)
+            {
+                var bossBtn = child.GetComponentInChildren<Button>();
+                if (bossBtn != null) bossBtn.interactable = true;
+                continue;
+            }
+
+            var btn = child.GetComponentInChildren<Button>();
+            if (btn != null) btn.interactable = true;
+        }
     }
 
     public NodeTypeEnum GetNodeType()
@@ -90,25 +133,19 @@ public class Node : MonoBehaviour
         _isStartingNode = true;
     }
 
+    public void SetEndingNode()
+    {
+        _isEndingNode = true;
+    }
+
     public bool IsStartingNode()
     {
         return _isStartingNode;
     }
 
-    public void ToggleNode()
+    public bool IsEndingNode()
     {
-        gameObject.SetActive(_isActive);
-
-        if (!_isActive || _childNodes == null) return;
-
-        foreach (var child in _childNodes)
-        {
-            if (!child._isActive || _connectedChildren.Contains(child)) continue;
-
-            var connectingLine = Instantiate(line, lineHolder.transform);
-            connectingLine.SetObjects(this.gameObject, child.gameObject);
-            _connectedChildren.Add(child);
-        }
+        return _isEndingNode;
     }
 
     public bool HasNode(Node node)
@@ -129,18 +166,5 @@ public class Node : MonoBehaviour
     public int GetNodeIndex()
     {
         return nodeIndex;
-    }
-
-    public void ActivateChildren()
-    {
-        Debug.Log($"Button object: {gameObject.name}, Parent: {transform.parent?.name}, " +
-                  $"Node: {gameObject.name}, Type: {GetNodeType()}, " +
-                  $"Index: {transform.parent?.GetComponent<Node>().GetNodeIndex()}", this);
-        
-        foreach (var child in _childNodes)
-        {
-            var btn = child.GetComponentInChildren<Button>();
-            if (btn != null) btn.interactable = true;
-        }
     }
 }

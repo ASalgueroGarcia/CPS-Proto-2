@@ -24,7 +24,7 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private GameObject combatNode;
     [SerializeField] private GameObject merchantNode;
     [SerializeField] private GameObject bossNode;
-    //[SerializeField] private GameObject placeholderNode;
+    [SerializeField] private GameObject placeholderNode;
     //[SerializeField] private GameObject miniBossNode;
     //[SerializeField] private GameObject treasureNode;
     
@@ -36,6 +36,7 @@ public class MapBehaviour : MonoBehaviour
     private int _currNodeIndex;
 
     private Node _startingNode;
+    private Node _completedNode;
     private Node _currNode;
     private Node _prevNode;
     private Node _nextNode;
@@ -94,11 +95,11 @@ public class MapBehaviour : MonoBehaviour
 
         if (finalNode) finalNode.ResetNode();
 
-        for (var i = 0; i < _map.Length; i++)
+        foreach (var t in _map)
         {
-            for (var j = 0; j < _map[i].Length; j++)
+            foreach (var t1 in t)
             {
-                _map[i][j].ResetNode();
+                t1.ResetNode();
             }
         }
     }
@@ -117,30 +118,28 @@ public class MapBehaviour : MonoBehaviour
 
     private void SpawnNode(NodeTypeEnum nodeType, Transform nodeTransform)
     {
-        nodeTransform.GetComponent<Node>().SetType(nodeType);
-        GameObject spawnedNode = null;
+        var node = nodeTransform.GetComponent<Node>();
+        node.SetType(nodeType);
 
-        switch (nodeType)
+        var spawnedNode = nodeType switch
         {
-            case NodeTypeEnum.Combat:
-                spawnedNode = Instantiate(combatNode, nodeTransform, false);
-                break;
-            case NodeTypeEnum.Merchant:
-                spawnedNode = Instantiate(merchantNode, nodeTransform, false);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null);
-        }
+            NodeTypeEnum.Combat => Instantiate(combatNode, nodeTransform, false),
+            NodeTypeEnum.Merchant => Instantiate(merchantNode, nodeTransform, false),
+            NodeTypeEnum.Placeholder => Instantiate(placeholderNode, nodeTransform, false),
+            NodeTypeEnum.Boss => Instantiate(combatNode, nodeTransform, false),
+            _ => throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null)
+        };
 
         var nodeBehaviour = spawnedNode.GetComponent<NodeBehaviour>();
         var button = spawnedNode.GetComponentInChildren<Button>();
 
+        if (nodeBehaviour != null) nodeBehaviour.SetNode(node); // ← this is the key line
         if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
     }
 
     private void ChooseStartingNode() 
     { 
-        _startCoord = (int)Random.Range(0, _map[0].Length); 
+        _startCoord = Random.Range(0, _map[0].Length); 
         _startingNode = _map[0][_startCoord];
 
         if (!_startingNode)
@@ -201,13 +200,23 @@ public class MapBehaviour : MonoBehaviour
     private void ConnectToBossNode()
     {
         if (_isBossConnected) return;
-        
+    
         for (var i = 0; i < maxLayerNodes; i++)
         {
             _map[maxLayers-1][i].SetChildNode(finalNode);
         }
 
-        Instantiate(bossNode, finalNode.GetNodeTransform());
+        finalNode.SetEndingNode();
+        finalNode.SetType(NodeTypeEnum.Boss);
+
+        var spawnedBoss = Instantiate(bossNode, finalNode.GetNodeTransform());
+    
+        var nodeBehaviour = spawnedBoss.GetComponent<NodeBehaviour>();
+        var button = spawnedBoss.GetComponentInChildren<Button>();
+
+        if (nodeBehaviour != null) nodeBehaviour.SetNode(finalNode);
+        if (button != null && nodeBehaviour != null) button.onClick.AddListener(nodeBehaviour.LoadLevel);
+
         finalNode.SetNodeAsActive(); 
         finalNode.ToggleNode();
         _isBossConnected = true;
@@ -215,16 +224,11 @@ public class MapBehaviour : MonoBehaviour
 
     private void SetActiveNodes()
     {
-        var nodeCounter = 0;
-        
         for (var i = 0; i < maxLayers; i++)
         {
             for (var j = 0; j < _map[i].Length; j++)
             {
-                var node = _map[i][j];
-                node.ToggleNode();
-                node.SetNodeIndex(nodeCounter);
-                nodeCounter++;
+                _map[i][j].ToggleNode();
             }
         }
     }
@@ -237,10 +241,13 @@ public class MapBehaviour : MonoBehaviour
             {
                 var node = _map[i][j];
                 var nodeBtn = node.GetComponentInChildren<Button>();
-
                 nodeBtn.interactable = nodeBtn && node.IsStartingNode();
             }
         }
+
+        // Boss node starts locked
+        var bossBtn = finalNode.GetComponentInChildren<Button>();
+        if (bossBtn != null) bossBtn.interactable = false;
     }
     
     private void GeneratePath()
@@ -252,30 +259,39 @@ public class MapBehaviour : MonoBehaviour
 
     public void CompletedNode()
     {
+        if (_completedNode == null)
+        {
+            Debug.LogError("CompletedNode called but _completedNode is null!");
+            return;
+        }
+
+        // Lock all buttons first
         for (var i = 0; i < maxLayers; i++)
         {
             for (var j = 0; j < _map[i].Length; j++)
             {
-                var node = _map[i][j];
-
-                Debug.Log($"Node index {node.GetNodeIndex()}, Current Node Index: {_currNodeIndex}");
-                
-                if (node.GetNodeIndex() == _currNodeIndex)
-                {
-                    Debug.Log("Activating children.");
-                    node.ActivateChildren();
-                    node.GetComponentInChildren<Button>().interactable = false;
-                }
-                else
-                {
-                    node.GetComponentInChildren<Button>().interactable = false;
-                }
+                var btn = _map[i][j].GetComponentInChildren<Button>();
+                if (btn != null) btn.interactable = false;
             }
         }
+
+        // Also lock boss button
+        var bossBtn = finalNode.GetComponentInChildren<Button>();
+        if (bossBtn != null) bossBtn.interactable = false;
+
+        // Unlock children — if a child is the ending node, enable the boss button instead
+        _completedNode.ActivateChildren(finalNode);
+        _completedNode = null;
     }
 
     public void SetCurrentNodeIndex(int index)
     {
         _currNodeIndex = index;
+    }
+    
+    public void SetCurrentNode(Node node)
+    {
+        _completedNode = node;
+        Debug.Log($"Current node set to: {node.gameObject.name}");
     }
 }
