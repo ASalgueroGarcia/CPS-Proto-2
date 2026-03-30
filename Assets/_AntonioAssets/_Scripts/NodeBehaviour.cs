@@ -3,26 +3,29 @@ using UnityEngine;
 public class NodeBehaviour : MonoBehaviour
 {
     private MapBehaviour _mapBehaviour;
+    private Node _node;
 
-    private void Start()
+    private void Awake()
     {
         _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
     }
 
+    public void SetNode(Node node)
+    {
+        _node = node;
+        Debug.Log($"SetNode called on {gameObject.name}, assigned: {_node.gameObject.name}");
+    }
+
     public void LoadLevel()
     {
-        var sceneController = SceneController.Instance;
-        var node = GetComponentInParent<Node>();
-        
-        /*
-        Debug.Log($"Button object: {gameObject.name}, Parent: {transform.parent?.name}, " +
-                  $"Node: {node?.gameObject.name}, Type: {node?.GetNodeType()}, " +
-                  $"Index: {transform.parent?.GetComponent<Node>().GetNodeIndex()}", this);
-        */
+        if (_node == null)
+        {
+            Debug.LogError($"No node reference on {gameObject.name}!", this);
+            return;
+        }
 
-        if (!node) return;
-
-        if (transform.parent) _mapBehaviour.SetCurrentNodeIndex(transform.parent.GetComponent<Node>().GetNodeIndex());
-        sceneController.LoadLevel(node.GetNodeType());
+        //Debug.Log($"Loading: {_node.gameObject.name}, Type: {_node.GetNodeType()}");
+        _mapBehaviour.SetCurrentNode(_node);
+        SceneController.Instance.LoadLevel(_node.GetNodeType());
     }
 }
