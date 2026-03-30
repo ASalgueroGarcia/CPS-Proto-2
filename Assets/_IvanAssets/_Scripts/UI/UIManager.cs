@@ -13,15 +13,21 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button inGamePauseButton;
     [SerializeField] private Button returnToMapBtn;
 
-/*   [Header("GAME UI")]
+    [Header("PLAYER UI")]
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI speedText;
     [SerializeField] private TextMeshProUGUI damageText;
-
+    [SerializeField] private Slider playerHealthSlider;
+    
+    [Header("CANVAS REFERENCES")]
+    [SerializeField] private GameObject deathCanvas;
+    [SerializeField] private Canvas mainMenuCanvas;
+    [SerializeField] private GameObject eolCanvas;
+    
     private bool _isPaused = false;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
-    private PlayerFSM _playerFSM;
+    private PlayerFSM _playerFsm;
     private static UIManager _instance;
     private GameObject _playerUICanvasObj;
 
@@ -78,7 +84,7 @@ public class UIManager : MonoBehaviour
         // Refresh references when a new scene is loaded
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         _playerHealth = FindFirstObjectByType<Health>();
-        _playerFSM = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<PlayerFSM>();
     }
 
     private void RefreshHUDVisibility()
@@ -116,7 +122,7 @@ public class UIManager : MonoBehaviour
     {
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         _playerHealth = FindFirstObjectByType<Health>();
-        _playerFSM = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<PlayerFSM>();
 
         if (playerHealthSlider == null || healthText == null || speedText == null || damageText == null)
         {
@@ -353,20 +359,20 @@ public class UIManager : MonoBehaviour
         else
         {
             _playerHealth = FindFirstObjectByType<Health>();
-            _playerFSM = FindFirstObjectByType<PlayerFSM>();
+            _playerFsm = FindFirstObjectByType<PlayerFSM>();
             _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         }
 
-        if (_playerFSM != null)
+        if (_playerFsm != null)
         {
             if (speedText != null)
             {
-                speedText.text = $"Speed: {_playerFSM.speed:F1}";
+                speedText.text = $"Speed: {_playerFsm.speed:F1}";
             }
 
             if (damageText != null)
             {
-                damageText.text = $"DMG: {_playerFSM.weaponBaseDamage:F1}";
+                damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
             }
         }
     }
