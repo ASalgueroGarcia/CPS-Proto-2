@@ -483,10 +483,10 @@ public class PlayerFSM : MonoBehaviour
         if (playerHealth == null) return;
         Vector2 pos = new Vector2(20, 20);
         Vector2 size = new Vector2(200, 20);
-        GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
-        GUI.color = Color.green;
-        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
-        GUI.color = Color.white;
+        // GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
+        // GUI.color = Color.green;
+        // GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
+        // GUI.color = Color.white;
         if (specialTimer > 0) GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
         else GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
         GUI.Label(new Rect(pos.x, pos.y + 50, 200, 20), "Combo Step: " + comboStep);
