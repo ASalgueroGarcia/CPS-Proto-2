@@ -25,13 +25,15 @@ public class ShopManager : MonoBehaviour
     private PowerUpData[] currentPowerUps = new PowerUpData[3];
     private CanvasGroup canvasG;
     private RectTransform panelRect;
-    
+    private UIManager _uiManager;
+
     // methods.
     private void Start()
     {
         // 1. Find the playerStatsManager.
         playerStatsManager = FindFirstObjectByType<PlayerStatsManager>();
         canvasG = shopPanel.GetComponent<CanvasGroup>();
+        _uiManager = FindFirstObjectByType<UIManager>();
 
         if (canvasG == null)
         {
@@ -94,5 +96,6 @@ public class ShopManager : MonoBehaviour
             playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
         }
         HideShopLogic();
+        _uiManager.ShowEoLCanvas();
     }
 }
