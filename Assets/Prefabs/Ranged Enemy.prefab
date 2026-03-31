@@ -223,7 +223,7 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
@@ -257,6 +257,9 @@ MonoBehaviour:
   autoResetOnDeath: 0
   isInvulnerable: 0
   targetRenderer: {fileID: 5866723436311471217}
+  checkFall: 1
+  fallThreshold: -5
+  checkInterval: 0.5
 --- !u!143 &6753685163580755908
 CharacterController:
   m_ObjectHideFlags: 0
@@ -276,7 +279,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.49999994
+  m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
