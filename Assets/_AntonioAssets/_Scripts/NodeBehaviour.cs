@@ -13,7 +13,7 @@ public class NodeBehaviour : MonoBehaviour
     public void SetNode(Node node)
     {
         _node = node;
-        Debug.Log($"SetNode called on {gameObject.name}, assigned: {_node.gameObject.name}");
+        //Debug.Log($"SetNode called on {gameObject.name}, assigned: {_node.gameObject.name}");
     }
 
     public void LoadLevel()
