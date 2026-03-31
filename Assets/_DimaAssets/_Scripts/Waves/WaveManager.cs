@@ -179,26 +179,23 @@ public class WaveManager : MonoBehaviour
     {
         RoomConfig roomConfig = RoomConfigs.Get(currentRoomType);
         
-        // Find ground center
+        // Use transform.position as the base center
         Vector3 centerPos = transform.position;
-        RaycastHit hit;
-        if (Physics.Raycast(transform.position + Vector3.up * raycastHeight, Vector3.down, out hit, raycastHeight * 2))
-        {
-            centerPos = hit.point;
-        }
 
         // Spawn currency
         for (int i = 0; i < roomConfig.expectedCurrency; i++)
         {
             if (coinPrefab != null)
             {
-                Vector3 dropPos = centerPos + new Vector3(Random.Range(-1f, 1f), 0.5f, Random.Range(-1f, 1f));
-                GameObject coinObj = Instantiate(coinPrefab, dropPos, Quaternion.identity);
-                activePickups.Add(coinObj);
-                Coin coin = coinObj.GetComponent<Coin>();
-                if (coin != null)
+                if (TryGetValidPointNear(centerPos, 2f, out Vector3 dropPos))
                 {
-                    coin.OnCollected += () => OnPickupCollected(coinObj);
+                    GameObject coinObj = Instantiate(coinPrefab, dropPos + Vector3.up * 0.5f, Quaternion.identity);
+                    activePickups.Add(coinObj);
+                    Coin coin = coinObj.GetComponent<Coin>();
+                    if (coin != null)
+                    {
+                        coin.OnCollected += () => OnPickupCollected(coinObj);
+                    }
                 }
             }
         }
@@ -208,12 +205,15 @@ public class WaveManager : MonoBehaviour
         {
             if (healthDropPrefab != null)
             {
-                GameObject healthObj = Instantiate(healthDropPrefab, centerPos + Vector3.up * 0.5f, Quaternion.identity);
-                activePickups.Add(healthObj);
-                HealthPickup health = healthObj.GetComponent<HealthPickup>();
-                if (health != null)
+                if (TryGetValidPointNear(centerPos, 1.5f, out Vector3 healthPos))
                 {
-                    health.OnCollected += () => OnPickupCollected(healthObj);
+                    GameObject healthObj = Instantiate(healthDropPrefab, healthPos + Vector3.up * 0.5f, Quaternion.identity);
+                    activePickups.Add(healthObj);
+                    HealthPickup health = healthObj.GetComponent<HealthPickup>();
+                    if (health != null)
+                    {
+                        health.OnCollected += () => OnPickupCollected(healthObj);
+                    }
                 }
             }
         }
@@ -224,6 +224,30 @@ public class WaveManager : MonoBehaviour
             if (UIManager.Instance != null)
                 UIManager.Instance.ShowEoLCanvas();
         }
+    }
+
+    private bool TryGetValidPointNear(Vector3 center, float radius, out Vector3 result)
+    {
+        // Try up to 10 times to find a valid spot
+        for (int i = 0; i < 10; i++)
+        {
+            Vector2 randomCircle = Random.insideUnitCircle * radius;
+            Vector3 origin = new Vector3(center.x + randomCircle.x, center.y + raycastHeight, center.z + randomCircle.y);
+
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2))
+            {
+                // Check if we hit ground (you might want to check layer/tag here, 
+                // but for now we follow TryGetRandomPoint logic)
+                if (NavMesh.SamplePosition(hit.point, out NavMeshHit navHit, maxNavMeshDistance, NavMesh.AllAreas))
+                {
+                    result = navHit.position;
+                    return true;
+                }
+            }
+        }
+
+        result = center;
+        return false;
     }
 
     private void OnPickupCollected(GameObject pickup)
