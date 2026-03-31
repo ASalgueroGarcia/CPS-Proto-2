@@ -56,7 +56,7 @@ public class MapBehaviour : MonoBehaviour
     {
         if (scene.name != "_MapScene") return;
         
-        Debug.Log("Scene Loaded");
+        //Debug.Log("Scene Loaded");
         
         CreateMap();
     }
@@ -292,6 +292,6 @@ public class MapBehaviour : MonoBehaviour
     public void SetCurrentNode(Node node)
     {
         _completedNode = node;
-        Debug.Log($"Current node set to: {node.gameObject.name}");
+        //Debug.Log($"Current node set to: {node.gameObject.name}");
     }
 }
