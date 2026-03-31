@@ -85,7 +85,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52d6d151f04b57549afaefb34e2cdc1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WaveManager
-  enemyConfigs: []
+  enemyConfigs:
+  - type: 0
+    prefab: {fileID: 6483362958727964125, guid: 9d1d9d47d1d349445ab4e5ec050db6eb, type: 3}
+    cost: 1
+  - type: 1
+    prefab: {fileID: 8195882128523390324, guid: 50bcb89052d4caf47b00190ccc357fcf, type: 3}
+    cost: 2
+  - type: 2
+    prefab: {fileID: 1007924606823391567, guid: 52dc244fb8a5bc047905dfa403db234f, type: 3}
+    cost: 3
   spawnAreaSize: {x: 20, y: 20}
   raycastHeight: 20
   maxNavMeshDistance: 2
