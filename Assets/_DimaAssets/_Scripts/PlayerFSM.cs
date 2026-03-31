@@ -18,7 +18,8 @@ public class PlayerFSM : MonoBehaviour
 
     [Header("Components")] public CharacterController controller;
     public MeshRenderer bodyRenderer;
-    public Health playerHealth; // Link the Health script here
+    public Health playerHealth; 
+    public AudioSource audioSource;
 
     [Header("Input Actions")] public InputActionReference moveAction;
     public InputActionReference dashAction;
@@ -41,9 +42,55 @@ public class PlayerFSM : MonoBehaviour
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
 
-    [Header("Combo Settings")] public int comboStep = 0;
+    [Header("Combo Settings")] 
+    public int comboStep = 0;
     public float comboResetTime = 1.0f;
     private float lastAttackTime = 0;
+    [SerializeField] private float attackAnimationDuration = 0.3f;
+
+    [Header("Scissor Objects")]
+    [SerializeField] private GameObject rightScissor;
+    [SerializeField] private GameObject leftScissor;
+    [SerializeField] private GameObject combinedScissor;
+    [SerializeField] private Transform modelTransform;
+
+    [Header("Audio Clips")]
+    [SerializeField] private AudioClip singleScissorClip;
+    [SerializeField] private AudioClip doubleScissorClip;
+
+    private Coroutine attackCoroutine;
+    private Quaternion originalRotation;
+
+    private void Start()
+    {
+        if (modelTransform == null) modelTransform = transform;
+        originalRotation = modelTransform.localRotation;
+        
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+
+        // Setup scissor components on children if missing
+        SetupScissorTrigger(rightScissor);
+        SetupScissorTrigger(leftScissor);
+        SetupScissorTrigger(combinedScissor);
+
+        // Ensure scissors are off at start
+        if (rightScissor) rightScissor.SetActive(false);
+        if (leftScissor) leftScissor.SetActive(false);
+        if (combinedScissor) combinedScissor.SetActive(false);
+
+        if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
+    }
+
+    private void SetupScissorTrigger(GameObject scissor)
+    {
+        if (scissor == null) return;
+        if (scissor.GetComponent<Scissors>() == null)
+            scissor.AddComponent<Scissors>();
+        
+        // Ensure there is a trigger collider
+        Collider col = scissor.GetComponent<Collider>();
+        if (col != null) col.isTrigger = true;
+    }
 
     [Header("Special Attack")] public float specialCooldown = 10f;
     private float specialTimer = 0;
@@ -52,7 +99,6 @@ public class PlayerFSM : MonoBehaviour
     private Vector3 dashDirection = Vector3.zero;
     private float verticalVelocity = 0f;
     private Color originalColor;
-    private float visualFlashTimer = 0;
     
     public static bool IsPaused = false;
 
@@ -63,14 +109,8 @@ public class PlayerFSM : MonoBehaviour
         if (playerHealth == null) playerHealth = GetComponent<Health>();
         if (dashTrail == null) dashTrail = GetComponent<TrailRenderer>();
 
-        // Ensure enemyLayer is set to the correct mask if it's currently 0
         if (enemyLayer.value == 0)
-        {
             enemyLayer = 1 << LayerMask.NameToLayer("Enemy");
-            // If the layer doesn't exist, fallback to 0 (all layers) or just log
-            if (enemyLayer.value == 0)
-                Debug.LogWarning("PlayerFSM: 'Enemy' layer not found! Hit detection might fail.");
-        }
 
         if (dashTrail != null)
         {
@@ -83,9 +123,6 @@ public class PlayerFSM : MonoBehaviour
         attackAction.action.Enable();
         if (specialAttackAction != null) specialAttackAction.action.Enable();
 
-        if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
-
-        // Setup health event to trigger combo breaks
         if (playerHealth != null)
         {
             playerHealth.OnDamageTaken.AddListener(OnPlayerDamage);
@@ -109,13 +146,12 @@ public class PlayerFSM : MonoBehaviour
     {
         wasHit = true;
         ResetCombo();
-        FlashColor(Color.magenta);
+        // The Health.cs now handles the Orange Hit Flash automatically
     }
 
     void Update()
     {
         if (specialTimer > 0) specialTimer -= Time.deltaTime;
-        if (visualFlashTimer > 0) visualFlashTimer -= Time.deltaTime;
 
         if (comboStep > 0 && Time.time - lastAttackTime > comboResetTime)
         {
@@ -147,30 +183,31 @@ public class PlayerFSM : MonoBehaviour
     private void ApplyMovement()
     {
         if (controller.isGrounded && verticalVelocity < 0) verticalVelocity = -2f;
-        if (currentState != PlayerState.Dashing) verticalVelocity -= gravity * Time.deltaTime;
-        else verticalVelocity = 0;
+        
+        // LOCK MOVEMENT during attacks
+        if (currentState != PlayerState.Attacking && currentState != PlayerState.SpecialAttacking)
+        {
+            if (currentState != PlayerState.Dashing) verticalVelocity -= gravity * Time.deltaTime;
+            else verticalVelocity = 0;
 
-        Vector3 finalMove = moveDirection;
-        finalMove.y = verticalVelocity;
-        controller.Move(finalMove * Time.deltaTime);
+            Vector3 finalMove = moveDirection;
+            finalMove.y = verticalVelocity;
+            controller.Move(finalMove * Time.deltaTime);
+        }
+        else
+        {
+            // Still apply gravity but no horizontal movement
+            verticalVelocity -= gravity * Time.deltaTime;
+            controller.Move(new Vector3(0, verticalVelocity * Time.deltaTime, 0));
+        }
     }
-
-    // private void HandleIdleState()
-    // {
-    //     moveDirection = Vector3.zero;
-    //     CheckForCombatInputs();
-    //     if (currentState != PlayerState.Idle) return;
-    //
-    //     Vector2 input = moveAction.action.ReadValue<Vector2>();
-    //     if (input != Vector2.zero) SwitchState(PlayerState.Moving);
-    // }
 
     private void HandleIdleState()
     {
         CheckForCombatInputs();
         if (currentState != PlayerState.Idle) return;
 
-        UpdateMovementAndRotation(); // <--- Use the helper here
+        UpdateMovementAndRotation(); 
         if (moveDirection != Vector3.zero) SwitchState(PlayerState.Moving);
     }
 
@@ -180,7 +217,6 @@ public class PlayerFSM : MonoBehaviour
         if (currentState != PlayerState.Moving) return;
 
         UpdateMovementAndRotation();
-
         if (moveDirection == Vector3.zero) SwitchState(PlayerState.Idle);
     }
 
@@ -212,7 +248,6 @@ public class PlayerFSM : MonoBehaviour
         dashDirection = direction != Vector3.zero ? direction : transform.forward;
         dashTimer = dashDuration;
         dashDirection.y = 0;
-        // FlashColor(Color.deepPink);
         if (dashTrail != null)
         {
             dashTrail.Clear();
@@ -237,7 +272,6 @@ public class PlayerFSM : MonoBehaviour
     // --- COMBAT LOGIC ---
     private void PerformNormalAttack()
     {
-        UpdateMovementAndRotation();
         if (wasHit)
         {
             ResetCombo();
@@ -249,59 +283,89 @@ public class PlayerFSM : MonoBehaviour
 
         float currentDamage = weaponBaseDamage;
         float currentCritChance = baseCritChance;
-        Color flashColor = Color.white;
+        Color comboColor = Color.white;
+        AudioClip clipToPlay = singleScissorClip;
+
+        if (attackCoroutine != null) StopCoroutine(attackCoroutine);
+
+        GameObject activeScissor = null;
+        Vector3 axis = Vector3.up;
+        float angle = 360f;
 
         switch (comboStep)
         {
             case 1:
-                flashColor = Color.white;
+                comboColor = Color.white;
+                activeScissor = rightScissor;
+                axis = Vector3.up;
+                angle = -360f;
+                clipToPlay = singleScissorClip;
                 break;
             case 2:
                 currentDamage *= 1.1f;
-                flashColor = Color.yellow;
+                comboColor = Color.yellow;
+                activeScissor = leftScissor;
+                axis = Vector3.up;
+                angle = 360f;
+                clipToPlay = singleScissorClip;
                 break;
             case 3:
                 currentDamage *= 1.3f;
                 currentCritChance += 0.20f;
-                flashColor = Color.red;
-                ResetCombo();
+                comboColor = Color.red;
+                activeScissor = combinedScissor;
+                axis = Vector3.right;
+                angle = 360f;
+                clipToPlay = doubleScissorClip;
+                // Note: Combo resets after Hit 3 in ResetCombo() called later or by timeout
                 break;
             default:
                 ResetCombo();
                 comboStep = 1;
+                activeScissor = rightScissor;
+                axis = Vector3.up;
+                angle = -360f;
+                clipToPlay = singleScissorClip;
                 break;
         }
 
-        FlashColor(flashColor);
-        CheckHit(attackRange, currentDamage, currentCritChance, flashColor);
+        if (activeScissor != null)
+        {
+            Scissors s = activeScissor.GetComponent<Scissors>();
+            if (s != null) s.Initialize(currentDamage, currentCritChance);
+        }
+
+        if (audioSource != null && clipToPlay != null)
+        {
+            audioSource.PlayOneShot(clipToPlay);
+        }
+
+        SetPlayerColor(comboColor);
+        attackCoroutine = StartCoroutine(AttackAnimationCoroutine(axis, angle, activeScissor));
         SwitchState(PlayerState.Attacking);
     }
 
-    private void CheckHit(float range, float damage, float crit, Color vfxColor)
+    private IEnumerator AttackAnimationCoroutine(Vector3 axis, float angle, GameObject scissorObj)
     {
-        Vector3 hitPosition = transform.position + transform.forward * 1.5f;
+        if (scissorObj) scissorObj.SetActive(true);
+        
+        float elapsed = 0f;
+        Quaternion startRot = modelTransform.localRotation;
 
-        GameObject vfx = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        vfx.transform.position = hitPosition;
-        vfx.transform.localScale = Vector3.one * range;
-        vfx.GetComponent<Collider>().enabled = false;
-
-        // Simple color setup for built-in shader
-        vfx.GetComponent<MeshRenderer>().material.color = new Color(vfxColor.r, vfxColor.g, vfxColor.b, 0.4f);
-
-        Destroy(vfx, 0.1f);
-
-        Collider[] hitEnemies = Physics.OverlapSphere(transform.position + transform.forward, range, enemyLayer);
-        foreach (Collider enemy in hitEnemies)
+        while (elapsed < attackAnimationDuration)
         {
-            Health enemyHealth = enemy.GetComponent<Health>();
-            if (enemyHealth != null)
-            {
-                bool isCrit = Random.value < crit;
-                float finalDamage = isCrit ? damage * 2 : damage;
-                enemyHealth.TakeDamage(finalDamage);
-            }
+            elapsed += Time.deltaTime;
+            float percent = elapsed / attackAnimationDuration;
+            
+            float currentAngle = Mathf.Lerp(0, angle, percent);
+            modelTransform.localRotation = startRot * Quaternion.AngleAxis(currentAngle, axis);
+            
+            yield return null;
         }
+
+        modelTransform.localRotation = startRot;
+        if (scissorObj) scissorObj.SetActive(false);
+        attackCoroutine = null;
     }
 
     private void UpdateMovementAndRotation()
@@ -319,79 +383,90 @@ public class PlayerFSM : MonoBehaviour
     private void ResetCombo()
     {
         comboStep = 0;
+        SetPlayerColor(originalColor);
     }
 
     public void OnPlayerHit()
     {
-        // Still available for manual calls if needed
         wasHit = true;
         ResetCombo();
-        FlashColor(Color.magenta);
-        Debug.Log("<color=red>Player Hit! Combo Broken.</color>");
+        // The orange flash is now handled by Health.cs
     }
 
-    private void FlashColor(Color color)
+    private void SetPlayerColor(Color color)
     {
         if (bodyRenderer != null)
         {
             bodyRenderer.material.color = color;
-            visualFlashTimer = 0.15f;
-            Invoke("ResetColor", 0.15f);
         }
-    }
-
-    private void ResetColor()
-    {
-        if (bodyRenderer != null && visualFlashTimer <= 0) bodyRenderer.material.color = originalColor;
     }
 
     private void HandleAttackingState()
     {
-        UpdateMovementAndRotation();
-        if (Time.time - lastAttackTime > 0.3f) SwitchState(PlayerState.Idle);
+        if (attackCoroutine == null && Time.time - lastAttackTime > 0.1f) 
+        {
+            if (comboStep >= 3) ResetCombo();
+            SwitchState(PlayerState.Idle);
+        }
     }
 
     private void PerformSpecialAttack()
     {
-        UpdateMovementAndRotation();
         specialTimer = specialCooldown;
-        FlashColor(Color.cyan);
-        CheckHit(specialRange, weaponBaseDamage * 2, 0.40f, Color.cyan);
-        Debug.Log("SPECIAL ATTACK! AOE Pushback.");
+        SetPlayerColor(Color.cyan);
+        
+        // Visual AOE
+        GameObject aoe = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        aoe.transform.position = transform.position;
+        aoe.transform.localScale = Vector3.one * (specialRange * 2);
+        Destroy(aoe.GetComponent<Collider>());
+        
+        Renderer rend = aoe.GetComponent<Renderer>();
+        rend.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+        rend.material.color = new Color(0, 1, 1, 0.3f); 
+        rend.material.SetFloat("_Surface", 1); 
+        rend.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        rend.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        rend.material.SetInt("_ZWrite", 0);
+        rend.material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        Destroy(aoe, 0.4f);
+
+        // Damage + Knockback
+        Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
+        foreach (Collider enemy in hitEnemies)
+        {
+            Health h = enemy.GetComponent<Health>();
+            if (h != null) h.TakeDamage(weaponBaseDamage * 2, transform.position, 10f);
+        }
+
+        Debug.Log("SPECIAL ATTACK! AOE Burst.");
         SwitchState(PlayerState.SpecialAttacking);
     }
 
     private void HandleSpecialAttackState()
     {
         moveDirection = Vector3.zero;
-        if (Time.time - lastAttackTime > 0.5f) SwitchState(PlayerState.Idle);
+        if (Time.time - lastAttackTime > 0.5f) 
+        {
+            ResetCombo();
+            SwitchState(PlayerState.Idle);
+        }
     }
 
     private void SwitchState(PlayerState newState)
     {
-        // Deactivate collision with enemies when dashing
         if (newState == PlayerState.Dashing)
         {
             if (playerHealth != null) playerHealth.isInvulnerable = true;
-
             int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-            if (enemyLayerIndex != -1)
-            {
-                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, true);
-            }
+            if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, true);
         }
-        // Reactivate collision when stopping dash
         else if (currentState == PlayerState.Dashing)
         {
             if (playerHealth != null) playerHealth.isInvulnerable = false;
-
             int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-            if (enemyLayerIndex != -1)
-            {
-                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
-            }
+            if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
         }
-
         currentState = newState;
     }
 
@@ -406,35 +481,18 @@ public class PlayerFSM : MonoBehaviour
     private void OnGUI()
     {
         if (playerHealth == null) return;
-
         Vector2 pos = new Vector2(20, 20);
         Vector2 size = new Vector2(200, 20);
-
         GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
         GUI.color = Color.green;
-        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y),
-            "PLAYER HP: " + (int)playerHealth.currentHealth);
+        GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
         GUI.color = Color.white;
-
-        if (specialTimer > 0)
-        {
-            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
-        }
-        else
-        {
-            GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
-        }
-
+        if (specialTimer > 0) GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
+        else GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
         GUI.Label(new Rect(pos.x, pos.y + 50, 200, 20), "Combo Step: " + comboStep);
-
-        // Add a clickable GUI button for quick testing
-        if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health"))
-        {
-            playerHealth.ResetHealth();
-        }
+        if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health")) playerHealth.ResetHealth();
     }
 
-    // --KNOCKBACK TRAP EFFECT--
     public void ApplyKnockback(Vector3 direction, float force, float duration)
     {
         verticalVelocity = force * 1.5f;

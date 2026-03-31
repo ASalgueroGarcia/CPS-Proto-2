@@ -243,8 +243,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
-  currentHealth: 100
+  _maxHealth: 100
+  _currentHealth: 100
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDamageTaken:
     m_PersistentCalls:
       m_Calls: []
@@ -253,6 +256,7 @@ MonoBehaviour:
       m_Calls: []
   autoResetOnDeath: 0
   isInvulnerable: 0
+  targetRenderer: {fileID: 5866723436311471217}
 --- !u!143 &6753685163580755908
 CharacterController:
   m_ObjectHideFlags: 0
