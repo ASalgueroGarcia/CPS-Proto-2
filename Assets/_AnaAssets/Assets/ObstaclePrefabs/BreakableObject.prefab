@@ -13,8 +13,8 @@ GameObject:
   - component: {fileID: 7841517871319499395}
   - component: {fileID: 5883693661806207531}
   - component: {fileID: 5381271036112591692}
-  - component: {fileID: 1823771396109980492}
-  m_Layer: 0
+  - component: {fileID: 1648029155764311981}
+  m_Layer: 6
   m_Name: BreakableObject
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -30,8 +30,8 @@ Transform:
   m_GameObject: {fileID: 8001163827545610028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.02407074, y: 1, z: -10.02702}
-  m_LocalScale: {x: 1.9808089, y: 1, z: 1.9832181}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2, y: 1, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -130,7 +130,7 @@ NavMeshObstacle:
   m_CarveOnlyStationary: 1
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
---- !u!114 &1823771396109980492
+--- !u!114 &1648029155764311981
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -139,7 +139,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 8001163827545610028}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d4bcb17d9bd43c459676e28f290494c, type: 3}
+  m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
-  hp: 2
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _maxHealth: 2
+  _currentHealth: 2
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDamageTaken:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeath:
+    m_PersistentCalls:
+      m_Calls: []
+  autoResetOnDeath: 0
+  isInvulnerable: 0
