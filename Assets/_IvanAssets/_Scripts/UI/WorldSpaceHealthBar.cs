@@ -21,22 +21,34 @@ public class WorldSpaceHealthBar : MonoBehaviour
             if (healthSlider.fillRect != null) fillImage = healthSlider.fillRect.GetComponent<Image>();
         }
 
-        if (healthSlider != null && health != null)
+        if (health != null)
         {
-            healthSlider.maxValue = health.maxHealth;
-            healthSlider.value = health.currentHealth;
+            health.OnHealthChanged.AddListener(OnHealthChanged);
+            OnHealthChanged(health.currentHealth, health.maxHealth);
         }
+    }
 
-        UpdateHealthBar();
+    private void OnDestroy()
+    {
+        if (health != null)
+        {
+            health.OnHealthChanged.RemoveListener(OnHealthChanged);
+        }
+    }
+
+    private void OnHealthChanged(float current, float max)
+    {
+        if (healthSlider != null)
+        {
+            healthSlider.maxValue = max;
+            healthSlider.value = current;
+            UpdateHealthBarVisuals(current, max);
+        }
     }
 
     private void Update()
     {
-        if (health != null && healthSlider != null)
-        {
-            healthSlider.value = health.currentHealth;
-            UpdateHealthBar();
-        }
+        // Removed health polling from Update
     }
 
     private void LateUpdate()
@@ -52,11 +64,11 @@ public class WorldSpaceHealthBar : MonoBehaviour
         }
     }
 
-    private void UpdateHealthBar()
+    private void UpdateHealthBarVisuals(float current, float max)
     {
-        if (healthSlider == null) return;
+        if (healthSlider == null || max <= 0) return;
 
-        float healthPercent = health.currentHealth / health.maxHealth;
+        float healthPercent = current / max;
         if (fillImage != null && colorGradient != null)
         {
             fillImage.color = colorGradient.Evaluate(healthPercent);

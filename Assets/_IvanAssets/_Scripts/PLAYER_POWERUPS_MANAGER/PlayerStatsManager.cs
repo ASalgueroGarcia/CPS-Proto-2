@@ -50,9 +50,25 @@ public class PlayerStatsManager : MonoBehaviour
         {
             currentHealth = healthPlayer.currentHealth;
             maxHealth = healthPlayer.maxHealth;
+            healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
         Prints();
     }
+
+    private void OnDestroy()
+    {
+        if (healthPlayer != null)
+        {
+            healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
+        }
+    }
+
+    private void SyncHealth(float current, float max)
+    {
+        currentHealth = current;
+        maxHealth = max;
+    }
+
     public void AddCoins(int amount)
     {
         currentCoins += amount;
@@ -64,7 +80,6 @@ public class PlayerStatsManager : MonoBehaviour
         if (healthPlayer != null)
         {
             healthPlayer.currentHealth = Mathf.Min(healthPlayer.currentHealth + amount, healthPlayer.maxHealth);
-            currentHealth = healthPlayer.currentHealth;
             Debug.Log($"Healed for {amount}. Current health: {currentHealth}/{maxHealth}");
         }
     }
@@ -120,12 +135,10 @@ public class PlayerStatsManager : MonoBehaviour
 
                 // DEFENSE & HEALTH
                 case PowerUpData.PowerUpType.Health:
-                    currentHealth += effect.value;
-                    maxHealth += effect.value;
                     if (healthPlayer != null)
                     {
-                        healthPlayer.maxHealth = maxHealth;
-                        healthPlayer.currentHealth = Mathf.Min(healthPlayer.currentHealth + effect.value, maxHealth);
+                        healthPlayer.maxHealth += effect.value;
+                        healthPlayer.currentHealth += effect.value;
                     }
                     break;
 
