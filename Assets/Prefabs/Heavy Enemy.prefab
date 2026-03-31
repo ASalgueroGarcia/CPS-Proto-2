@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 2435611370308469130}
   m_Layer: 6
   m_Name: Heavy Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -131,8 +131,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
-  currentHealth: 100
+  _maxHealth: 100
+  _currentHealth: 100
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDamageTaken:
     m_PersistentCalls:
       m_Calls: []
@@ -141,6 +144,7 @@ MonoBehaviour:
       m_Calls: []
   autoResetOnDeath: 0
   isInvulnerable: 0
+  targetRenderer: {fileID: 3564765644839323427}
 --- !u!143 &249330796488294231
 CharacterController:
   m_ObjectHideFlags: 0

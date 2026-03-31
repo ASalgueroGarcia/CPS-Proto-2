@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 944529880597487822}
   - component: {fileID: 241140918086588849}
   - component: {fileID: 8876635489444101194}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Glasses
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 7912532911140527115}
   m_Layer: 6
   m_Name: Basic Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -224,14 +224,14 @@ CapsuleCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 2
+  m_Radius: 0.65
+  m_Height: 3.5
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.71, z: 0}
 --- !u!114 &1410670978606052513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -244,8 +244,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
-  currentHealth: 100
+  _maxHealth: 100
+  _currentHealth: 100
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDamageTaken:
     m_PersistentCalls:
       m_Calls: []
@@ -254,6 +257,7 @@ MonoBehaviour:
       m_Calls: []
   autoResetOnDeath: 0
   isInvulnerable: 0
+  targetRenderer: {fileID: 1919487795402096957}
 --- !u!143 &2759308178574542025
 CharacterController:
   m_ObjectHideFlags: 0
@@ -273,7 +277,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.49999994
+  m_Radius: 0.5
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
