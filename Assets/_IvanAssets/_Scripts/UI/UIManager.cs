@@ -83,8 +83,35 @@ public class UIManager : MonoBehaviour
 
         // Refresh references when a new scene is loaded
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
-        _playerHealth = FindFirstObjectByType<Health>();
         _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        
+        // Unsubscribe from old health component if any
+        if (_playerHealth != null)
+        {
+            _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
+        }
+
+        _playerHealth = FindFirstObjectByType<Health>();
+        
+        if (_playerHealth != null)
+        {
+            _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
+            OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
+        }
+    }
+
+    private void OnPlayerHealthChanged(float current, float max)
+    {
+        if (playerHealthSlider != null)
+        {
+            playerHealthSlider.maxValue = max;
+            playerHealthSlider.value = current;
+        }
+
+        if (healthText != null)
+        {
+            healthText.text = $"HP: {(int)current} / {(int)max}";
+        }
     }
 
     private void RefreshHUDVisibility()
@@ -121,8 +148,14 @@ public class UIManager : MonoBehaviour
     private void Start()
     {
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
-        _playerHealth = FindFirstObjectByType<Health>();
         _playerFsm = FindFirstObjectByType<PlayerFSM>();
+
+        if (_playerHealth != null) _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
+        _playerHealth = FindFirstObjectByType<Health>();
+        if (_playerHealth != null)
+        {
+            _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
+        }
 
         if (playerHealthSlider == null || healthText == null || speedText == null || damageText == null)
         {
@@ -175,10 +208,9 @@ public class UIManager : MonoBehaviour
             pauseAction.action.performed += OnPausePressed;
         }
 
-        if (playerHealthSlider != null && _playerHealth != null)
+        if (_playerHealth != null)
         {
-            playerHealthSlider.maxValue = _playerHealth.maxHealth;
-            playerHealthSlider.value = _playerHealth.currentHealth;
+            OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
         }
 
         // Initial visibility check
@@ -316,6 +348,11 @@ public class UIManager : MonoBehaviour
             pauseAction.action.performed -= OnPausePressed;
             pauseAction.action.Disable(); 
         }
+
+        if (_playerHealth != null)
+        {
+            _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
+        }
     }
 
     private void OnPausePressed(InputAction.CallbackContext context)
@@ -343,22 +380,15 @@ public class UIManager : MonoBehaviour
 
     private void UpdatePlayerUI()
     {
-        if (_playerHealth != null)
-        {
-            if (playerHealthSlider != null)
-            {
-                playerHealthSlider.maxValue = _playerHealth.maxHealth;
-                playerHealthSlider.value = _playerHealth.currentHealth;
-            }
-
-            if (healthText != null)
-            {
-                healthText.text = $"HP: {(int)_playerHealth.currentHealth} / {(int)_playerHealth.maxHealth}";
-            }
-        }
-        else
+        if (_playerHealth == null)
         {
             _playerHealth = FindFirstObjectByType<Health>();
+            if (_playerHealth != null)
+            {
+                _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
+                OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
+            }
+            
             _playerFsm = FindFirstObjectByType<PlayerFSM>();
             _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         }

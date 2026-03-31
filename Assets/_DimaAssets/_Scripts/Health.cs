@@ -4,10 +4,14 @@ using UnityEngine.Events;
 public class Health : MonoBehaviour
 {
     [Header("Health Settings")]
-    public float maxHealth = 100f;
-    public float currentHealth = 100f;
+    [SerializeField] private float _maxHealth = 100f;
+    [SerializeField] private float _currentHealth = 100f;
+
+    public float maxHealth { get => _maxHealth; set => SetMaxHealth(value); }
+    public float currentHealth { get => _currentHealth; set => SetHealth(value); }
     
     [Header("Events")]
+    public UnityEvent<float, float> OnHealthChanged; // (current, max)
     public UnityEvent<float> OnDamageTaken;
     public UnityEvent OnDeath;
 
@@ -17,24 +21,37 @@ public class Health : MonoBehaviour
 
     private void Start()
     {
-        currentHealth = maxHealth;
+        _currentHealth = _maxHealth;
+        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
     }
 
     public void TakeDamage(float amount)
     {
         if (isInvulnerable) return;
 
-        currentHealth -= amount;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        SetHealth(_currentHealth - amount);
         
         OnDamageTaken?.Invoke(amount);
         
-        Debug.Log($"{gameObject.name} took {amount} damage. HP: {currentHealth}/{maxHealth}");
+        Debug.Log($"{gameObject.name} took {amount} damage. HP: {_currentHealth}/{_maxHealth}");
 
-        if (currentHealth <= 0)
+        if (_currentHealth <= 0)
         {
             Die();
         }
+    }
+
+    public void SetHealth(float amount)
+    {
+        _currentHealth = Mathf.Clamp(amount, 0, _maxHealth);
+        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
+    }
+
+    public void SetMaxHealth(float amount)
+    {
+        _maxHealth = amount;
+        _currentHealth = Mathf.Clamp(_currentHealth, 0, _maxHealth);
+        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
     }
 
     private void Die()
@@ -46,7 +63,7 @@ public class Health : MonoBehaviour
 
     public void ResetHealth()
     {
-        currentHealth = maxHealth;
+        SetHealth(_maxHealth);
         Debug.Log($"{gameObject.name} health reset.");
     }
 
