@@ -41,6 +41,7 @@ public class PlayerFSM : MonoBehaviour
     public bool wasHit = false;
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
+    [SerializeField] private float knockBackForce = 7;
 
     [Header("Combo Settings")] 
     public int comboStep = 0;
@@ -433,6 +434,8 @@ public class PlayerFSM : MonoBehaviour
 
         // Damage + Knockback
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
+        //This line is fucking up the collisions making it so the player doesnt hit the enemies everytime
+        //This could be fixed by attaching the damage of the enemies to the collider on the swords
         foreach (Collider enemy in hitEnemies)
         {
             Health h = enemy.GetComponent<Health>();
@@ -503,6 +506,7 @@ public class PlayerFSM : MonoBehaviour
     private IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration)
     {
         float t = 0f;
+        force = knockBackForce;
         while (t < duration)
         {
             controller.Move(direction * force * Time.deltaTime);
