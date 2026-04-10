@@ -41,6 +41,7 @@ public class PlayerFSM : MonoBehaviour
     public bool wasHit = false;
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
+    [SerializeField] private float knockBackForce;
 
     [Header("Combo Settings")] 
     public int comboStep = 0;
@@ -503,6 +504,7 @@ public class PlayerFSM : MonoBehaviour
     private IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration)
     {
         float t = 0f;
+        force = knockBackForce;
         while (t < duration)
         {
             controller.Move(direction * force * Time.deltaTime);
