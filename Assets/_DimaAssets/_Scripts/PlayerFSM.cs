@@ -422,16 +422,16 @@ public class PlayerFSM : MonoBehaviour
         aoe.transform.localScale = Vector3.one * (specialRange * 2);
         Destroy(aoe.GetComponent<Collider>());
         
-        Renderer rend = aoe.GetComponent<Renderer>();
-        rend.material = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
-        rend.material.color = new Color(0, 1, 1, 0.3f); 
+/*        Renderer rend = aoe.GetComponent<Renderer>();
+        rend.material.color = new Color(0, 1, 1, 0.3f);
         rend.material.SetFloat("_Surface", 1); 
         rend.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
         rend.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
         rend.material.SetInt("_ZWrite", 0);
         rend.material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-        Destroy(aoe, 0.4f);
-
+      
+*/
+        Destroy(aoe, 0.3f);
         // Damage + Knockback
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
         //This line is fucking up the collisions making it so the player doesnt hit the enemies everytime
