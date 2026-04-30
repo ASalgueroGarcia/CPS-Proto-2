@@ -13,10 +13,11 @@ GameObject:
   - component: {fileID: 7841517871319499395}
   - component: {fileID: 5883693661806207531}
   - component: {fileID: 5381271036112591692}
-  - component: {fileID: 1648029155764311981}
+  - component: {fileID: -4067635470403180940}
+  - component: {fileID: 811328128222278896}
   m_Layer: 6
   m_Name: BreakableObject
-  m_TagString: Untagged
+  m_TagString: Breakeable
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -130,7 +131,7 @@ NavMeshObstacle:
   m_CarveOnlyStationary: 1
   m_Center: {x: 0, y: 0, z: 0}
   m_TimeToStationary: 0.5
---- !u!114 &1648029155764311981
+--- !u!114 &-4067635470403180940
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -139,19 +140,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 8001163827545610028}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
+  m_Script: {fileID: 11500000, guid: 2d4bcb17d9bd43c459676e28f290494c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Health
-  _maxHealth: 2
-  _currentHealth: 2
-  OnHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDamageTaken:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDeath:
-    m_PersistentCalls:
-      m_Calls: []
-  autoResetOnDeath: 0
-  isInvulnerable: 0
+  m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
+  hp: 2
+--- !u!54 &811328128222278896
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8001163827545610028}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
