@@ -172,9 +172,9 @@ public class PlayerFSM : MonoBehaviour
         if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
         {
             fallbackTimer += Time.deltaTime;
-            if (fallbackTimer > 1.5f)
+            if (fallbackTimer > 3.0f)
             {
-                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 1.5s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
+                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 3.0s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
                 ReturnToIdle();
             }
         }
@@ -323,6 +323,7 @@ public class PlayerFSM : MonoBehaviour
             animator.ResetTrigger(Attack1Hash);
             animator.ResetTrigger(Attack2Hash);
             animator.ResetTrigger(Attack3Hash);
+            animator.ResetTrigger(HeavyAttackHash);
         }
 
         lastAttackTime = Time.time;
@@ -503,6 +504,7 @@ public class PlayerFSM : MonoBehaviour
         comboStep = 0;
         isComboWindowOpen = false;
         SetPlayerColor(originalColor);
+        if (animator != null) animator.ResetTrigger(HeavyAttackHash);
     }
 
     public void OnPlayerHit()
@@ -532,7 +534,17 @@ public class PlayerFSM : MonoBehaviour
         fallbackTimer = 0;
         SetPlayerColor(Color.cyan);
         
-        if (animator != null) animator.SetTrigger(HeavyAttackHash);
+        if (animator != null)
+        {
+            // CRITICAL: Clear ALL attack triggers to avoid accidental follow-ups or double fires
+            animator.ResetTrigger(Attack1Hash);
+            animator.ResetTrigger(Attack2Hash);
+            animator.ResetTrigger(Attack3Hash);
+            animator.ResetTrigger(HeavyAttackHash);
+
+            // Use CrossFade for immediate transition (matches normal attack logic)
+            animator.CrossFadeInFixedTime("HeavyAttack", 0.05f);
+        }
         SwitchState(PlayerState.SpecialAttacking);
     }
 
