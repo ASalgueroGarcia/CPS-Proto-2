@@ -5,15 +5,17 @@ public class Scissors : MonoBehaviour
 {
     private float damage;
     private float critChance;
+    private float knockbackForce;
 
     // List to keep track of enemies hit during the current rotation
     private List<Health> hitEnemies = new List<Health>();
     private List<Brekeable_Objects> hitBreakables = new List<Brekeable_Objects>();
 
-    public void Initialize(float dmg, float crit)
+    public void Initialize(float dmg, float crit, float knockback = 0f)
     {
         damage = dmg;
         critChance = crit;
+        knockbackForce = knockback;
         hitEnemies.Clear();
         hitBreakables.Clear();
 
@@ -38,8 +40,8 @@ public class Scissors : MonoBehaviour
                 bool isCrit = Random.value < critChance;
                 float finalDamage = isCrit ? damage * 2 : damage;
                 
-                // Damage + Knockback
-                enemyHealth.TakeDamage(finalDamage, transform.root.position, 5f);
+                // Damage + Knockback (Now uses the initialized force)
+                enemyHealth.TakeDamage(finalDamage, transform.root.position, knockbackForce);
                 hitEnemies.Add(enemyHealth);
                 
                 // Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");

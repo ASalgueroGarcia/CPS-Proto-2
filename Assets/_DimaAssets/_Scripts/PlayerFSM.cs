@@ -66,6 +66,8 @@ public class PlayerFSM : MonoBehaviour
 
     [Header("Scissor / Hitbox Objects")]
     [SerializeField] private GameObject generalAttackHitbox; 
+    [SerializeField] private GameObject Hitbox_attack12;
+    [SerializeField] private GameObject Hitbox_attack3;
     [SerializeField] private Transform modelTransform;
 
     [Header("Audio Clips")]
@@ -83,9 +85,13 @@ public class PlayerFSM : MonoBehaviour
 
         // Setup hitbox component if missing
         SetupScissorTrigger(generalAttackHitbox);
+        SetupScissorTrigger(Hitbox_attack12);
+        SetupScissorTrigger(Hitbox_attack3);
 
-        // Ensure hitbox is off at start
+        // Ensure hitboxes are off at start
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
+        if (Hitbox_attack12) Hitbox_attack12.SetActive(false);
+        if (Hitbox_attack3) Hitbox_attack3.SetActive(false);
 
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
     }
@@ -102,7 +108,7 @@ public class PlayerFSM : MonoBehaviour
     }
 
     [Header("Special Attack")] public float specialCooldown = 10f;
-    private float specialTimer = 0;
+    public float specialTimer = 0; // Made public for UI access
 
     private Vector3 moveDirection = Vector3.zero;
     private Vector3 dashDirection = Vector3.zero;
@@ -166,9 +172,9 @@ public class PlayerFSM : MonoBehaviour
         if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
         {
             fallbackTimer += Time.deltaTime;
-            if (fallbackTimer > 1.5f)
+            if (fallbackTimer > 3.0f)
             {
-                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 1.5s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
+                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 3.0s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
                 ReturnToIdle();
             }
         }
@@ -317,6 +323,7 @@ public class PlayerFSM : MonoBehaviour
             animator.ResetTrigger(Attack1Hash);
             animator.ResetTrigger(Attack2Hash);
             animator.ResetTrigger(Attack3Hash);
+            animator.ResetTrigger(HeavyAttackHash);
         }
 
         lastAttackTime = Time.time;
@@ -338,14 +345,14 @@ public class PlayerFSM : MonoBehaviour
                 targetState = "Attack_01";
                 break;
             case 2:
-                currentDamage *= 1.1f;
+                currentDamage *= 1.2f; // Slightly more damage
                 comboColor = Color.yellow;
                 clipToPlay = singleScissorClip;
                 targetState = "Attack_02";
                 break;
             case 3:
-                currentDamage *= 1.3f;
-                currentCritChance += 0.20f;
+                currentDamage *= 1.5f; // Stronger finisher
+                currentCritChance += 0.25f;
                 comboColor = Color.red;
                 clipToPlay = doubleScissorClip;
                 targetState = "Attack_03";
@@ -359,18 +366,27 @@ public class PlayerFSM : MonoBehaviour
         }
 
         // --- THE "SECRET SAUCE" FOR RESPONSIVE COMBAT ---
-        // Instead of SetTrigger, we use CrossFade to FORCE the animator into the next state.
-        // This solves the issue of Unity "eating" triggers during transitions.
         if (animator != null)
         {
             animator.CrossFadeInFixedTime(targetState, 0.05f);
             Debug.Log($"[COMBO] Playing {targetState} (Step {comboStep})");
         }
 
-        if (generalAttackHitbox != null)
+        GameObject activeHitbox = (comboStep == 3) ? Hitbox_attack3 : Hitbox_attack12;
+        if (activeHitbox == null) activeHitbox = generalAttackHitbox; 
+
+        if (activeHitbox != null)
         {
-            Scissors s = generalAttackHitbox.GetComponent<Scissors>();
-            if (s != null) s.Initialize(currentDamage, currentCritChance);
+            Scissors s = activeHitbox.GetComponent<Scissors>();
+            if (s != null)
+            {
+                // Incrementing knockback: 3, 5, 8
+                float currentKnockback = 3f;
+                if (comboStep == 2) currentKnockback = 5f;
+                else if (comboStep == 3) currentKnockback = 8f;
+                
+                s.Initialize(currentDamage, currentCritChance, currentKnockback);
+            }
         }
 
         if (audioSource != null && clipToPlay != null)
@@ -394,12 +410,57 @@ public class PlayerFSM : MonoBehaviour
         if (comboStep == 0) return;
 
         Debug.Log($"Hitbox ENABLED via Animation Event. Combo Step: {comboStep}");
-        if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
+        
+        if (comboStep == 3)
+        {
+            EnableHitbox3();
+        }
+        else
+        {
+            EnableHitbox12();
+        }
+    }
+
+    // Specific methods for cleaner Animation Events
+    public void EnableHitbox12()
+    {
+        // EXCLUSIVE: Turn off others first
+        if (Hitbox_attack3) Hitbox_attack3.SetActive(false);
+        if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
+
+        if (Hitbox_attack12) 
+        {
+            Hitbox_attack12.SetActive(true);
+            Debug.Log("Activated Hitbox_attack12 specifically");
+        }
+        else if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
+    }
+
+    public void EnableHitbox3()
+    {
+        // EXCLUSIVE: Turn off others first
+        if (Hitbox_attack12) Hitbox_attack12.SetActive(false);
+        if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
+
+        if (Hitbox_attack3) 
+        {
+            Debug.Log($"[HITBOX DEBUG] Attempting to activate Hitbox_attack3. Current State: {Hitbox_attack3.activeSelf}");
+            Hitbox_attack3.SetActive(true);
+            Debug.Log($"[HITBOX DEBUG] Hitbox_attack3 is now: {Hitbox_attack3.activeInHierarchy}");
+        }
+        else 
+        {
+            Debug.LogError("[HITBOX DEBUG] Hitbox_attack3 is NULL! Please check the Inspector.");
+            if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
+        }
     }
 
     public void DisableHitbox()
     {
+        Debug.Log("Hitboxes DISABLED");
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
+        if (Hitbox_attack12) Hitbox_attack12.SetActive(false);
+        if (Hitbox_attack3) Hitbox_attack3.SetActive(false);
     }
 
     public void ReturnToIdle()
@@ -443,6 +504,7 @@ public class PlayerFSM : MonoBehaviour
         comboStep = 0;
         isComboWindowOpen = false;
         SetPlayerColor(originalColor);
+        if (animator != null) animator.ResetTrigger(HeavyAttackHash);
     }
 
     public void OnPlayerHit()
@@ -468,16 +530,30 @@ public class PlayerFSM : MonoBehaviour
     private void PerformSpecialAttack()
     {
         specialTimer = specialCooldown;
+        lastAttackTime = Time.time;
+        fallbackTimer = 0;
         SetPlayerColor(Color.cyan);
         
-        if (animator != null) animator.SetTrigger(HeavyAttackHash);
+        if (animator != null)
+        {
+            // CRITICAL: Clear ALL attack triggers to avoid accidental follow-ups or double fires
+            animator.ResetTrigger(Attack1Hash);
+            animator.ResetTrigger(Attack2Hash);
+            animator.ResetTrigger(Attack3Hash);
+            animator.ResetTrigger(HeavyAttackHash);
+
+            // Use CrossFade for immediate transition (matches normal attack logic)
+            animator.CrossFadeInFixedTime("HeavyAttack", 0.05f);
+        }
         SwitchState(PlayerState.SpecialAttacking);
     }
 
     // Called by Animation Event during the Heavy Attack animation
     public void ExecuteSpecialAttackDamage()
     {
-        // Damage + Knockback
+        Debug.Log("Executing Special Attack (Sphere AOE Only)");
+        
+        // 1. Damage + Knockback (Sphere)
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
         foreach (Collider enemy in hitEnemies)
         {
@@ -552,21 +628,6 @@ public class PlayerFSM : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position + transform.forward, attackRange);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position + transform.forward, specialRange);
-    }
-
-    private void OnGUI()
-    {
-        if (playerHealth == null) return;
-        Vector2 pos = new Vector2(20, 20);
-        Vector2 size = new Vector2(200, 20);
-        // GUI.Box(new Rect(pos.x, pos.y, size.x, size.y), "");
-        // GUI.color = Color.green;
-        // GUI.Box(new Rect(pos.x, pos.y, size.x * (playerHealth.currentHealth / playerHealth.maxHealth), size.y), "PLAYER HP: " + (int)playerHealth.currentHealth);
-        // GUI.color = Color.white;
-        if (specialTimer > 0) GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "Special CD: " + specialTimer.ToString("F1") + "s");
-        else GUI.Label(new Rect(pos.x, pos.y + 30, 200, 20), "SPECIAL READY (RMB)");
-        GUI.Label(new Rect(pos.x, pos.y + 50, 200, 20), "Combo Step: " + comboStep);
-        if (GUI.Button(new Rect(pos.x, pos.y + 75, 150, 25), "Reset All Health")) playerHealth.ResetHealth();
     }
 
     public void ApplyKnockback(Vector3 direction, float force, float duration)

@@ -5,6 +5,12 @@ public class Projectile : MonoBehaviour
     private float damage;
     private Rigidbody rb;
 
+    [Header("Explosion Settings")]
+    [SerializeField] private bool isExplosive = true;
+    [SerializeField] private float explosionRadius = 3.5f;
+    [SerializeField] private GameObject explosionEffectPrefab;
+    [SerializeField] private float knockbackForce = 10f;
+
     public void Setup(Vector3 targetPos, float dmg, float angle)
     {
         damage = dmg;
@@ -59,7 +65,11 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") || other.GetComponent<PlayerFSM>() != null)
+        if (isExplosive)
+        {
+            Explode();
+        }
+        else if (other.CompareTag("Player") || other.GetComponent<PlayerFSM>() != null)
         {
             Health playerHealth = other.GetComponent<Health>();
             if (playerHealth != null) playerHealth.TakeDamage(damage);
@@ -68,6 +78,42 @@ public class Projectile : MonoBehaviour
         else if (other.gameObject.layer == LayerMask.NameToLayer("Default") || other.CompareTag("Ground"))
         {
             Destroy(gameObject);
+        }
+    }
+
+    private void Explode()
+    {
+        if (explosionEffectPrefab != null)
+        {
+            Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+        }
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
+        foreach (var hit in hits)
+        {
+            // Damage Player
+            if (hit.CompareTag("Player"))
+            {
+                Health h = hit.GetComponent<Health>();
+                if (h != null) h.TakeDamage(damage, transform.position, knockbackForce);
+            }
+            // Damage Enemies (optional, based on design)
+            else if (hit.CompareTag("Enemy") && hit.gameObject != gameObject)
+            {
+                Health h = hit.GetComponent<Health>();
+                if (h != null) h.TakeDamage(damage * 0.5f, transform.position, knockbackForce);
+            }
+        }
+
+        Destroy(gameObject);
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (isExplosive)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(transform.position, explosionRadius);
         }
     }
 }

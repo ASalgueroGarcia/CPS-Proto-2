@@ -11,6 +11,8 @@ public class AnimationEventForwarder : MonoBehaviour
     }
 
     public void EnableHitbox() => playerFSM?.EnableHitbox();
+    public void EnableHitbox12() => playerFSM?.EnableHitbox12();
+    public void EnableHitbox3() => playerFSM?.EnableHitbox3();
     public void DisableHitbox() => playerFSM?.DisableHitbox();
     public void ExecuteSpecialAttackDamage() => playerFSM?.ExecuteSpecialAttackDamage();
     
