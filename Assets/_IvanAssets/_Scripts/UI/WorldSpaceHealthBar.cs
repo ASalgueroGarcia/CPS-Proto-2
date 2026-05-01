@@ -16,6 +16,7 @@ public class WorldSpaceHealthBar : MonoBehaviour
         if (health == null) health = GetComponentInParent<Health>();
         if (mainCamera == null) mainCamera = Camera.main;
         if (healthSlider == null) healthSlider = GetComponentInChildren<Slider>();
+        
         if (fillImage == null && healthSlider != null) 
         {
             if (healthSlider.fillRect != null) fillImage = healthSlider.fillRect.GetComponent<Image>();
@@ -23,9 +24,20 @@ public class WorldSpaceHealthBar : MonoBehaviour
 
         if (health != null)
         {
-            health.OnHealthChanged.AddListener(OnHealthChanged);
-            OnHealthChanged(health.currentHealth, health.maxHealth);
+            Initialize(health);
         }
+    }
+
+    public void Initialize(Health targetHealth)
+    {
+        if (health != null)
+        {
+            health.OnHealthChanged.RemoveListener(OnHealthChanged);
+        }
+
+        health = targetHealth;
+        health.OnHealthChanged.AddListener(OnHealthChanged);
+        OnHealthChanged(health.currentHealth, health.maxHealth);
     }
 
     private void OnDestroy()

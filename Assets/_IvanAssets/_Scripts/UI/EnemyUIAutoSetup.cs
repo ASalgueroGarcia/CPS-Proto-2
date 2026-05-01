@@ -2,29 +2,70 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Automatically creates and configures a high-quality World Space UI for enemies.
-/// Ensures the UI is not pixelated by using a proper reference resolution and scale.
-/// </summary>
+
 [RequireComponent(typeof(Health))]
 public class EnemyUIAutoSetup : MonoBehaviour
 {
-    [Header("UI Settings")] public Vector3 offset = new Vector3(0, 2.5f, 0);
+    [Header("UI Prefab")]
+    [SerializeField] private GameObject healthBarPrefab;
+
+    [SerializeField] private Slider healthSlider;
+    
+    [Header("Manual Settings (Fallback)")] 
+    public Vector3 offset = new Vector3(0, 2.5f, 0);
     public Vector2 canvasSize = new Vector2(200, 50);
-    public float scaleFactor = 0.01f; // Small scale to look normal in world space
+    public float scaleFactor = 0.01f;
 
     private Health enemyHealth;
-    private Slider healthSlider;
     private GameObject canvasObj;
 
     private void Start()
     {
         enemyHealth = GetComponent<Health>();
-        CreateUI();
+
+        // 1. Check if a WorldSpaceHealthBar is already attached (manual setup in Editor)
+        WorldSpaceHealthBar existingBar = GetComponentInChildren<WorldSpaceHealthBar>();
+        if (existingBar != null)
+        {
+            existingBar.Initialize(enemyHealth);
+            return;
+        }
+
+        // 2. If not, try to instantiate from prefab
+        if (healthBarPrefab != null)
+        {
+            CreateUIFromPrefab();
+        }
+        else
+        {
+            // 3. Last resort: Create procedural UI
+            CreateUIProcedural();
+        }
     }
 
-    private void CreateUI()
+    private void CreateUIFromPrefab()
     {
+        canvasObj = Instantiate(healthBarPrefab, this.transform);
+        canvasObj.transform.localPosition = offset;
+        
+        WorldSpaceHealthBar healthBar = canvasObj.GetComponent<WorldSpaceHealthBar>();
+        if (healthBar == null) healthBar = canvasObj.GetComponentInChildren<WorldSpaceHealthBar>();
+        
+        if (healthBar != null)
+        {
+            healthBar.Initialize(enemyHealth);
+        }
+
+        TextMeshProUGUI nameText = canvasObj.GetComponentInChildren<TextMeshProUGUI>();
+        if (nameText != null)
+        {
+            nameText.text = gameObject.name.Replace("(Clone)", "");
+        }
+    }
+
+    private void CreateUIProcedural()
+    {
+        // ... (Keep the procedural logic as fallback)
         // 1. Create Canvas
         canvasObj = new GameObject("EnemyWorldCanvas");
         canvasObj.transform.SetParent(this.transform);

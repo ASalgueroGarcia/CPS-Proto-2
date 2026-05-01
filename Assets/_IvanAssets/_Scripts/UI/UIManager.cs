@@ -17,9 +17,12 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI speedText;
     [SerializeField] private TextMeshProUGUI damageText;
+    [SerializeField] private TextMeshProUGUI specialCDText;
+    [SerializeField] private TextMeshProUGUI comboText;
     [SerializeField] private Slider playerHealthSlider;
     
     [Header("CANVAS REFERENCES")]
+    [SerializeField] private GameObject playerUICanvas;
     [SerializeField] private GameObject deathCanvas;
     [SerializeField] private Canvas mainMenuCanvas;
     [SerializeField] private GameObject eolCanvas;
@@ -29,7 +32,6 @@ public class UIManager : MonoBehaviour
     private PlayerStatsManager _playerStats;
     private PlayerFSM _playerFsm;
     private static UIManager _instance;
-    private GameObject _playerUICanvasObj;
 
     public static UIManager Instance => _instance;
 
@@ -66,10 +68,9 @@ public class UIManager : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         // Try to find the canvas if it's lost
-        if (_playerUICanvasObj == null)
+        if (playerUICanvas == null)
         {
-            Transform playerUITransform = transform.Find("PlayerUICanvas");
-            if (playerUITransform != null) _playerUICanvasObj = playerUITransform.gameObject;
+            playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
         }
 
         // Force resume if entering a gameplay room to prevent being stuck in pause state
@@ -82,8 +83,8 @@ public class UIManager : MonoBehaviour
         RefreshHUDVisibility();
 
         // Refresh references when a new scene is loaded
-        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         
         // Unsubscribe from old health component if any
         if (_playerHealth != null)
@@ -91,7 +92,17 @@ public class UIManager : MonoBehaviour
             _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
         }
 
-        _playerHealth = FindFirstObjectByType<Health>();
+        // FIND PLAYER HEALTH SPECIFICALLY via PlayerFSM to avoid finding enemies
+        if (_playerFsm != null)
+        {
+            _playerHealth = _playerFsm.GetComponent<Health>();
+        }
+        else
+        {
+            // Fallback: search for object tagged Player
+            GameObject playerObj = GameObject.FindWithTag("Player");
+            if (playerObj != null) _playerHealth = playerObj.GetComponent<Health>();
+        }
         
         if (_playerHealth != null)
         {
@@ -116,29 +127,18 @@ public class UIManager : MonoBehaviour
 
     private void RefreshHUDVisibility()
     {
-        if (_playerUICanvasObj == null) return;
-
-        // In this game, gameplay happens when 'SetScene' is loaded additively.
-        // The 'Active Scene' usually stays as '_MapScene'.
-        bool setSceneLoaded = false;
-        for (int i = 0; i < SceneManager.sceneCount; i++)
-        {
-            if (SceneManager.GetSceneAt(i).name == "SetScene")
-            {
-                setSceneLoaded = true;
-                break;
-            }
-        }
+        if (playerUICanvas == null) return;
 
         string currentBaseScene = SceneManager.GetActiveScene().name;
         bool isMenu = currentBaseScene == "MainMenu" || currentBaseScene == "UI_Basic";
         
-        // UI should be visible ONLY if SetScene is loaded AND we aren't in a main menu
-        bool shouldBeVisible = setSceneLoaded && !isMenu;
+        // HUD should be visible in ANY scene that isn't a menu, provided a player exists
+        bool hasPlayer = _playerFsm != null || GameObject.FindWithTag("Player") != null;
+        bool shouldBeVisible = !isMenu && hasPlayer;
         
-        if (_playerUICanvasObj.activeSelf != shouldBeVisible)
+        if (playerUICanvas.activeSelf != shouldBeVisible)
         {
-            _playerUICanvasObj.SetActive(shouldBeVisible);
+            playerUICanvas.SetActive(shouldBeVisible);
         }
 
         // Clear text if hiding to prevent ghosting
@@ -147,56 +147,64 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
+
+        if (playerUICanvas == null) playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
 
         if (_playerHealth != null) _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
-        _playerHealth = FindFirstObjectByType<Health>();
+        
+        // FIND PLAYER HEALTH SPECIFICALLY via PlayerFSM
+        if (_playerFsm != null)
+        {
+            _playerHealth = _playerFsm.GetComponent<Health>();
+        }
+        else
+        {
+            GameObject playerObj = GameObject.FindWithTag("Player");
+            if (playerObj != null) _playerHealth = playerObj.GetComponent<Health>();
+        }
+        
         if (_playerHealth != null)
         {
             _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
+            OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
         }
 
-        if (playerHealthSlider == null || healthText == null || speedText == null || damageText == null)
+        // Try to find missing references in children
+        if (playerHealthSlider == null) playerHealthSlider = GetComponentInChildren<Slider>(true);
+        if (healthText == null || speedText == null || damageText == null || specialCDText == null || comboText == null)
         {
-            EnsureUIElementsExist();
-        }
-
-        if (pausePanel != null){
-            pausePanel.SetActive(false);
-        }
-
-        if (eolCanvas == null)
-        {
-            Transform[] trs = GetComponentsInChildren<Transform>(true);
-            foreach (Transform t in trs)
+            TextMeshProUGUI[] allTexts = GetComponentsInChildren<TextMeshProUGUI>(true);
+            foreach (var txt in allTexts)
             {
-                if (t.name == "EoLCanvas" || t.name == "eolCanvas")
-                {
-                    eolCanvas = t.gameObject;
-                    break;
-                }
+                if (healthText == null && txt.name.Contains("Health", System.StringComparison.OrdinalIgnoreCase)) healthText = txt;
+                if (speedText == null && txt.name.Contains("Speed", System.StringComparison.OrdinalIgnoreCase)) speedText = txt;
+                if (damageText == null && txt.name.Contains("Damage", System.StringComparison.OrdinalIgnoreCase)) damageText = txt;
+                if (specialCDText == null && txt.name.Contains("Special", System.StringComparison.OrdinalIgnoreCase)) specialCDText = txt;
+                if (comboText == null && txt.name.Contains("Combo", System.StringComparison.OrdinalIgnoreCase)) comboText = txt;
             }
         }
 
+        // Final forced update after finding all elements
+        if (_playerHealth != null)
+        {
+            OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
+        }
+
+        if (pausePanel == null) pausePanel = FindChildByName(transform, "PausePanel");
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
+        if (eolCanvas == null) eolCanvas = FindChildByName(transform, "EoLCanvas");
         if (eolCanvas != null)
         {
             eolCanvas.SetActive(false);
         }
 
-        if (deathCanvas == null)
-        {
-            Transform[] trs = GetComponentsInChildren<Transform>(true);
-            foreach (Transform t in trs)
-            {
-                if (t.name == "deathCanvas" || t.name == "DeathCanvas")
-                {
-                    deathCanvas = t.gameObject;
-                    break;
-                }
-            }
-        }
-
+        if (deathCanvas == null) deathCanvas = FindChildByName(transform, "DeathCanvas");
         if (deathCanvas != null)
         {
             deathCanvas.SetActive(false);
@@ -217,121 +225,20 @@ public class UIManager : MonoBehaviour
         RefreshHUDVisibility();
     }
 
-    private void EnsureUIElementsExist()
+    private GameObject FindChildByName(Transform root, string childName)
     {
-        Canvas canvas = null;
-        
-        Transform playerUITransform = transform.Find("PlayerUICanvas");
-        if (playerUITransform != null)
+        Transform[] trs = root.GetComponentsInChildren<Transform>(true);
+        foreach (Transform t in trs)
         {
-            _playerUICanvasObj = playerUITransform.gameObject;
-            canvas = _playerUICanvasObj.GetComponent<Canvas>();
-        }
-        else
-        {
-            _playerUICanvasObj = new GameObject("PlayerUICanvas");
-            _playerUICanvasObj.transform.SetParent(this.transform, false);
-            canvas = _playerUICanvasObj.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 10; 
-            _playerUICanvasObj.AddComponent<CanvasScaler>();
-            _playerUICanvasObj.AddComponent<GraphicRaycaster>();
-        }
-
-        CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
-        if (scaler != null)
-        {
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
-            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-            scaler.matchWidthOrHeight = 0.5f;
-        }
-
-        if (playerHealthSlider == null || healthText == null)
-        {
-            GameObject topUI = new GameObject("PlayerTopUI");
-            topUI.transform.SetParent(canvas.transform, false);
-            RectTransform topRect = topUI.AddComponent<RectTransform>();
-            topRect.anchorMin = new Vector2(0.5f, 1f);
-            topRect.anchorMax = new Vector2(0.5f, 1f);
-            topRect.pivot = new Vector2(0.5f, 1f);
-            topRect.anchoredPosition = new Vector2(0, -20);
-            topRect.sizeDelta = new Vector2(400, 100);
-
-            if (playerHealthSlider == null)
+            if (t.name.Equals(childName, System.StringComparison.OrdinalIgnoreCase))
             {
-                GameObject sliderObj = new GameObject("PlayerHealthSlider");
-                sliderObj.transform.SetParent(topUI.transform, false);
-                playerHealthSlider = sliderObj.AddComponent<Slider>();
-                RectTransform sliderRect = sliderObj.GetComponent<RectTransform>();
-                sliderRect.sizeDelta = new Vector2(350, 30);
-                sliderRect.anchoredPosition = new Vector2(0, -10);
-
-                GameObject bg = new GameObject("Background");
-                bg.transform.SetParent(sliderObj.transform, false);
-                RectTransform bgRect = bg.AddComponent<RectTransform>();
-                Image bgImg = bg.AddComponent<Image>();
-                bgImg.color = new Color(0, 0, 0, 0.5f);
-                bgRect.anchorMin = Vector2.zero;
-                bgRect.anchorMax = Vector2.one;
-                bgRect.sizeDelta = Vector2.zero;
-
-                GameObject fillArea = new GameObject("Fill Area");
-                fillArea.transform.SetParent(sliderObj.transform, false);
-                RectTransform fillAreaRect = fillArea.AddComponent<RectTransform>();
-                fillAreaRect.anchorMin = Vector2.zero;
-                fillAreaRect.anchorMax = Vector2.one;
-                fillAreaRect.sizeDelta = Vector2.zero;
-
-                GameObject fill = new GameObject("Fill");
-                fill.transform.SetParent(fillArea.transform, false);
-                RectTransform fillRect = fill.AddComponent<RectTransform>();
-                Image fillImg = fill.AddComponent<Image>();
-                fillImg.color = Color.green;
-                playerHealthSlider.fillRect = fillRect;
-                playerHealthSlider.fillRect.sizeDelta = Vector2.zero;
-            }
-
-            if (healthText == null)
-            {
-                GameObject txtObj = new GameObject("HealthText");
-                txtObj.transform.SetParent(topUI.transform, false);
-                RectTransform txtRect = txtObj.AddComponent<RectTransform>();
-                healthText = txtObj.AddComponent<TextMeshProUGUI>();
-                healthText.fontSize = 24;
-                healthText.alignment = TextAlignmentOptions.Center;
-                txtRect.anchoredPosition = new Vector2(0, -45);
+                return t.gameObject;
             }
         }
-
-        if (speedText == null)
-        {
-            GameObject speedObj = new GameObject("SpeedText");
-            speedObj.transform.SetParent(canvas.transform, false);
-            RectTransform speedRect = speedObj.AddComponent<RectTransform>();
-            speedText = speedObj.AddComponent<TextMeshProUGUI>();
-            speedText.fontSize = 20;
-            speedRect.anchorMin = new Vector2(0, 1);
-            speedRect.anchorMax = new Vector2(0, 1);
-            speedRect.pivot = new Vector2(0, 1);
-            speedRect.anchoredPosition = new Vector2(20, -20);
-            speedText.text = "Speed: 0";
-        }
-
-        if (damageText == null)
-        {
-            GameObject dmgObj = new GameObject("DamageText");
-            dmgObj.transform.SetParent(canvas.transform, false);
-            RectTransform dmgRect = dmgObj.AddComponent<RectTransform>();
-            damageText = dmgObj.AddComponent<TextMeshProUGUI>();
-            damageText.fontSize = 20;
-            dmgRect.anchorMin = new Vector2(0, 1);
-            dmgRect.anchorMax = new Vector2(0, 1);
-            dmgRect.pivot = new Vector2(0, 1);
-            dmgRect.anchoredPosition = new Vector2(20, -50);
-            damageText.text = "Damage: 0";
-        }
+        return null;
     }
+
+    // Removed EnsureUIElementsExist method to allow designers to modify UI in Canvases
 
     public void ShowEoLCanvas()
     {
@@ -372,7 +279,7 @@ public class UIManager : MonoBehaviour
 
         if (_isPaused) return;
 
-        if (_playerUICanvasObj != null && _playerUICanvasObj.activeSelf)
+        if (playerUICanvas != null && playerUICanvas.activeSelf)
         {
             UpdatePlayerUI();
         }
@@ -382,14 +289,17 @@ public class UIManager : MonoBehaviour
     {
         if (_playerHealth == null)
         {
-            _playerHealth = FindFirstObjectByType<Health>();
-            if (_playerHealth != null)
+            _playerFsm = FindFirstObjectByType<PlayerFSM>();
+            if (_playerFsm != null)
             {
-                _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
-                OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
+                _playerHealth = _playerFsm.GetComponent<Health>();
+                if (_playerHealth != null)
+                {
+                    _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
+                    OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
+                }
             }
             
-            _playerFsm = FindFirstObjectByType<PlayerFSM>();
             _playerStats = FindFirstObjectByType<PlayerStatsManager>();
         }
 
@@ -404,6 +314,19 @@ public class UIManager : MonoBehaviour
             {
                 damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
             }
+
+            if (specialCDText != null)
+            {
+                if (_playerFsm.specialTimer > 0)
+                    specialCDText.text = $"Special: {_playerFsm.specialTimer:F1}s";
+                else
+                    specialCDText.text = "Special: READY";
+            }
+
+            if (comboText != null)
+            {
+                comboText.text = $"Combo: {_playerFsm.comboStep}";
+            }
         }
     }
 
@@ -416,7 +339,7 @@ public class UIManager : MonoBehaviour
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
         // Forcibly hide HUD before transition
-        if (_playerUICanvasObj != null) _playerUICanvasObj.SetActive(false);
+        if (playerUICanvas != null) playerUICanvas.SetActive(false);
 
         // Reset stats if possible
         if (_playerStats == null) _playerStats = FindFirstObjectByType<PlayerStatsManager>();
