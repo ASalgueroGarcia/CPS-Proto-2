@@ -328,43 +328,43 @@ public class PlayerFSM : MonoBehaviour
         float currentCritChance = baseCritChance;
         Color comboColor = Color.white;
         AudioClip clipToPlay = singleScissorClip;
-
-        if (animator != null && animator.IsInTransition(0))
-        {
-            string targetState = "Attack_01";
-            if (comboStep == 2) targetState = "Attack_02";
-            if (comboStep == 3) targetState = "Attack_03";
-            
-            animator.CrossFadeInFixedTime(targetState, 0.05f);
-            Debug.Log($"[DIAGNOSTIC] Step {comboStep}: Forced CrossFade to {targetState}");
-        }
+        string targetState = "Attack_01";
 
         switch (comboStep)
         {
             case 1:
                 comboColor = Color.white;
                 clipToPlay = singleScissorClip;
-                if (animator != null) animator.SetTrigger(Attack1Hash);
+                targetState = "Attack_01";
                 break;
             case 2:
                 currentDamage *= 1.1f;
                 comboColor = Color.yellow;
                 clipToPlay = singleScissorClip;
-                if (animator != null) animator.SetTrigger(Attack2Hash);
+                targetState = "Attack_02";
                 break;
             case 3:
                 currentDamage *= 1.3f;
                 currentCritChance += 0.20f;
                 comboColor = Color.red;
                 clipToPlay = doubleScissorClip;
-                if (animator != null) animator.SetTrigger(Attack3Hash);
+                targetState = "Attack_03";
                 break;
             default:
                 ResetCombo();
                 comboStep = 1;
                 clipToPlay = singleScissorClip;
-                if (animator != null) animator.SetTrigger(Attack1Hash);
+                targetState = "Attack_01";
                 break;
+        }
+
+        // --- THE "SECRET SAUCE" FOR RESPONSIVE COMBAT ---
+        // Instead of SetTrigger, we use CrossFade to FORCE the animator into the next state.
+        // This solves the issue of Unity "eating" triggers during transitions.
+        if (animator != null)
+        {
+            animator.CrossFadeInFixedTime(targetState, 0.05f);
+            Debug.Log($"[COMBO] Playing {targetState} (Step {comboStep})");
         }
 
         if (generalAttackHitbox != null)
