@@ -73,7 +73,7 @@ public class Health : MonoBehaviour
             ApplyKnockback(knockbackSource, knockbackForce);
         }
 
-        Debug.Log($"{gameObject.name} took {amount} damage. HP: {_currentHealth}/{_maxHealth}");
+        // Debug.Log($"{gameObject.name} took {amount} damage. HP: {_currentHealth}/{_maxHealth}");
 
         if (_currentHealth <= 0)
         {

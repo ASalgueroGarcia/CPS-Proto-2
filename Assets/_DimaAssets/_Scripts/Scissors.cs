@@ -42,7 +42,7 @@ public class Scissors : MonoBehaviour
                 enemyHealth.TakeDamage(finalDamage, transform.root.position, 5f);
                 hitEnemies.Add(enemyHealth);
                 
-                Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");
+                // Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");
             }
         }
         else if (other.CompareTag("Breakeable"))
@@ -52,7 +52,7 @@ public class Scissors : MonoBehaviour
             {
                 breakable.TakeDamage(1);
                 hitBreakables.Add(breakable);
-                Debug.Log($"Scissor hit breakable {other.name}");
+                // Debug.Log($"Scissor hit breakable {other.name}");
             }
         }
     }
@@ -66,6 +66,27 @@ public class Scissors : MonoBehaviour
     {
         hitEnemies.Clear();
         hitBreakables.Clear();
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Only draw when the hitbox is active (during an attack)
+        if (!Application.isPlaying || !gameObject.activeInHierarchy) return;
+
+        Gizmos.color = new Color(1, 0, 0, 0.5f); // Semi-transparent red
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            Gizmos.matrix = transform.localToWorldMatrix;
+            if (col is BoxCollider box)
+            {
+                Gizmos.DrawCube(box.center, box.size);
+            }
+            else if (col is SphereCollider sphere)
+            {
+                Gizmos.DrawSphere(sphere.center, sphere.radius);
+            }
+        }
     }
 }
 

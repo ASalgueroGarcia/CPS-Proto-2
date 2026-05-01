@@ -17,9 +17,18 @@ public class PlayerFSM : MonoBehaviour
     [Header("State Tracker")] public PlayerState currentState = PlayerState.Idle;
 
     [Header("Components")] public CharacterController controller;
-    public MeshRenderer bodyRenderer;
+    public Renderer bodyRenderer; // Changed from MeshRenderer to Renderer to support SkinnedMeshRenderer
     public Health playerHealth; 
     public AudioSource audioSource;
+    public Animator animator;
+
+    // --- ANIMATOR HASHES ---
+    private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+    private static readonly int IsDashingHash = Animator.StringToHash("IsDashing");
+    private static readonly int Attack1Hash = Animator.StringToHash("Attack1");
+    private static readonly int Attack2Hash = Animator.StringToHash("Attack2");
+    private static readonly int Attack3Hash = Animator.StringToHash("Attack3");
+    private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
 
     [Header("Input Actions")] public InputActionReference moveAction;
     public InputActionReference dashAction;
@@ -31,6 +40,7 @@ public class PlayerFSM : MonoBehaviour
     [Header("Movement Stats")] public float speed = 14f;
     public float dashSpeed = 30f;
     public float gravity = 25f;
+    [SerializeField] private float runAnimationSpeed = 1.5f;
 
     [Header("Dash")] public float dashDuration = 0.2f;
     private float dashTimer = 0;
@@ -47,19 +57,21 @@ public class PlayerFSM : MonoBehaviour
     public int comboStep = 0;
     public float comboResetTime = 1.0f;
     private float lastAttackTime = 0;
-    [SerializeField] private float attackAnimationDuration = 0.3f;
+    [SerializeField] private float attackAnimationSpeed = 1.5f;
+    [SerializeField] private float specialAttackAnimationSpeed = 1.2f;
 
-    [Header("Scissor Objects")]
-    [SerializeField] private GameObject rightScissor;
-    [SerializeField] private GameObject leftScissor;
-    [SerializeField] private GameObject combinedScissor;
+    [Header("Combo Timing")]
+    private bool isComboWindowOpen = false;
+    private float fallbackTimer = 0f;
+
+    [Header("Scissor / Hitbox Objects")]
+    [SerializeField] private GameObject generalAttackHitbox; 
     [SerializeField] private Transform modelTransform;
 
     [Header("Audio Clips")]
     [SerializeField] private AudioClip singleScissorClip;
     [SerializeField] private AudioClip doubleScissorClip;
 
-    private Coroutine attackCoroutine;
     private Quaternion originalRotation;
 
     private void Start()
@@ -69,15 +81,11 @@ public class PlayerFSM : MonoBehaviour
         
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Setup scissor components on children if missing
-        SetupScissorTrigger(rightScissor);
-        SetupScissorTrigger(leftScissor);
-        SetupScissorTrigger(combinedScissor);
+        // Setup hitbox component if missing
+        SetupScissorTrigger(generalAttackHitbox);
 
-        // Ensure scissors are off at start
-        if (rightScissor) rightScissor.SetActive(false);
-        if (leftScissor) leftScissor.SetActive(false);
-        if (combinedScissor) combinedScissor.SetActive(false);
+        // Ensure hitbox is off at start
+        if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
 
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
     }
@@ -153,6 +161,21 @@ public class PlayerFSM : MonoBehaviour
     void Update()
     {
         if (specialTimer > 0) specialTimer -= Time.deltaTime;
+
+        // FAILSAFE: If we are stuck in an attack state for too long, force return to idle
+        if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
+        {
+            fallbackTimer += Time.deltaTime;
+            if (fallbackTimer > 1.5f)
+            {
+                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 1.5s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
+                ReturnToIdle();
+            }
+        }
+        else
+        {
+            fallbackTimer = 0;
+        }
 
         if (comboStep > 0 && Time.time - lastAttackTime > comboResetTime)
         {
@@ -255,6 +278,8 @@ public class PlayerFSM : MonoBehaviour
             dashTrail.emitting = true;
         }
 
+        if (animator != null) animator.SetBool(IsDashingHash, true);
+
         SwitchState(PlayerState.Dashing);
     }
 
@@ -266,6 +291,7 @@ public class PlayerFSM : MonoBehaviour
         {
             dashTrail.Clear();
             dashTrail.emitting = false;
+            if (animator != null) animator.SetBool(IsDashingHash, false);
             SwitchState(PlayerState.Idle);
         }
     }
@@ -273,66 +299,77 @@ public class PlayerFSM : MonoBehaviour
     // --- COMBAT LOGIC ---
     private void PerformNormalAttack()
     {
+        // TIMING CHECK: If we are already attacking, only allow next hit if window is open
+        if (currentState == PlayerState.Attacking && !isComboWindowOpen)
+        {
+            return; // Ignore mash
+        }
+
         if (wasHit)
         {
             ResetCombo();
             wasHit = false;
         }
 
+        // CRITICAL: Clear ALL pending triggers to prevent "phantom" attacks later
+        if (animator != null)
+        {
+            animator.ResetTrigger(Attack1Hash);
+            animator.ResetTrigger(Attack2Hash);
+            animator.ResetTrigger(Attack3Hash);
+        }
+
         lastAttackTime = Time.time;
         comboStep++;
+        isComboWindowOpen = false; // Close window as hit is accepted
+        fallbackTimer = 0; // Reset failsafe on new input
 
         float currentDamage = weaponBaseDamage;
         float currentCritChance = baseCritChance;
         Color comboColor = Color.white;
         AudioClip clipToPlay = singleScissorClip;
 
-        if (attackCoroutine != null) StopCoroutine(attackCoroutine);
-
-        GameObject activeScissor = null;
-        Vector3 axis = Vector3.up;
-        float angle = 360f;
+        if (animator != null && animator.IsInTransition(0))
+        {
+            string targetState = "Attack_01";
+            if (comboStep == 2) targetState = "Attack_02";
+            if (comboStep == 3) targetState = "Attack_03";
+            
+            animator.CrossFadeInFixedTime(targetState, 0.05f);
+            Debug.Log($"[DIAGNOSTIC] Step {comboStep}: Forced CrossFade to {targetState}");
+        }
 
         switch (comboStep)
         {
             case 1:
                 comboColor = Color.white;
-                activeScissor = rightScissor;
-                axis = Vector3.up;
-                angle = -360f;
                 clipToPlay = singleScissorClip;
+                if (animator != null) animator.SetTrigger(Attack1Hash);
                 break;
             case 2:
                 currentDamage *= 1.1f;
                 comboColor = Color.yellow;
-                activeScissor = leftScissor;
-                axis = Vector3.up;
-                angle = 360f;
                 clipToPlay = singleScissorClip;
+                if (animator != null) animator.SetTrigger(Attack2Hash);
                 break;
             case 3:
                 currentDamage *= 1.3f;
                 currentCritChance += 0.20f;
                 comboColor = Color.red;
-                activeScissor = combinedScissor;
-                axis = Vector3.right;
-                angle = 360f;
                 clipToPlay = doubleScissorClip;
-                // Note: Combo resets after Hit 3 in ResetCombo() called later or by timeout
+                if (animator != null) animator.SetTrigger(Attack3Hash);
                 break;
             default:
                 ResetCombo();
                 comboStep = 1;
-                activeScissor = rightScissor;
-                axis = Vector3.up;
-                angle = -360f;
                 clipToPlay = singleScissorClip;
+                if (animator != null) animator.SetTrigger(Attack1Hash);
                 break;
         }
 
-        if (activeScissor != null)
+        if (generalAttackHitbox != null)
         {
-            Scissors s = activeScissor.GetComponent<Scissors>();
+            Scissors s = generalAttackHitbox.GetComponent<Scissors>();
             if (s != null) s.Initialize(currentDamage, currentCritChance);
         }
 
@@ -342,31 +379,46 @@ public class PlayerFSM : MonoBehaviour
         }
 
         SetPlayerColor(comboColor);
-        attackCoroutine = StartCoroutine(AttackAnimationCoroutine(axis, angle, activeScissor));
         SwitchState(PlayerState.Attacking);
     }
 
-    private IEnumerator AttackAnimationCoroutine(Vector3 axis, float angle, GameObject scissorObj)
+    // --- ANIMATION EVENTS ---
+
+    public void OpenComboWindow() => isComboWindowOpen = true;
+    public void CloseComboWindow() => isComboWindowOpen = false;
+
+    // Called by Animation Events in the FBX animations
+    public void EnableHitbox()
     {
-        if (scissorObj) scissorObj.SetActive(true);
-        
-        float elapsed = 0f;
-        Quaternion startRot = modelTransform.localRotation;
+        // Ignore events if they fire when we aren't in a combo step (prevents phantom damage)
+        if (comboStep == 0) return;
 
-        while (elapsed < attackAnimationDuration)
+        Debug.Log($"Hitbox ENABLED via Animation Event. Combo Step: {comboStep}");
+        if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
+    }
+
+    public void DisableHitbox()
+    {
+        if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
+    }
+
+    public void ReturnToIdle()
+    {
+        // Only return to idle if enough time has passed since the LAST attack trigger
+        // AND we aren't already in the middle of a CrossFade/Trigger for the next step
+        if (Time.time - lastAttackTime > 0.15f)
         {
-            elapsed += Time.deltaTime;
-            float percent = elapsed / attackAnimationDuration;
-            
-            float currentAngle = Mathf.Lerp(0, angle, percent);
-            modelTransform.localRotation = startRot * Quaternion.AngleAxis(currentAngle, axis);
-            
-            yield return null;
+            ResetCombo();
+            SwitchState(PlayerState.Idle);
         }
+    }
 
-        modelTransform.localRotation = startRot;
-        if (scissorObj) scissorObj.SetActive(false);
-        attackCoroutine = null;
+    [ContextMenu("Debug: Play Attack 3")]
+    public void DebugPlayAttack3()
+    {
+        comboStep = 3;
+        if (animator != null) animator.SetTrigger(Attack3Hash);
+        SwitchState(PlayerState.Attacking);
     }
 
     private void UpdateMovementAndRotation()
@@ -379,11 +431,17 @@ public class PlayerFSM : MonoBehaviour
         }
         else
             moveDirection = Vector3.zero;
+
+        if (animator != null)
+        {
+            animator.SetBool(IsMovingHash, moveDirection != Vector3.zero);
+        }
     }
 
     private void ResetCombo()
     {
         comboStep = 0;
+        isComboWindowOpen = false;
         SetPlayerColor(originalColor);
     }
 
@@ -404,11 +462,7 @@ public class PlayerFSM : MonoBehaviour
 
     private void HandleAttackingState()
     {
-        if (attackCoroutine == null && Time.time - lastAttackTime > 0.1f) 
-        {
-            if (comboStep >= 3) ResetCombo();
-            SwitchState(PlayerState.Idle);
-        }
+        CheckForCombatInputs(); // Allow chaining attacks
     }
 
     private void PerformSpecialAttack()
@@ -416,44 +470,53 @@ public class PlayerFSM : MonoBehaviour
         specialTimer = specialCooldown;
         SetPlayerColor(Color.cyan);
         
-        // Visual AOE
-        GameObject aoe = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        aoe.transform.position = transform.position;
-        aoe.transform.localScale = Vector3.one * (specialRange * 2);
-        Destroy(aoe.GetComponent<Collider>());
-        
-/*        Renderer rend = aoe.GetComponent<Renderer>();
-        rend.material.color = new Color(0, 1, 1, 0.3f);
-        rend.material.SetFloat("_Surface", 1); 
-        rend.material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        rend.material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        rend.material.SetInt("_ZWrite", 0);
-        rend.material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-      
-*/
-        Destroy(aoe, 0.3f);
+        if (animator != null) animator.SetTrigger(HeavyAttackHash);
+        SwitchState(PlayerState.SpecialAttacking);
+    }
+
+    // Called by Animation Event during the Heavy Attack animation
+    public void ExecuteSpecialAttackDamage()
+    {
         // Damage + Knockback
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
-        //This line is fucking up the collisions making it so the player doesnt hit the enemies everytime
-        //This could be fixed by attaching the damage of the enemies to the collider on the swords
         foreach (Collider enemy in hitEnemies)
         {
             Health h = enemy.GetComponent<Health>();
             if (h != null) h.TakeDamage(weaponBaseDamage * 2, transform.position, 10f);
         }
+        
+        // Visual debug for AOE in scene
+        StartCoroutine(ShowSpecialAOEVisual());
+    }
 
-        Debug.Log("SPECIAL ATTACK! AOE Burst.");
-        SwitchState(PlayerState.SpecialAttacking);
+    private IEnumerator ShowSpecialAOEVisual()
+    {
+        showSpecialGizmo = true;
+        yield return new WaitForSeconds(0.3f);
+        showSpecialGizmo = false;
+    }
+
+    private bool showSpecialGizmo = false;
+
+    private void OnDrawGizmos()
+    {
+        if (showSpecialGizmo)
+        {
+            Gizmos.color = new Color(0, 1, 1, 0.4f);
+            Gizmos.DrawSphere(transform.position, specialRange);
+        }
+        
+        // Permanent Range Gizmos
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position + transform.forward, attackRange);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawWireSphere(transform.position + transform.forward, specialRange);
     }
 
     private void HandleSpecialAttackState()
     {
         moveDirection = Vector3.zero;
-        if (Time.time - lastAttackTime > 0.5f) 
-        {
-            ResetCombo();
-            SwitchState(PlayerState.Idle);
-        }
+        // Logic handled by Animation Events (ReturnToIdle)
     }
 
     private void SwitchState(PlayerState newState)
@@ -470,6 +533,16 @@ public class PlayerFSM : MonoBehaviour
             int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
             if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
         }
+
+        // Adjust animator speed based on state
+        if (animator != null)
+        {
+            if (newState == PlayerState.Moving) animator.speed = runAnimationSpeed;
+            else if (newState == PlayerState.Attacking) animator.speed = attackAnimationSpeed;
+            else if (newState == PlayerState.SpecialAttacking) animator.speed = specialAttackAnimationSpeed;
+            else animator.speed = 1.0f;
+        }
+
         currentState = newState;
     }
 
