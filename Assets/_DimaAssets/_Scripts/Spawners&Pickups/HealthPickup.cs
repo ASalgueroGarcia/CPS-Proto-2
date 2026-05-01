@@ -9,10 +9,9 @@ public class HealthPickup : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            PlayerStatsManager stats = other.GetComponent<PlayerStatsManager>();
-            if (stats != null)
+            if (PlayerStatsManager.Instance != null)
             {
-                stats.Heal(healAmount);
+                PlayerStatsManager.Instance.Heal(healAmount);
                 OnCollected?.Invoke();
                 Destroy(gameObject);
             }

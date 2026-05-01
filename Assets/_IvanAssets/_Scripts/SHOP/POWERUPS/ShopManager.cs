@@ -31,7 +31,7 @@ public class ShopManager : MonoBehaviour
     private void Start()
     {
         // 1. Find the playerStatsManager.
-        playerStatsManager = FindFirstObjectByType<PlayerStatsManager>();
+        playerStatsManager = PlayerStatsManager.Instance;
         canvasG = shopPanel.GetComponent<CanvasGroup>();
         _uiManager = FindFirstObjectByType<UIManager>();
 

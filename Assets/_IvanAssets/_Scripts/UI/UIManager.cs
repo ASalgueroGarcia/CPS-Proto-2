@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
@@ -19,6 +20,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI damageText;
     [SerializeField] private TextMeshProUGUI specialCDText;
     [SerializeField] private TextMeshProUGUI comboText;
+    [SerializeField] private TextMeshProUGUI coinsText;
+    [SerializeField] private TextMeshProUGUI inventoryText;
     [SerializeField] private Slider playerHealthSlider;
     
     [Header("CANVAS REFERENCES")]
@@ -84,7 +87,7 @@ public class UIManager : MonoBehaviour
 
         // Refresh references when a new scene is loaded
         _playerFsm = FindFirstObjectByType<PlayerFSM>();
-        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
+        _playerStats = PlayerStatsManager.Instance;
         
         // Unsubscribe from old health component if any
         if (_playerHealth != null)
@@ -96,6 +99,12 @@ public class UIManager : MonoBehaviour
         if (_playerFsm != null)
         {
             _playerHealth = _playerFsm.GetComponent<Health>();
+            
+            // Re-bind stats manager to new player when a new level is loaded additively
+            if (PlayerStatsManager.Instance != null)
+            {
+                PlayerStatsManager.Instance.BindToPlayer();
+            }
         }
         else
         {
@@ -173,7 +182,7 @@ public class UIManager : MonoBehaviour
 
         // Try to find missing references in children
         if (playerHealthSlider == null) playerHealthSlider = GetComponentInChildren<Slider>(true);
-        if (healthText == null || speedText == null || damageText == null || specialCDText == null || comboText == null)
+        if (healthText == null || speedText == null || damageText == null || specialCDText == null || comboText == null || coinsText == null || inventoryText == null)
         {
             TextMeshProUGUI[] allTexts = GetComponentsInChildren<TextMeshProUGUI>(true);
             foreach (var txt in allTexts)
@@ -183,6 +192,8 @@ public class UIManager : MonoBehaviour
                 if (damageText == null && txt.name.Contains("Damage", System.StringComparison.OrdinalIgnoreCase)) damageText = txt;
                 if (specialCDText == null && txt.name.Contains("Special", System.StringComparison.OrdinalIgnoreCase)) specialCDText = txt;
                 if (comboText == null && txt.name.Contains("Combo", System.StringComparison.OrdinalIgnoreCase)) comboText = txt;
+                if (coinsText == null && txt.name.Contains("Coin", System.StringComparison.OrdinalIgnoreCase)) coinsText = txt;
+                if (inventoryText == null && (txt.name.Contains("Inventory", System.StringComparison.OrdinalIgnoreCase) || txt.name.Contains("Item", System.StringComparison.OrdinalIgnoreCase))) inventoryText = txt;
             }
         }
 
@@ -326,6 +337,33 @@ public class UIManager : MonoBehaviour
             if (comboText != null)
             {
                 comboText.text = $"Combo: {_playerFsm.comboStep}";
+            }
+        }
+
+        if (_playerStats != null)
+        {
+            if (coinsText != null)
+            {
+                coinsText.text = $"Coins: {_playerStats.CurrentCoins}";
+            }
+
+            if (inventoryText != null)
+            {
+                string itemNames = "Items: ";
+                if (_playerStats.InventoryItems.Count > 0)
+                {
+                    List<string> names = new List<string>();
+                    foreach (var item in _playerStats.InventoryItems)
+                    {
+                        names.Add(item.powerUpName);
+                    }
+                    itemNames += string.Join(", ", names);
+                }
+                else
+                {
+                    itemNames += "None";
+                }
+                inventoryText.text = itemNames;
             }
         }
     }
