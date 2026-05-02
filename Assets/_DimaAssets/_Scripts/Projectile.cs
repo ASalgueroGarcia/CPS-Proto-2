@@ -9,6 +9,7 @@ public class Projectile : MonoBehaviour
     [SerializeField] private bool isExplosive = true;
     [SerializeField] private float explosionRadius = 3.5f;
     [SerializeField] private GameObject explosionEffectPrefab;
+    [SerializeField] private float explosionDuration = 2f;
     [SerializeField] private float knockbackForce = 10f;
 
     public void Setup(Vector3 targetPos, float dmg, float angle)
@@ -85,7 +86,8 @@ public class Projectile : MonoBehaviour
     {
         if (explosionEffectPrefab != null)
         {
-            Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+            GameObject effect = Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+            Destroy(effect, explosionDuration);
         }
 
         Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
