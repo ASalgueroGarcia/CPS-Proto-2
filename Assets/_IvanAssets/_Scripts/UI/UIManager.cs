@@ -23,6 +23,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI coinsText;
     [SerializeField] private TextMeshProUGUI inventoryText;
     [SerializeField] private Slider playerHealthSlider;
+    [SerializeField] private Image healthBar;
+    [SerializeField] private Image cooldown;
     
     [Header("CANVAS REFERENCES")]
     [SerializeField] private GameObject playerUICanvas;
@@ -49,6 +51,7 @@ public class UIManager : MonoBehaviour
 
         _instance = this;
         DontDestroyOnLoad(gameObject);
+       
     }
 
     private void OnEnable()
@@ -124,13 +127,17 @@ public class UIManager : MonoBehaviour
     {
         if (playerHealthSlider != null)
         {
-            playerHealthSlider.maxValue = max;
-            playerHealthSlider.value = current;
+            
+            //playerHealthSlider.maxValue = max;
+            //playerHealthSlider.value = current;
+            healthBar.fillAmount = current / max;
+            //healthBar.rectTransform.rect.width = max * 300;
+
         }
 
         if (healthText != null)
         {
-            healthText.text = $"HP: {(int)current} / {(int)max}";
+            healthText.text = $"{(int)current} / {(int)max}";
         }
     }
 
@@ -329,14 +336,23 @@ public class UIManager : MonoBehaviour
             if (specialCDText != null)
             {
                 if (_playerFsm.specialTimer > 0)
-                    specialCDText.text = $"Special: {_playerFsm.specialTimer:F1}s";
+                {
+                    cooldown.fillAmount += _playerFsm.specialTimer;
+                    specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
+                }
+                    
+
                 else
-                    specialCDText.text = "Special: READY";
+                {
+                    specialCDText.text = "READY";
+                    cooldown.fillAmount = float.MaxValue;
+                }
+                    
             }
 
             if (comboText != null)
             {
-                comboText.text = $"Combo: {_playerFsm.comboStep}";
+                comboText.text = $"{_playerFsm.comboStep}";
             }
         }
 
@@ -344,7 +360,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"Coins: {_playerStats.CurrentCoins}";
+                coinsText.text = $"{_playerStats.CurrentCoins} €";
             }
 
             if (inventoryText != null)
