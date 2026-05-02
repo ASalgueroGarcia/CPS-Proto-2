@@ -50,7 +50,7 @@ public class FloorSpikes : TrapBase
     // OntriggerStay -> checks if the player or the enemy is still on the spikes while is active -> DAMAGE.
     private void OnTriggerStay(Collider other)
     {
-        if(isA)return;
+        if(!isA)return;
 
         if(other.CompareTag("Enemy") || other.CompareTag("Player"))
         {

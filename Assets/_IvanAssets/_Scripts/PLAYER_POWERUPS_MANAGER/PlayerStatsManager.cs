@@ -4,6 +4,8 @@ using System.Collections.Generic;
 // PLAYER MANAGER FOR THE STATS OF THE PLAYER W THE ITEMS TOO.
 public class PlayerStatsManager : MonoBehaviour
 {
+    public static PlayerStatsManager Instance { get; private set; }
+
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
@@ -15,6 +17,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     // CURRENCY.
     private int currentCoins = 0;
+    public int CurrentCoins => currentCoins;
 
     // DAMAGE.
     private float currentNormalDamage;
@@ -29,29 +32,80 @@ public class PlayerStatsManager : MonoBehaviour
 
     // How many items do u collect? -> INVENTORY.
     private int inventoryItems = 0;
+    public int InventoryItemsCount => inventoryItems;
+
     private List<PowerUpData> listOfInventoryItems = new List<PowerUpData>();
+    public List<PowerUpData> InventoryItems => listOfInventoryItems;
+
+    private bool _hasStats = false;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+        // If attached to UI prefab which has DontDestroyOnLoad, this remains persistent.
+    }
 
     private void Start()
     {
-        playerController = GetComponent<PlayerFSM>();
-        healthPlayer = GetComponent<Health>();
-        waveManager = FindFirstObjectByType<WaveManager>();
+        BindToPlayer();
+    }
 
-        // INITS.
-        if (playerController != null)
+    public void BindToPlayer()
+    {
+        playerController = FindFirstObjectByType<PlayerFSM>();
+        if (playerController == null) return;
+
+        healthPlayer = playerController.GetComponent<Health>();
+        
+        // Unsubscribe from old health if any
+        if (healthPlayer != null)
         {
+            healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
+        }
+
+        if (!_hasStats)
+        {
+            // FIRST TIME: Capture defaults from the player prefab instance
             currentSpeed = playerController.speed;
             currentDashSpeed = playerController.dashSpeed;
             currentNormalDamage = playerController.weaponBaseDamage;
             currentCritChance = playerController.baseCritChance;
+
+            if (healthPlayer != null)
+            {
+                currentHealth = healthPlayer.currentHealth;
+                maxHealth = healthPlayer.maxHealth;
+            }
+            _hasStats = true;
+            Debug.Log("PlayerStatsManager: Captured initial player stats.");
+        }
+        else
+        {
+            // SUBSEQUENT TIMES: Apply our persistent stats to the new player instance
+            playerController.speed = currentSpeed;
+            playerController.dashSpeed = currentDashSpeed;
+            playerController.weaponBaseDamage = currentNormalDamage;
+            playerController.baseCritChance = currentCritChance;
+
+            if (healthPlayer != null)
+            {
+                healthPlayer.maxHealth = maxHealth;
+                healthPlayer.currentHealth = currentHealth;
+            }
+            Debug.Log("PlayerStatsManager: Applied persistent stats to new player.");
         }
 
         if (healthPlayer != null)
         {
-            currentHealth = healthPlayer.currentHealth;
-            maxHealth = healthPlayer.maxHealth;
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
+        
+        waveManager = FindFirstObjectByType<WaveManager>();
         Prints();
     }
 
@@ -162,26 +216,16 @@ public class PlayerStatsManager : MonoBehaviour
     }
     public void ResetAllThePlayerStats()
     {
-        if (playerController != null)
-        {
-            currentSpeed = playerController.speed;
-            currentDashSpeed = playerController.dashSpeed;
-            currentNormalDamage = playerController.weaponBaseDamage;
-            currentCritChance = playerController.baseCritChance;
-        }
-
-        if (healthPlayer != null)
-        {
-            currentHealth = healthPlayer.currentHealth;
-            maxHealth = healthPlayer.maxHealth;
-        }
-
+        _hasStats = false;
         currentCriticalDamage = 25.0f;
         currentSpecialDamage = 20.0f;
         currentAttackSpeed = 1.0f;
         currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
+        
+        // Try to bind immediately if player exists
+        BindToPlayer();
     }
 
     public void Prints()

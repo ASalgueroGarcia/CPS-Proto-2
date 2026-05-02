@@ -5,15 +5,19 @@ public class Scissors : MonoBehaviour
 {
     private float damage;
     private float critChance;
+    private float knockbackForce;
 
     // List to keep track of enemies hit during the current rotation
     private List<Health> hitEnemies = new List<Health>();
+    private List<Brekeable_Objects> hitBreakables = new List<Brekeable_Objects>();
 
-    public void Initialize(float dmg, float crit)
+    public void Initialize(float dmg, float crit, float knockback = 0f)
     {
         damage = dmg;
         critChance = crit;
+        knockbackForce = knockback;
         hitEnemies.Clear();
+        hitBreakables.Clear();
 
         // Ensure all children with colliders have a proxy script to report back to this main script
         foreach (Collider col in GetComponentsInChildren<Collider>(true))
@@ -36,11 +40,21 @@ public class Scissors : MonoBehaviour
                 bool isCrit = Random.value < critChance;
                 float finalDamage = isCrit ? damage * 2 : damage;
                 
-                // Damage + Knockback
-                enemyHealth.TakeDamage(finalDamage, transform.root.position, 5f);
+                // Damage + Knockback (Now uses the initialized force)
+                enemyHealth.TakeDamage(finalDamage, transform.root.position, knockbackForce);
                 hitEnemies.Add(enemyHealth);
                 
-                Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");
+                // Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");
+            }
+        }
+        else if (other.CompareTag("Breakeable"))
+        {
+            Brekeable_Objects breakable = other.GetComponent<Brekeable_Objects>();
+            if (breakable != null && !hitBreakables.Contains(breakable))
+            {
+                breakable.TakeDamage(1);
+                hitBreakables.Add(breakable);
+                // Debug.Log($"Scissor hit breakable {other.name}");
             }
         }
     }
@@ -53,6 +67,28 @@ public class Scissors : MonoBehaviour
     private void OnDisable()
     {
         hitEnemies.Clear();
+        hitBreakables.Clear();
+    }
+
+    private void OnDrawGizmos()
+    {
+        // Only draw when the hitbox is active (during an attack)
+        if (!Application.isPlaying || !gameObject.activeInHierarchy) return;
+
+        Gizmos.color = new Color(1, 0, 0, 0.5f); // Semi-transparent red
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            Gizmos.matrix = transform.localToWorldMatrix;
+            if (col is BoxCollider box)
+            {
+                Gizmos.DrawCube(box.center, box.size);
+            }
+            else if (col is SphereCollider sphere)
+            {
+                Gizmos.DrawSphere(sphere.center, sphere.radius);
+            }
+        }
     }
 }
 

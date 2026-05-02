@@ -8,6 +8,10 @@ public class ExplodingTrap : TrapBase
     [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
     [SerializeField] private float knockbackEffect = 10.0f;
+
+    [Header("VFX")]
+    [SerializeField] private ParticleSystem explosionEffectRef;
+    [SerializeField] private float expTime = 2.0f;
     private bool isTriggered = false;
 
     [SerializeField] private Renderer trapRender;
@@ -38,6 +42,12 @@ public class ExplodingTrap : TrapBase
         }
 
         yield return new WaitForSeconds(delayBetweenTrigger);
+        if(explosionEffectRef != null)
+        {
+            ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);
+            ef.Play();
+            Destroy(ef.gameObject,expTime);
+        }
 
         Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
         for (int i = 0; i < hits.Length; i++)

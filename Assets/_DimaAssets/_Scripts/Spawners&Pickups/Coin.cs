@@ -9,10 +9,9 @@ public class Coin : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            PlayerStatsManager stats = other.GetComponent<PlayerStatsManager>();
-            if (stats != null)
+            if (PlayerStatsManager.Instance != null)
             {
-                stats.AddCoins(amount);
+                PlayerStatsManager.Instance.AddCoins(amount);
                 OnCollected?.Invoke();
                 Destroy(gameObject);
             }
