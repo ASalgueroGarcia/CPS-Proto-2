@@ -349,8 +349,9 @@ MonoBehaviour:
   Hitbox_attack12: {fileID: 974475659849659198}
   Hitbox_attack3: {fileID: 1349782548685538138}
   modelTransform: {fileID: 4126966682884568193}
-  singleScissorClip: {fileID: 8300000, guid: c2a2e1ce372a2a14daf5dffb8d26bb65, type: 3}
-  doubleScissorClip: {fileID: 8300000, guid: 2f6f14e673188df4e997f476335b4e75, type: 3}
+  lightAttackClips: []
+  specialAttackClip: {fileID: 0}
+  dashClips: []
   specialCooldown: 10
   specialTimer: 0
 --- !u!114 &7513664657486097797
@@ -394,6 +395,7 @@ MonoBehaviour:
   checkFall: 1
   fallThreshold: -5
   checkInterval: 0.5
+  hitImpactClip: {fileID: 8300000, guid: cc8c7cf5ffcddd146a3801bcc46e1443, type: 3}
 --- !u!1001 &8029285051819117020
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -432,7 +434,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 84db6eecaca7c8e4d81cd4ec5a8ced7f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.75
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 84db6eecaca7c8e4d81cd4ec5a8ced7f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -672,7 +674,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7570456002536969217, guid: 84db6eecaca7c8e4d81cd4ec5a8ced7f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.39
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7570456002536969217, guid: 84db6eecaca7c8e4d81cd4ec5a8ced7f, type: 3}
       propertyPath: m_LocalRotation.w

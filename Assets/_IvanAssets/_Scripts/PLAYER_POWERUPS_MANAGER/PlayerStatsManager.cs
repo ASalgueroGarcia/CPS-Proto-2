@@ -106,7 +106,7 @@ public class PlayerStatsManager : MonoBehaviour
         }
         
         waveManager = FindFirstObjectByType<WaveManager>();
-        Prints();
+        //Prints();
     }
 
     private void OnDestroy()
@@ -212,7 +212,7 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
             }
         }
-        Prints();
+        //Prints();
     }
     public void ResetAllThePlayerStats()
     {

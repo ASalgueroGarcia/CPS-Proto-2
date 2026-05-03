@@ -33,12 +33,12 @@ public class ExplodingTrap : TrapBase
     {
         if (trapRender != null){
             trapRender.material.color = Color.yellow;
-                Debug.Log("Color cambiado a amarillo");
+            //Debug.Log("Color cambiado a amarillo");
         }
 
         if (trapRender != null){
             trapRender.material.color = Color.red;
-                Debug.Log("Color cambiado a rojo");
+            //Debug.Log("Color cambiado a rojo");
         }
 
         yield return new WaitForSeconds(delayBetweenTrigger);

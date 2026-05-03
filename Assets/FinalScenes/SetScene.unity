@@ -1682,6 +1682,7 @@ GameObject:
   - component: {fileID: 819760495}
   - component: {fileID: 819760494}
   - component: {fileID: 819760493}
+  - component: {fileID: 819760497}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1820,6 +1821,14 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 22.13, y: 0, z: 0}
+--- !u!81 &819760497
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 819760492}
+  m_Enabled: 1
 --- !u!1 &848602746
 GameObject:
   m_ObjectHideFlags: 0
@@ -2486,9 +2495,49 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1986237558}
     - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: specialAttackClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8f6f21b4a139f5e4e82235cc767516ce, type: 3}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
       propertyPath: specialAttackAction
       value: 
       objectReference: {fileID: 1378609958}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: dashClips.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: 'dashClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 5f64b99294fc60e4fa76c13c6d982543, type: 3}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: 'dashClips.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 2a288a98942cd8b49913f460917f3e84, type: 3}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: 'dashClips.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8300000, guid: d9fdaab828bf17e4f8c7e6cafcc5d8ab, type: 3}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: lightAttackClips.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: 'lightAttackClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 270b915a803d06c41b24817f2775a9d1, type: 3}
+    - target: {fileID: 4876334175014463599, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: 'lightAttackClips.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8300000, guid: e63191143d3c0aa4a92b7b04d7ffa2da, type: 3}
+    - target: {fileID: 7513664657486097797, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: hitImpactClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 3a7ea63d4a333e04db9353df6e076649, type: 3}
+    - target: {fileID: 7513664657486097797, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+      propertyPath: enemyHitPlayerClip
+      value: 
+      objectReference: {fileID: 8300000, guid: cc8c7cf5ffcddd146a3801bcc46e1443, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
