@@ -32,6 +32,7 @@ public class Health : MonoBehaviour
 
     [Header("SFX")] 
     [SerializeField] private AudioClip hitImpactClip;
+    [SerializeField] private AudioClip deathClip;
 
     private bool isDying = false;
 
@@ -152,6 +153,9 @@ public class Health : MonoBehaviour
 
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
+        
+        SoundManager.Instance.PlaySound(deathClip);
+        
         Destroy(gameObject, 0.1f);
     }
 

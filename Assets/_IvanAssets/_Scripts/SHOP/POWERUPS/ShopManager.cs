@@ -18,34 +18,37 @@ public class ShopManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI[] itemDescriptionTexts = new TextMeshProUGUI[3];
     [SerializeField] private TextMeshProUGUI[] itemPriceTexts = new TextMeshProUGUI[3];
     [SerializeField] private Image[] powerUpImage = new Image[3];
-    [SerializeField] private List<PowerUpData> PowerUpsA = new List<PowerUpData>();
+    [SerializeField] private List<PowerUpData> powerUpsA = new List<PowerUpData>();
 
+    [Header("SFX Settings")]
+    [SerializeField] private AudioClip purchaseClip;
 
-    private PlayerStatsManager playerStatsManager;
-    private PowerUpData[] currentPowerUps = new PowerUpData[3];
-    private CanvasGroup canvasG;
-    private RectTransform panelRect;
+    private PlayerStatsManager _playerStatsManager;
+    private readonly PowerUpData[] _currentPowerUps = new PowerUpData[3];
+    private CanvasGroup _canvasG;
+    private RectTransform _panelRect;
     private UIManager _uiManager;
 
     // methods.
     private void Start()
     {
         // 1. Find the playerStatsManager.
-        playerStatsManager = PlayerStatsManager.Instance;
-        canvasG = shopPanel.GetComponent<CanvasGroup>();
+        _playerStatsManager = PlayerStatsManager.Instance;
+        _canvasG = shopPanel.GetComponent<CanvasGroup>();
         _uiManager = FindFirstObjectByType<UIManager>();
 
-        if (canvasG == null)
+        if (_canvasG == null)
         {
-            canvasG = shopPanel.AddComponent<CanvasGroup>();
+            _canvasG = shopPanel.AddComponent<CanvasGroup>();
         }
-        panelRect = shopPanel.GetComponent<RectTransform>();
+        _panelRect = shopPanel.GetComponent<RectTransform>();
 
         // 2. Conect the buttont to -> selectPower.
         for(int j = 0; j < powerUpsButtons.Length; j++)
         {
             int f = j;
             powerUpsButtons[j].onClick.AddListener(() => PowerUpSelect(f));
+            powerUpsButtons[j].onClick.AddListener(() => SoundManager.Instance.PlaySound(purchaseClip));
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
         HideShopLogic();
@@ -59,9 +62,9 @@ public class ShopManager : MonoBehaviour
         // Select 3 random items in the list.
         List<int> iRandom = new List<int>();
 
-        while(iRandom.Count < PowerUpsA.Count && iRandom.Count < 3)
+        while(iRandom.Count < powerUpsA.Count && iRandom.Count < 3)
         {
-            int indexR = UnityEngine.Random.Range(0, PowerUpsA.Count);  
+            int indexR = UnityEngine.Random.Range(0, powerUpsA.Count);  
             if(!iRandom.Contains(indexR)){
                 iRandom.Add(indexR);
             }
@@ -69,12 +72,12 @@ public class ShopManager : MonoBehaviour
 
         for(int i = 0; i < iRandom.Count; i++)
         {
-            currentPowerUps[i] = PowerUpsA[iRandom[i]];
+            _currentPowerUps[i] = powerUpsA[iRandom[i]];
             
-            itemNameTexts[i].text = currentPowerUps[i].powerUpName;
-            itemDescriptionTexts[i].text = currentPowerUps[i].powerUpDescription;
-            itemPriceTexts[i].text = "$" + currentPowerUps[i].price.ToString();
-            powerUpImage[i].sprite = currentPowerUps[i].powerUpIcon;
+            itemNameTexts[i].text = _currentPowerUps[i].powerUpName;
+            itemDescriptionTexts[i].text = _currentPowerUps[i].powerUpDescription;
+            itemPriceTexts[i].text = "$" + _currentPowerUps[i].price.ToString();
+            powerUpImage[i].sprite = _currentPowerUps[i].powerUpIcon;
         }
         
         Time.timeScale = 0f;
@@ -89,11 +92,11 @@ public class ShopManager : MonoBehaviour
 
     public void PowerUpSelect(int l)
     {
-        PowerUpData selectedPowerUp = currentPowerUps[l];
+        PowerUpData selectedPowerUp = _currentPowerUps[l];
         // APPLY THE POWERUP.
-        if (playerStatsManager != null && selectedPowerUp != null)
+        if (_playerStatsManager != null && selectedPowerUp != null)
         {
-            playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+            _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
         }
         HideShopLogic();
         _uiManager.ShowEoLCanvas();

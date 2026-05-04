@@ -11,6 +11,7 @@ public class RangedEnemy : EnemyBase
     public GameObject projectilePrefab;
     public Transform shootPoint;
     public float projectileSpeed = 10f;
+    [SerializeField] private AudioClip projectileClip;
 
     private float timer = 0f;
 
@@ -121,5 +122,7 @@ public class RangedEnemy : EnemyBase
             // Vector3 direction = (targetPos - spawnPos).normalized;
             proj.Setup(targetPos, damage, 45);    // for now lets make a static angle 45deg
         }
+        
+        SoundManager.Instance.PlaySound(projectileClip);
     }
 }

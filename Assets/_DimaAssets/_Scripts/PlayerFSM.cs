@@ -647,4 +647,9 @@ public class PlayerFSM : MonoBehaviour
             yield return null;
         }
     }
+
+    public float GetPlayerDamage()
+    {
+        return weaponBaseDamage;
+    }
 }
