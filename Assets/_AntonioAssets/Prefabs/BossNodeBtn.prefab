@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 651728288127575064}
   - component: {fileID: 6836302746063402895}
   - component: {fileID: 5485768495745208918}
+  - component: {fileID: 5789619599273163053}
   m_Layer: 5
   m_Name: BossNodeBtn
   m_TagString: Node
@@ -135,6 +136,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 5789619599273163053}
+        m_TargetAssemblyTypeName: ButtonInteraction, Assembly-CSharp
+        m_MethodName: PlayInteractionSfx
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &651728288127575064
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -178,3 +191,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NodeButtonHover
   hoverScale: 1.2
   scaleSpeed: 8
+--- !u!114 &5789619599273163053
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6990962331775730609}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a6b4a31b63b0f624b881850164d2d39e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonInteraction
+  interactionSfx: {fileID: 8300000, guid: a27528bd7be1dbf47b82731b345c18d9, type: 3}

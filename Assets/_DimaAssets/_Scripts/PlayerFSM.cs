@@ -1,6 +1,7 @@
-using UnityEngine;
+ using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerFSM : MonoBehaviour
 {
@@ -71,8 +72,10 @@ public class PlayerFSM : MonoBehaviour
     [SerializeField] private Transform modelTransform;
 
     [Header("Audio Clips")]
-    [SerializeField] private AudioClip singleScissorClip;
-    [SerializeField] private AudioClip doubleScissorClip;
+    [SerializeField] private List<AudioClip> lightAttackClips;
+    [SerializeField] private AudioClip specialAttackClip;
+    [SerializeField] private List<AudioClip> dashClips;
+    
 
     private Quaternion originalRotation;
 
@@ -278,6 +281,9 @@ public class PlayerFSM : MonoBehaviour
         dashDirection = direction != Vector3.zero ? direction : transform.forward;
         dashTimer = dashDuration;
         dashDirection.y = 0;
+        
+        SoundManager.Instance.PlayRandomSound(dashClips);
+        
         if (dashTrail != null)
         {
             dashTrail.Clear();
@@ -334,33 +340,31 @@ public class PlayerFSM : MonoBehaviour
         float currentDamage = weaponBaseDamage;
         float currentCritChance = baseCritChance;
         Color comboColor = Color.white;
-        AudioClip clipToPlay = singleScissorClip;
         string targetState = "Attack_01";
 
         switch (comboStep)
         {
             case 1:
                 comboColor = Color.white;
-                clipToPlay = singleScissorClip;
                 targetState = "Attack_01";
+                SoundManager.Instance.PlayRandomSound(lightAttackClips);
                 break;
             case 2:
                 currentDamage *= 1.2f; // Slightly more damage
                 comboColor = Color.yellow;
-                clipToPlay = singleScissorClip;
                 targetState = "Attack_02";
+                SoundManager.Instance.PlayRandomSound(lightAttackClips);
                 break;
             case 3:
                 currentDamage *= 1.5f; // Stronger finisher
                 currentCritChance += 0.25f;
                 comboColor = Color.red;
-                clipToPlay = doubleScissorClip;
                 targetState = "Attack_03";
+                SoundManager.Instance.PlaySound(specialAttackClip);
                 break;
             default:
                 ResetCombo();
                 comboStep = 1;
-                clipToPlay = singleScissorClip;
                 targetState = "Attack_01";
                 break;
         }
@@ -387,11 +391,6 @@ public class PlayerFSM : MonoBehaviour
                 
                 s.Initialize(currentDamage, currentCritChance, currentKnockback);
             }
-        }
-
-        if (audioSource != null && clipToPlay != null)
-        {
-            audioSource.PlayOneShot(clipToPlay);
         }
 
         SetPlayerColor(comboColor);
@@ -647,5 +646,10 @@ public class PlayerFSM : MonoBehaviour
             t += Time.deltaTime;
             yield return null;
         }
+    }
+
+    public float GetPlayerDamage()
+    {
+        return weaponBaseDamage;
     }
 }

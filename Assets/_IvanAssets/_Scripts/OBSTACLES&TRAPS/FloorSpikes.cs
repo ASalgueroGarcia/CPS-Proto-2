@@ -10,14 +10,17 @@ public class FloorSpikes : TrapBase
     //[SerializeField] private GameObject spikesVisuals; // VISUALS OF THE SPYKES.
     //[SerializeField] private GameObject warningEffect;
     [SerializeField] private Renderer spikesRenderer; // Renderer para feedback visual
-    private Color originalColor;
 
-    private bool isA = false;
+    [Header("SFX Settings")]
+    [SerializeField] private AudioClip spikeClip;
+    
+    private Color _originalColor;
+    private bool _isA = false;
 
     private void Start()
     {
         if (spikesRenderer != null)
-            originalColor = spikesRenderer.material.color;
+            _originalColor = spikesRenderer.material.color;
         StartCoroutine(SpikeC());
     }
 
@@ -30,18 +33,17 @@ public class FloorSpikes : TrapBase
             {
                 spikesVisuals.SetActive(true);
             }*/
-            if (spikesRenderer != null)
-                spikesRenderer.material.color = Color.yellow;
+            if (spikesRenderer != null) spikesRenderer.material.color = Color.yellow;
             yield return new WaitForSeconds(0.5f); // Duración del aviso visual
 
-            isA = true;
-            if (spikesRenderer != null)
-                spikesRenderer.material.color = Color.red;
+            _isA = true;
+            if (spikesRenderer != null) spikesRenderer.material.color = Color.red;
+            SoundManager.Instance.PlaySound(spikeClip);
             yield return new WaitForSeconds(triggerTime); // Tiempo activas
 
-            isA = false;
+            _isA = false;
             if (spikesRenderer != null)
-                spikesRenderer.material.color = originalColor;
+                spikesRenderer.material.color = _originalColor;
             // spikesVisuals.SetActive(false);
             yield return new WaitForSeconds(inactiveTime); // inactiveTime -> 2secs and then, repeat the cycle.
         }
@@ -50,16 +52,15 @@ public class FloorSpikes : TrapBase
     // OntriggerStay -> checks if the player or the enemy is still on the spikes while is active -> DAMAGE.
     private void OnTriggerStay(Collider other)
     {
-        if(!isA)return;
+        if(!_isA)return;
+        if (!other.CompareTag("Enemy") && !other.CompareTag("Player")) return;
 
-        if(other.CompareTag("Enemy") || other.CompareTag("Player"))
-        {
-            // health comp of the -> player or enemy.
-            Health health = other.GetComponent<Health>(); 
-            if(health==null)return;
-            health.TakeDamage(damage);
-        }
+        // health comp of the -> player or enemy.
+        var health = other.GetComponent<Health>(); 
+        if(health==null)return;
+        health.TakeDamage(damage);
     }
+    
     public override void TrapActive() {}
     public override void TrapDesactive() {}
     public override void OnPlayerEnter(GameObject player) {}

@@ -30,6 +30,10 @@ public class Health : MonoBehaviour
     [SerializeField] private float fallThreshold = -5f;
     [SerializeField] private float checkInterval = 0.5f;
 
+    [Header("SFX")] 
+    [SerializeField] private AudioClip hitImpactClip;
+    [SerializeField] private AudioClip deathClip;
+
     private bool isDying = false;
 
     private void Start()
@@ -79,6 +83,8 @@ public class Health : MonoBehaviour
         {
             Die();
         }
+        
+        if (SoundManager.Instance != null && hitImpactClip != null) SoundManager.Instance.PlaySound(hitImpactClip);
     }
 
     private void TriggerHitFlash(Color flashColor)
@@ -147,6 +153,9 @@ public class Health : MonoBehaviour
 
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
+        
+        SoundManager.Instance.PlaySound(deathClip);
+        
         Destroy(gameObject, 0.1f);
     }
 

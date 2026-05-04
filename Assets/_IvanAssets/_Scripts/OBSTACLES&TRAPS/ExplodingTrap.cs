@@ -12,19 +12,22 @@ public class ExplodingTrap : TrapBase
     [Header("VFX")]
     [SerializeField] private ParticleSystem explosionEffectRef;
     [SerializeField] private float expTime = 2.0f;
-    private bool isTriggered = false;
-
     [SerializeField] private Renderer trapRender;
+
+    [Header("SFX Settings")] 
+    [SerializeField] private AudioClip explosionClip;
+    
+    private bool _isTriggered = false;
 
     // detect -> player or enemy tag.
     private void OnTriggerEnter(Collider other)
     {
-        if (isTriggered)return;
+        if (_isTriggered)return;
 
         if (other.CompareTag("Player") || other.CompareTag("Enemy"))
         {
             StartCoroutine(ExplodeC());
-            isTriggered = true;
+            _isTriggered = true;
         }
     }
 
@@ -33,12 +36,12 @@ public class ExplodingTrap : TrapBase
     {
         if (trapRender != null){
             trapRender.material.color = Color.yellow;
-                Debug.Log("Color cambiado a amarillo");
+            //Debug.Log("Color cambiado a amarillo");
         }
 
         if (trapRender != null){
             trapRender.material.color = Color.red;
-                Debug.Log("Color cambiado a rojo");
+            //Debug.Log("Color cambiado a rojo");
         }
 
         yield return new WaitForSeconds(delayBetweenTrigger);
@@ -46,6 +49,7 @@ public class ExplodingTrap : TrapBase
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);
             ef.Play();
+            SoundManager.Instance.PlaySound(explosionClip);
             Destroy(ef.gameObject,expTime);
         }
 
