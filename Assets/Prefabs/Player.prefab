@@ -349,9 +349,14 @@ MonoBehaviour:
   Hitbox_attack12: {fileID: 974475659849659198}
   Hitbox_attack3: {fileID: 1349782548685538138}
   modelTransform: {fileID: 4126966682884568193}
-  lightAttackClips: []
-  specialAttackClip: {fileID: 0}
-  dashClips: []
+  lightAttackClips:
+  - {fileID: 8300000, guid: 270b915a803d06c41b24817f2775a9d1, type: 3}
+  - {fileID: 8300000, guid: e63191143d3c0aa4a92b7b04d7ffa2da, type: 3}
+  specialAttackClip: {fileID: 8300000, guid: 8f6f21b4a139f5e4e82235cc767516ce, type: 3}
+  dashClips:
+  - {fileID: 8300000, guid: 5f64b99294fc60e4fa76c13c6d982543, type: 3}
+  - {fileID: 8300000, guid: 2a288a98942cd8b49913f460917f3e84, type: 3}
+  - {fileID: 8300000, guid: d9fdaab828bf17e4f8c7e6cafcc5d8ab, type: 3}
   specialCooldown: 10
   specialTimer: 0
 --- !u!114 &7513664657486097797
@@ -395,7 +400,8 @@ MonoBehaviour:
   checkFall: 1
   fallThreshold: -5
   checkInterval: 0.5
-  hitImpactClip: {fileID: 8300000, guid: cc8c7cf5ffcddd146a3801bcc46e1443, type: 3}
+  hitImpactClip: {fileID: 8300000, guid: 3a7ea63d4a333e04db9353df6e076649, type: 3}
+  deathClip: {fileID: 0}
 --- !u!1001 &8029285051819117020
 PrefabInstance:
   m_ObjectHideFlags: 0

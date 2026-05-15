@@ -585,9 +585,9 @@ GameObject:
   - component: {fileID: 5866723436311471217}
   - component: {fileID: 2126591756183149190}
   - component: {fileID: 7363652109719399503}
-  - component: {fileID: 6753685163580755908}
-  - component: {fileID: 5605693473766924897}
   - component: {fileID: 1006447167589531784}
+  - component: {fileID: 6115283790720970096}
+  - component: {fileID: 1992355928784421027}
   m_Layer: 6
   m_Name: Ranged Enemy
   m_TagString: Enemy
@@ -610,6 +610,7 @@ Transform:
   m_Children:
   - {fileID: 4474071609390617638}
   - {fileID: 7210514689575382502}
+  - {fileID: 67672793123199353}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -145.006, z: 0}
 --- !u!33 &7166879375404658566
@@ -723,57 +724,6 @@ MonoBehaviour:
   checkInterval: 0.5
   hitImpactClip: {fileID: 8300000, guid: 696f7f7e28e706e4aaf7166951f7caf7, type: 3}
   deathClip: {fileID: 8300000, guid: 94f2fc8c790f983438e09e9c09a1c3c4, type: 3}
---- !u!143 &6753685163580755908
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8195882128523390324}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
-  m_Radius: 0.5
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &5605693473766924897
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8195882128523390324}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: efafb0ee8e7bbc940b61297453256a2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RangedEnemy
-  currentState: 0
-  maxHealth: 50
-  damage: 10
-  speed: 5
-  alertRange: 10
-  alertDuration: 1
-  idleDuration: 1.5
-  roamRadius: 10
-  keepDistance: 15
-  attackCooldown: 2
-  projectilePrefab: {fileID: 7734638058658290883, guid: 7283f091ccc6e6f4a9c750f793264f2d, type: 3}
-  shootPoint: {fileID: 0}
-  projectileSpeed: 10
-  projectileClip: {fileID: 8300000, guid: 939b93f18d4bef246aea62c78e41e146, type: 3}
 --- !u!195 &1006447167589531784
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -796,6 +746,70 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &6115283790720970096
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8195882128523390324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d796256068a854291d7b404a1f37fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RangedAttack
+  idealDistance: 15
+  distanceDeadzone: 2
+  projectilePrefab: {fileID: 7734638058658290883, guid: 7283f091ccc6e6f4a9c750f793264f2d, type: 3}
+  shootPoint: {fileID: 67672793123199353}
+  launchAngle: 45
+  shootSound: {fileID: 0}
+--- !u!114 &1992355928784421027
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8195882128523390324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fd05e579df5eed469f1f4d2ed231401, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  data: {fileID: 11400000, guid: a9e6f36f4471b994db34cfc2ff35178c, type: 2}
+  attackStrategyComponent: {fileID: 6115283790720970096}
+  currentState: 0
+--- !u!1 &8976403972279715502
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 67672793123199353}
+  m_Layer: 6
+  m_Name: Shoot point
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &67672793123199353
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8976403972279715502}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: 1.017, z: 1.38}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1258445348493324588}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8986565494874067770
 GameObject:
   m_ObjectHideFlags: 0

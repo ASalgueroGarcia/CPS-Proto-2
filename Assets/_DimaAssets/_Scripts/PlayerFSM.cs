@@ -102,12 +102,21 @@ public class PlayerFSM : MonoBehaviour
     private void SetupScissorTrigger(GameObject scissor)
     {
         if (scissor == null) return;
+        
+        // 1. Ensure Scissor script is present
         if (scissor.GetComponent<Scissors>() == null)
             scissor.AddComponent<Scissors>();
         
-        // Ensure there is a trigger collider
+        // 2. Ensure there is a trigger collider
         Collider col = scissor.GetComponent<Collider>();
         if (col != null) col.isTrigger = true;
+
+        // 3. CRITICAL: Unity OnTriggerEnter REQUIRES at least one Rigidbody.
+        // If neither the hitbox nor the enemy has a RB, triggers won't fire.
+        Rigidbody rb = scissor.GetComponent<Rigidbody>();
+        if (rb == null) rb = scissor.AddComponent<Rigidbody>();
+        rb.isKinematic = true; 
+        rb.useGravity = false;
     }
 
     [Header("Special Attack")] public float specialCooldown = 10f;
@@ -556,7 +565,7 @@ public class PlayerFSM : MonoBehaviour
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
         foreach (Collider enemy in hitEnemies)
         {
-            Health h = enemy.GetComponent<Health>();
+            Health h = enemy.GetComponentInParent<Health>();
             if (h != null) h.TakeDamage(weaponBaseDamage * 2, transform.position, 10f);
         }
         

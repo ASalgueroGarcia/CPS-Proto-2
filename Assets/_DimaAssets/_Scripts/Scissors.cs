@@ -31,20 +31,25 @@ public class Scissors : MonoBehaviour
 
     public void ProcessHit(Collider other)
     {
-        if (other.CompareTag("Enemy"))
+        // Try to find health on the object or its parents
+        Health targetHealth = other.GetComponentInParent<Health>();
+        
+        if (targetHealth != null)
         {
-            Health enemyHealth = other.GetComponent<Health>();
-
-            if (enemyHealth != null && !hitEnemies.Contains(enemyHealth))
+            // Only damage if it's tagged as Enemy (on self or root) 
+            // OR if it's on the Enemy layer (Layer 6)
+            bool isEnemy = other.CompareTag("Enemy") || (other.transform.root != null && other.transform.root.CompareTag("Enemy")) || other.gameObject.layer == 6;
+            
+            // Don't hit yourself or already hit targets
+            if (isEnemy && !hitEnemies.Contains(targetHealth) && targetHealth.gameObject != transform.root.gameObject)
             {
                 bool isCrit = Random.value < critChance;
                 float finalDamage = isCrit ? damage * 2 : damage;
                 
-                // Damage + Knockback (Now uses the initialized force)
-                enemyHealth.TakeDamage(finalDamage, transform.root.position, knockbackForce);
-                hitEnemies.Add(enemyHealth);
+                targetHealth.TakeDamage(finalDamage, transform.root.position, knockbackForce);
+                hitEnemies.Add(targetHealth);
                 
-                // Debug.Log($"Scissor hit {other.name} via {gameObject.name} child for {finalDamage} damage");
+                Debug.Log($"[Combat] {transform.root.name} hit {targetHealth.gameObject.name} for {finalDamage} damage");
             }
         }
         else if (other.CompareTag("Breakeable"))
