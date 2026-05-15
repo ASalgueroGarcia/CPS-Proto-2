@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 3564765644839323427}
   - component: {fileID: 7025997429684131743}
   - component: {fileID: 2924982831811967309}
-  - component: {fileID: 249330796488294231}
-  - component: {fileID: 4737444909479202464}
   - component: {fileID: 2435611370308469130}
+  - component: {fileID: 4293282700513777486}
+  - component: {fileID: 281552813446796740}
   m_Layer: 6
   m_Name: Heavy Enemy
   m_TagString: Enemy
@@ -151,53 +151,6 @@ MonoBehaviour:
   checkInterval: 0.5
   hitImpactClip: {fileID: 8300000, guid: 696f7f7e28e706e4aaf7166951f7caf7, type: 3}
   deathClip: {fileID: 8300000, guid: 94f2fc8c790f983438e09e9c09a1c3c4, type: 3}
---- !u!143 &249330796488294231
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1007924606823391567}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 1.2
-  m_Radius: 0.49999994
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4737444909479202464
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1007924606823391567}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 854222c12a4779e46b802b2926257c91, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HeavyEnemy
-  currentState: 0
-  maxHealth: 50
-  damage: 10
-  speed: 2
-  alertRange: 10
-  alertDuration: 1
-  idleDuration: 1.5
-  roamRadius: 10
-  attackRange: 2.5
-  attackCooldown: 1.5
 --- !u!195 &2435611370308469130
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -220,6 +173,36 @@ NavMeshAgent:
   m_BaseOffset: 1
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &4293282700513777486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1007924606823391567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e34c75b2163b34e4abbd010d864d332d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MeleeAttack
+  attackRange: 2.5
+  attackLunge: 0.5
+  flashDuration: 0.2
+--- !u!114 &281552813446796740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1007924606823391567}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3fd05e579df5eed469f1f4d2ed231401, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  data: {fileID: 11400000, guid: 8765ae10ad1950c47817393e3b417b71, type: 2}
+  attackStrategyComponent: {fileID: 4293282700513777486}
+  currentState: 0
 --- !u!1 &3173606170964706659
 GameObject:
   m_ObjectHideFlags: 0
