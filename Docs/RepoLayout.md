@@ -1,9 +1,14 @@
-# Spectracle — Repo Layout Proposal
+# Spectracle — Repo Layout
 
-v2 · 2026-09-11 · draft for team review · comments → [issue #38](https://github.com/ASalgueroGarcia/CPS-Proto-2/issues/38)
+v3 · 2026-09-17 · **implemented** on `feature/repo-restructure` · questions → [issue #38](https://github.com/ASalgueroGarcia/CPS-Proto-2/issues/38)
 
-v2 changes: `Art/Environment/` is now split into subfolders (Arena, Props, Obstacles,
-Layouts, Textures), and §10 has a new `.gitignore` step (the repo ignores `*.md`).
+v3 changes (vs v2 draft): **implemented for real** — see "What actually happened" at the
+bottom. Two ideas adopted from another team's layout ("Overdose"): `Scripts/Core/Managers/`
+for cross-feature managers, and `Scenes/Prototype/` as a future slot for shared prototype
+scenes (not created yet — no empty folders). The §11 open questions are now answered:
+both room sets are real (Ana's `Layout_001–010` are the base layouts, Antonio's
+`CombatScene_*`/`ShopScene_*` are add-ons), `_Sandbox` is committed, and `CODEOWNERS`
+is in place. Also installed `com.simoxus.folder-icons` (Alt+Click a folder to color it).
 
 ## TL;DR
 
@@ -284,11 +289,37 @@ Already checked in the code:
 
 ---
 
-## 11. Open questions
+## 11. Open questions — answered in v3
 
-1. **Rooms:** Ana's `Layout_001–010` and Antonio's `CombatScene_001/002` both look
-   like rooms. Which set is the real one?
-2. **`_Sandbox`:** do we commit it (everyone can open your test scene) or
-   git-ignore it (private)?
-3. **`CODEOWNERS`:** do we want automatic review requests?
-4. **Who does the move, and when is the freeze?**
+1. **Rooms:** both sets are real. Ana's `Layout_001–010` are the base layouts,
+   Antonio's `CombatScene_001/002` + `ShopScene_001` are add-ons. All live in `Rooms/`.
+2. **`_Sandbox`:** committed — everyone can open your test scenes.
+3. **`CODEOWNERS`:** yes, added at the repo root.
+4. **Who does the move:** done, on `feature/repo-restructure`.
+
+---
+
+## 12. What actually happened (v3 implementation notes)
+
+- The move was done via CLI, not by dragging in Unity: each asset was moved **together
+  with its `.meta` file**, which preserves GUIDs exactly like an in-Editor move.
+  Unity was closed during the move. All asset references survived by construction.
+- Committed in chunks per §10.4: Scripts → Data → Prefabs → Art → Audio → Scenes/Rooms.
+- `EditorBuildSettings.asset` scene paths were updated by hand
+  (`FinalScenes/*` → `_Game/Scenes/*`).
+- Naming fixes applied: `Basic/Heavy/Ranged Enemy.prefab` → `Enemy_Basic/Heavy/Ranged.prefab`,
+  `--UI--.prefab` → `UI.prefab`, `Scrissoring tool Combined.controller` → `Scissors_Combined.controller`,
+  `Enviroment_ActI_Final.fbx` → `Environment_ActI_Final.fbx`, `Arena 11.fbx` → `Arena_11.fbx`,
+  `Theater Wagon*.fbx` → `Theater_Wagon*.fbx`, `Brekeable_Objects` → `Breakable_Objects`
+  (class + file + the two call sites in `Scissors.cs`).
+- `EnemyMigrationTool.cs` paths updated to the new layout (its menu item also now uses
+  the new prefab names). Delete the tool in the cleanup PR.
+- NavMesh check: `SetScene.unity` references `NavMesh-NavMesh Surface 1.asset`
+  (now `Scenes/SetScene/`). The two other copies are referenced by nothing —
+  Antonio's copy sits in `_Sandbox/Antonio/` until the cleanup PR deletes both.
+- Deliberately **not** touched (cleanup PR): `Prefabs/NOT USED/`, `_Recovery/`,
+  `Extras/TutorialInfo/`, old enemy scripts, `TextMesh Pro/Examples & Extras/`,
+  the `1000_F_*.jpg` stock images (license check), and `Health.mat`'s odd home in
+  `Art/Characters/`.
+- `com.simoxus.folder-icons` installed in `Packages/manifest.json` (pinned commit;
+  see `/research/unity-folder-icons-package.md` locally for why not the Wooshii pack).

@@ -9,7 +9,7 @@ using System.IO;
 ///
 /// What it does:
 ///   1. Creates EnemyData ScriptableObject assets (Slimo / Heavy / Ranged) under
-///      Assets/_DimaAssets/EnemyData/ if they don't already exist.
+///      Assets/_Game/Data/Enemies/ if they don't already exist.
 ///   2. For each of the three enemy prefabs it:
 ///        - Removes the old monolithic script (BasicEnemy / HeavyEnemy / RangedEnemy).
 ///        - Removes the legacy CharacterController (Enemy.cs requires NavMeshAgent).
@@ -21,8 +21,8 @@ using System.IO;
 /// </summary>
 public static class EnemyMigrationTool
 {
-    private const string DataDir = "Assets/_DimaAssets/EnemyData";
-    private const string PrefabDir = "Assets/Prefabs";
+    private const string DataDir = "Assets/_Game/Data/Enemies";
+    private const string PrefabDir = "Assets/_Game/Prefabs/Enemies";
 
     [MenuItem("Tools/Enemy System/Migrate Prefabs to Component-Strategy Pattern")]
     public static void MigrateAll()
@@ -30,8 +30,8 @@ public static class EnemyMigrationTool
         if (!EditorUtility.DisplayDialog(
             "Enemy System Migration",
             "This will:\n" +
-            "• Create EnemyData assets in Assets/_DimaAssets/EnemyData/\n" +
-            "• Rewire Basic Enemy, Heavy Enemy, Ranged Enemy prefabs\n" +
+            "• Create EnemyData assets in Assets/_Game/Data/Enemies/\n" +
+            "• Rewire Enemy_Basic, Enemy_Heavy, Enemy_Ranged prefabs\n" +
             "• Remove old BasicEnemy/HeavyEnemy/RangedEnemy scripts\n\n" +
             "Prefabs are saved automatically. Continue?",
             "Migrate", "Cancel"))
@@ -49,9 +49,9 @@ public static class EnemyMigrationTool
         Debug.Log("[EnemyMigration] EnemyData assets created/verified.");
 
         // --- Migrate prefabs ------------------------------------------------------
-        MigratePrefab<BasicEnemy,  DashAttack>  ("Basic Enemy",  slimoData);
-        MigratePrefab<HeavyEnemy,  MeleeAttack> ("Heavy Enemy",  heavyData);
-        MigratePrefab<RangedEnemy, RangedAttack>("Ranged Enemy", rangedData);
+        MigratePrefab<BasicEnemy,  DashAttack>  ("Enemy_Basic",  slimoData);
+        MigratePrefab<HeavyEnemy,  MeleeAttack> ("Enemy_Heavy",  heavyData);
+        MigratePrefab<RangedEnemy, RangedAttack>("Enemy_Ranged", rangedData);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -208,10 +208,10 @@ public static class EnemyMigrationTool
 
         string[] toDelete =
         {
-            "Assets/_DimaAssets/_Scripts/EnemyBase.cs",
-            "Assets/_DimaAssets/_Scripts/BasicEnemy.cs",
-            "Assets/_DimaAssets/_Scripts/HeavyEnemy.cs",
-            "Assets/_DimaAssets/_Scripts/RangedEnemy.cs",
+            "Assets/_Game/Scripts/Enemies/EnemyBase.cs",
+            "Assets/_Game/Scripts/Enemies/BasicEnemy.cs",
+            "Assets/_Game/Scripts/Enemies/HeavyEnemy.cs",
+            "Assets/_Game/Scripts/Enemies/RangedEnemy.cs",
         };
 
         foreach (string path in toDelete)
