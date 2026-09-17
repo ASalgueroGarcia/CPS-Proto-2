@@ -17,6 +17,9 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private int maxLayers;
     [SerializeField] private int pathNum;
 
+    [Tooltip("Room difficulty tier per layer; index 0 is the first layer. Leave empty to ramp automatically from Entrance up to MiniBoss across the map.")]
+    [SerializeField] private RoomType[] layerTiers;
+
     [Header("Node Map")] 
     [SerializeField] private NodeLayer[] nodeLayers;
 
@@ -111,9 +114,35 @@ public class MapBehaviour : MonoBehaviour
             for (var n = 0; n < maxLayerNodes; n++)
             {
                 var node = _map[l][n];
+                node.SetRoomTier(TierForLayer(node.GetNodeType(), l));
                 SpawnNode(node.GetNodeType(), node.GetNodeTransform());
             }
         }
+    }
+
+    /// <summary>
+    /// Difficulty tier for a node, derived from how deep into the run it sits.
+    /// This is what makes the GDD's Run Progression table actually drive the game -
+    /// without it every combat room falls back to WaveManager's inspector default.
+    /// </summary>
+    private RoomType TierForLayer(NodeTypeEnum nodeType, int layerIndex)
+    {
+        // Non-combat nodes are defined by what they are, not by how deep they are.
+        if (nodeType == NodeTypeEnum.Merchant) return RoomType.Shop;
+        if (nodeType == NodeTypeEnum.Boss) return RoomType.Boss;
+
+        // An authored ladder always wins.
+        if (layerTiers != null && layerIndex < layerTiers.Length) return layerTiers[layerIndex];
+
+        // Otherwise ramp across the depth of the map.
+        if (layerIndex <= 0) return RoomType.Entrance;
+        if (maxLayers <= 1) return RoomType.Medium;
+
+        var progress = (float)layerIndex / (maxLayers - 1);
+        if (progress < 0.34f) return RoomType.Medium;
+        if (progress < 0.67f) return RoomType.MediumHard;
+        if (progress < 1f) return RoomType.Hard;
+        return RoomType.MiniBoss;
     }
 
     private void SpawnNode(NodeTypeEnum nodeType, Transform nodeTransform)
@@ -208,6 +237,7 @@ public class MapBehaviour : MonoBehaviour
 
         finalNode.SetEndingNode();
         finalNode.SetType(NodeTypeEnum.Boss);
+        finalNode.SetRoomTier(RoomType.Boss);
 
         var spawnedBoss = Instantiate(bossNode, finalNode.GetNodeTransform());
     

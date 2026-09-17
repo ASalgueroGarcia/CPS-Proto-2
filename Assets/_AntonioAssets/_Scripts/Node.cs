@@ -5,8 +5,10 @@ using UnityEngine.UI;
 
 public class Node : MonoBehaviour
 {
-    [Header("Node Settings")] 
+    [Header("Node Settings")]
     [SerializeField] private NodeTypeEnum type;
+    [Tooltip("Difficulty tier of the room behind this node. Assigned by MapBehaviour from the node's layer depth; the inspector value is only a fallback.")]
+    [SerializeField] private RoomType roomTier = RoomType.Medium;
     [SerializeField] private GameObject lineHolder;
     [SerializeField] private int nodeIndex;
 
@@ -102,6 +104,16 @@ public class Node : MonoBehaviour
     public NodeTypeEnum GetNodeType()
     {
         return type;
+    }
+
+    public RoomType GetRoomTier()
+    {
+        return roomTier;
+    }
+
+    public void SetRoomTier(RoomType tier)
+    {
+        roomTier = tier;
     }
 
     public Transform GetNodeTransform()

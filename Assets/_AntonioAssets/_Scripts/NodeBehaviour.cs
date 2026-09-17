@@ -26,6 +26,6 @@ public class NodeBehaviour : MonoBehaviour
 
         //Debug.Log($"Loading: {_node.gameObject.name}, Type: {_node.GetNodeType()}");
         _mapBehaviour.SetCurrentNode(_node);
-        SceneController.Instance.LoadLevel(_node.GetNodeType());
+        SceneController.Instance.LoadLevel(_node.GetNodeType(), _node.GetRoomTier());
     }
 }

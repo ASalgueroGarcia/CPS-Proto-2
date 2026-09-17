@@ -41,8 +41,27 @@ public class WaveManager : MonoBehaviour
     private int heavyCountInCurrentWave = 0;
     private int totalEnemiesInCurrentWave = 0;
 
+    private bool hasInitialized = false;
+
+    /// <summary>
+    /// Sets the difficulty tier for this room. Called by SceneController immediately
+    /// after the room prefab is instantiated, which is before Start() runs.
+    /// Setting it any later has no effect - the first wave has already been spawned.
+    /// </summary>
+    public void SetRoomType(RoomType type)
+    {
+        if (hasInitialized)
+        {
+            Debug.LogWarning($"[WaveManager] SetRoomType({type}) called after the room already initialized as {currentRoomType}. Ignored - set the tier before Start() runs.", this);
+            return;
+        }
+
+        currentRoomType = type;
+    }
+
     private void Start()
     {
+        hasInitialized = true;
         InitializeRoom();
     }
 
