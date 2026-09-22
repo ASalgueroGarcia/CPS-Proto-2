@@ -60,13 +60,13 @@ public class PlayerStatsManager : MonoBehaviour
         playerController = FindFirstObjectByType<PlayerFSM>();
         if (playerController == null) return;
 
-        healthPlayer = playerController.GetComponent<Health>();
         
         // Unsubscribe from old health if any
         if (healthPlayer != null)
         {
             healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
         }
+        healthPlayer = playerController.GetComponent<Health>();
 
         if (!_hasStats)
         {
