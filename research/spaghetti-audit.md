@@ -249,3 +249,22 @@ New system (LIVE, all 3 prefabs): `Enemy.cs` (294) + `IEnemyAttackStrategy` + `M
 - Debug.Log noise confirmed heavy in normal play (`SoundManager.cs:72` every SFX, `PlayerFSM.cs:385/442` every attack, `Node.cs:81` per node activation) — existing Phase 5 sweep item.
 
 Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListener added as new Phase 2/5 candidates (both are small, but involve scene/prefab wiring — coordinate with the scene owner).
+
+---
+
+## 16. Phase 2 execution log (2026-09-22, branch `feature/cleanup`)
+
+8 remaining audit bugs fixed (bug #8, the empty shop, was already fixed in `a9fed29`), committed in ownership chunks for CODEOWNERS review:
+
+| Commit | Owner | Fixes |
+|---|---|---|
+| `1007183` | Dima (Core/Player) | `Health.Die` guards `SoundManager.Instance` + `deathClip` (mirrors the guarded call at line 87); `KnockbackCoroutine` honors its `force` parameter (ExplodingTrap's `knockbackEffect` was silently discarded); unused `knockBackForce` field removed |
+| `14438f8` | Ivan (UI) | Cooldown fill = true recharge progress (`1 - specialTimer/specialCooldown`) instead of per-frame accumulation; READY sets fill to 1 (was `float.MaxValue`); dead `UI_Basic` scene check removed; U+FFFD coin char removed (playtest-confirmed box glyph) |
+| `fbc873c` | Ivan (Shop/Obstacles) | `PlayerStatsManager` unsubscribes the OLD Health before reassigning (listener leak); `Breakable_Objects` null-guards the PlayerFSM lookup — enemy contact no longer NREs (enemy deals 1 damage; intent to be confirmed by Ivan); ExplodingTrap yellow telegraph now visible during the fuse, red flash at the blast |
+| `f5c9908` | Antonio (Map) | Anti-duplicate child reroll now picks a different index from the neighbouring window when one exists (was identical bounds); `MakeStartingNodesInteractable` no longer dereferences a null Button; `ChooseStartingNode` does a bounded 10-attempt re-pick instead of unbounded recursion |
+
+**Phase 2 totals: 7 files, +43/−33.** Full diff reviewed line-by-line before push.
+
+**Deferred to Phase 5** (need scene/prefab surgery + scene-owner coordination): duplicate EventSystem on room unload (`SceneController.cs:51` area), AudioListener lifecycle (0 listeners on Map after unloading a room).
+
+**Decisions made during Phase 2:** enemy-vs-breakable damage defaulted to 1 (the old code crashed there, so no prior behavior to preserve — Ivan to confirm); mojibake coin char replaced by plain number rather than guessing a glyph (font support unknown); UIManager.ReturnToMap dead-twin removal deferred to Phase 4/5 (touches inspector wiring on UI.prefab).
