@@ -146,7 +146,7 @@ public class UIManager : MonoBehaviour
         if (playerUICanvas == null) return;
 
         string currentBaseScene = SceneManager.GetActiveScene().name;
-        bool isMenu = currentBaseScene == "MainMenu" || currentBaseScene == "UI_Basic";
+        bool isMenu = currentBaseScene == "MainMenu";
         
         // HUD should be visible in ANY scene that isn't a menu, provided a player exists
         bool hasPlayer = _playerFsm != null || GameObject.FindWithTag("Player") != null;
@@ -337,7 +337,7 @@ public class UIManager : MonoBehaviour
             {
                 if (_playerFsm.specialTimer > 0)
                 {
-                    cooldown.fillAmount += _playerFsm.specialTimer;
+                    cooldown.fillAmount = 1f - (_playerFsm.specialTimer / _playerFsm.specialCooldown);
                     specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
                 }
                     
@@ -345,7 +345,7 @@ public class UIManager : MonoBehaviour
                 else
                 {
                     specialCDText.text = "READY";
-                    cooldown.fillAmount = float.MaxValue;
+                    cooldown.fillAmount = 1f;
                 }
                     
             }
@@ -360,7 +360,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"{_playerStats.CurrentCoins} €";
+                coinsText.text = $"{_playerStats.CurrentCoins}";
             }
 
             if (inventoryText != null)
