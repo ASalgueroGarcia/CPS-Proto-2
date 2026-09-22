@@ -154,7 +154,7 @@ public class Health : MonoBehaviour
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
         
-        SoundManager.Instance.PlaySound(deathClip);
+        if (SoundManager.Instance != null && deathClip != null) SoundManager.Instance.PlaySound(deathClip);
         
         Destroy(gameObject, 0.1f);
     }
