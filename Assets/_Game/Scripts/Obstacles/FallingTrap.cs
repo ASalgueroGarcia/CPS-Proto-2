@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class FallingTrap : TrapBase
+public class FallingTrap : MonoBehaviour
 {
     [Header("FALLING TRAP SETTINGS")]
     [SerializeField] private GameObject trapObjectFalling;
@@ -10,12 +10,12 @@ public class FallingTrap : TrapBase
     [SerializeField] private float cooldown = 6.0f;
     [SerializeField] private float damage = 30.0f; // same damage to player and enemys.
     
-    private bool Triggered = false;
+    private bool triggered = false;
     private bool onCooldon = false;
 
     private void OnTriggerEnter(Collider other)
     {
-        if(Triggered ||onCooldon)return;
+        if(triggered ||onCooldon)return;
         if(other.CompareTag("Enemy") || other.CompareTag("Player"))
         {
             // player or enemy detected ? -> starts the delay.
@@ -26,7 +26,7 @@ public class FallingTrap : TrapBase
     private IEnumerator FallingC(Collider other)
     {
         // delay ->
-        Triggered = true;
+        triggered = true;
         yield return new WaitForSeconds(fallingTimeDelay);
 
         // if the player is still in the zone-> damage.
@@ -39,7 +39,7 @@ public class FallingTrap : TrapBase
         onCooldon = true;
         yield return new WaitForSeconds(cooldown);
         onCooldon = false;
-        Triggered = false;
+        triggered = false;
     }
 
     private bool IsTargetInZone(Collider other)
@@ -54,6 +54,7 @@ public class FallingTrap : TrapBase
         // Check if the object collider center (other.bounds.center) is within the bounds ->
         return tz.bounds.Contains(other.bounds.center);
     }
+
     private void DamageZone(){
 
         // player or enemy in the box area ? -> damage.
@@ -66,10 +67,5 @@ public class FallingTrap : TrapBase
                 h[k].GetComponent<Health>()?.TakeDamage(damage);
             }
         }
-
     }
-    public override void TrapActive() {}
-    public override void TrapDesactive() {}
-    public override void OnPlayerEnter(GameObject player) {}
-    public override void OnEnemyEnter(GameObject enemy) {}
 }

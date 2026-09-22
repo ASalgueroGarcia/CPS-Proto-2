@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class FloorSpikes : TrapBase
+public class FloorSpikes : MonoBehaviour
 {
     [Header("SPIKE TRAP SETTINGS")]
     [SerializeField] private float triggerTime = 2f;
@@ -60,10 +60,4 @@ public class FloorSpikes : TrapBase
         if(health==null)return;
         health.TakeDamage(damage);
     }
-    
-    public override void TrapActive() {}
-    public override void TrapDesactive() {}
-    public override void OnPlayerEnter(GameObject player) {}
-    public override void OnEnemyEnter(GameObject enemy) {}
 }
-

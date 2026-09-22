@@ -1,9 +1,12 @@
-using System;
 using System.Collections;
 using UnityEngine;
 
-public class ExplodingTrap : TrapBase
+public class ExplodingTrap : MonoBehaviour
 {
+    [Header("DAMAGE SETTINGS")]
+    [SerializeField] private float damageToPlayer = 20f;
+    [SerializeField] private float damageToEnemy = 20f;
+
     [Header("EXPLODING TRAP SETTINGS")]
     [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
@@ -26,6 +29,12 @@ public class ExplodingTrap : TrapBase
 
         if (other.CompareTag("Player") || other.CompareTag("Enemy"))
         {
+            Vector3 closestPoint = other.ClosestPoint(transform.position);
+            if (Vector3.Distance(transform.position, closestPoint) > explosionRadius)
+            {
+                return;
+            }
+
             StartCoroutine(ExplodeC());
             _isTriggered = true;
         }
@@ -36,12 +45,10 @@ public class ExplodingTrap : TrapBase
     {
         if (trapRender != null){
             trapRender.material.color = Color.yellow;
-            //Debug.Log("Color cambiado a amarillo");
         }
 
         if (trapRender != null){
             trapRender.material.color = Color.red;
-            //Debug.Log("Color cambiado a rojo");
         }
 
         yield return new WaitForSeconds(delayBetweenTrigger);
@@ -79,9 +86,4 @@ public class ExplodingTrap : TrapBase
         }
         Destroy(gameObject);
     }
-
-    public override void TrapActive() {}
-    public override void TrapDesactive() {}
-    public override void OnPlayerEnter(GameObject player) {}
-    public override void OnEnemyEnter(GameObject enemy) {}
 }

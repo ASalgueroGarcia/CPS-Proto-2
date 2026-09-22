@@ -29,7 +29,6 @@ public class ShopManager : MonoBehaviour
     private RectTransform _panelRect;
     private UIManager _uiManager;
 
-    // methods.
     private void Start()
     {
         // 1. Find the playerStatsManager.

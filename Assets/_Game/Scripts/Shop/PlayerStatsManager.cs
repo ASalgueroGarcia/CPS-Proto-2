@@ -62,7 +62,6 @@ public class PlayerStatsManager : MonoBehaviour
 
         healthPlayer = playerController.GetComponent<Health>();
         
-        // Unsubscribe from old health if any
         if (healthPlayer != null)
         {
             healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
@@ -86,7 +85,6 @@ public class PlayerStatsManager : MonoBehaviour
         }
         else
         {
-            // SUBSEQUENT TIMES: Apply our persistent stats to the new player instance
             playerController.speed = currentSpeed;
             playerController.dashSpeed = currentDashSpeed;
             playerController.weaponBaseDamage = currentNormalDamage;
@@ -106,7 +104,6 @@ public class PlayerStatsManager : MonoBehaviour
         }
         
         waveManager = FindFirstObjectByType<WaveManager>();
-        //Prints();
     }
 
     private void OnDestroy()
@@ -138,82 +135,85 @@ public class PlayerStatsManager : MonoBehaviour
         }
     }
 
-    public void ApplyPowerUpEffect(PowerUpData powerUp)
+    public void ApplyPowerUpEffect(PowerUpData pUp)
     {
-        if(powerUp == null)
+        if(pUp == null)
         {
             return;
         }
         inventoryItems++; /////
-        listOfInventoryItems.Add(powerUp);
-
-        // APPLY THE POWERUP DEPENDS OF THE CHOICE OF THE PLAYER.
-        for(int i = 0; i < powerUp.effects.Length; i++)
-        {
-            var effect = powerUp.effects[i];
-            switch (effect.type)
-            {
-                // DAMAGE.
-                case PowerUpData.PowerUpType.NormalDamage:
-                    currentNormalDamage += effect.value;
-                    if (playerController != null){
-                        playerController.weaponBaseDamage = currentNormalDamage;
-                    }
-                    break;
-
-                case PowerUpData.PowerUpType.CriticalDamage:
-                    currentCriticalDamage += effect.value;
-                    break;
-
-                case PowerUpData.PowerUpType.SpecialDamage:
-                    currentSpecialDamage += effect.value;
-                    break;
-
-                // SPEED.
-                case PowerUpData.PowerUpType.NormalSpeed:
-                    currentSpeed += effect.value;
-                    if (playerController != null){
-                        playerController.speed = currentSpeed;
-                    }
-                    break;
-
-                case PowerUpData.PowerUpType.DashSpeed:
-                    currentDashSpeed += effect.value;
-                    if (playerController != null){
-                        playerController.dashSpeed = currentDashSpeed;
-                    }
-                    break;
-
-                case PowerUpData.PowerUpType.Stun:
-                    break;
-
-                // DEFENSE & HEALTH
-                case PowerUpData.PowerUpType.Health:
-                    if (healthPlayer != null)
-                    {
-                        healthPlayer.maxHealth += effect.value;
-                        healthPlayer.currentHealth += effect.value;
-                    }
-                    break;
-
-                // LOOT
-                case PowerUpData.PowerUpType.enemyLoot:
-                    break;
-
-                case PowerUpData.PowerUpType.enemySpawn:
-                    // WaveManager doesn't have spawnInterval yet, maybe increase budget?
-                    if (waveManager != null)
-                    {
-                        // Placeholder for wave modification
-                        Debug.Log("Increasing wave difficulty via powerup");
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-        //Prints();
+        listOfInventoryItems.Add(pUp);
+        
+        // NO SWITCH RN-> JUST NOTIFY THE POWERUP CONCRETE CLASSES TO APPLY THEIR EFFECTS..
+        PowerUpNotificator.InstanceP.Notify(pUp);
     }
+
+    // INCREASES.
+    public void MoreNormalDamage(float v)
+    {
+        currentNormalDamage += v;
+        if (playerController != null)
+        {
+            playerController.weaponBaseDamage = currentNormalDamage;
+        }
+    }
+
+    public void MoreCriticalDamage(float v)
+    {
+        currentCriticalDamage += v;
+    }
+
+    public void MoreSpecialDamage(float v)
+    {
+        currentSpecialDamage += v;
+    }
+
+    public void MoreSpeed(float v)
+    {
+        currentAttackSpeed += v;
+        if (playerController != null ) 
+        {
+            playerController.speed = currentSpeed;
+        }
+    }
+    public void MoreDashSpeed(float v)
+    {
+        currentDashSpeed += v;
+        if (playerController != null)
+        {
+            playerController.dashSpeed = currentDashSpeed;
+        }
+    }
+
+    public void ApplyStun(float v)
+    {
+        Debug.Log("STUNNED");
+        /////
+    }
+
+    public void MoreMaxHealth(float v)
+    {
+        if (healthPlayer != null || playerController != null)
+        {
+
+            healthPlayer.maxHealth += v;
+            healthPlayer.currentHealth += v;
+        }
+    }
+
+    public void MoreEnemyLootRate(float value)
+    {
+        Debug.Log("MORE LOOT!!");
+    }
+
+    public void MoreEnemySpawnRate(float value)
+    {
+        if (waveManager != null)
+        {
+            Debug.Log("MORE ENEMIES!!");
+        }
+    }
+    
     public void ResetAllThePlayerStats()
     {
         _hasStats = false;
@@ -224,19 +224,7 @@ public class PlayerStatsManager : MonoBehaviour
         inventoryItems = 0;
         listOfInventoryItems.Clear();
         
-        // Try to bind immediately if player exists
+        // Try  to bind immediately if player exists
         BindToPlayer();
-    }
-
-    public void Prints()
-    {
-        Debug.Log($"Daño Normal: {currentNormalDamage}");
-        Debug.Log($"Daño Crítico: {currentCriticalDamage} ({currentCritChance * 100}%)");
-        Debug.Log($"Daño Especial: {currentSpecialDamage}");
-        Debug.Log($"Velocidad: {currentSpeed}");
-        Debug.Log($"Dash Speed: {currentDashSpeed}");
-        Debug.Log($"Attack Speed: {currentAttackSpeed}");
-        Debug.Log($"Salud: {currentHealth}/{maxHealth}");
-        Debug.Log($"Items: {inventoryItems}");
     }
 }

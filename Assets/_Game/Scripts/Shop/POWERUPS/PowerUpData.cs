@@ -4,7 +4,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PowerUp_", menuName = "PowerUp/Create new PowerUp")]
 public class PowerUpData : ScriptableObject
 {
-    // --VARIABLES--
+    // VARS
     public string powerUpName;
     public string powerUpDescription;
     public Sprite powerUpIcon;
