@@ -209,7 +209,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -359,7 +360,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -465,7 +467,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -571,7 +574,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -677,7 +681,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -703,7 +708,6 @@ GameObject:
   m_Component:
   - component: {fileID: 330585546}
   - component: {fileID: 330585545}
-  - component: {fileID: 330585544}
   - component: {fileID: 330585547}
   m_Layer: 0
   m_Name: Main Camera
@@ -712,14 +716,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &330585544
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330585543}
-  m_Enabled: 1
 --- !u!20 &330585545
 Camera:
   m_ObjectHideFlags: 0
@@ -999,6 +995,7 @@ MonoBehaviour:
   - {fileID: 3237719391012188412, guid: dee1274e4453fc242a60c0907f986452, type: 3}
   - {fileID: 3237719391012188412, guid: f1192e64087d8664783b57cb6c2b431e, type: 3}
   shopLevel: {fileID: 7895251268816406009, guid: 23ec3634fed4a2244a3599c25c25e7c5, type: 3}
+  bossLevel: {fileID: 0}
   mapCanvas: {fileID: 874075483}
   mapCamera: {fileID: 330585543}
   mapEventSystem: {fileID: 1171553990}
@@ -1032,6 +1029,7 @@ MonoBehaviour:
   maxLayerNodes: 4
   maxLayers: 5
   pathNum: 4
+  layerTiers: 
   nodeLayers:
   - nodes:
     - {fileID: 158932672}
@@ -1153,7 +1151,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1259,7 +1258,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1365,7 +1365,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1657,7 +1658,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1763,7 +1765,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1869,7 +1872,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -1975,7 +1979,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2256,7 +2261,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2362,7 +2368,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2468,7 +2475,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2554,7 +2562,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2712,7 +2721,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2818,7 +2828,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -2924,7 +2935,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -3030,7 +3042,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 0
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 1
@@ -3136,7 +3149,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Node
   type: 3
-  lineHolder: {fileID: 0}
+  roomTier: 1
+  lineHolder: {fileID: 94840739}
   nodeIndex: 0
   line: {fileID: 8134535582150840356, guid: 918823697216a0148a971aca34034f9b, type: 3}
   generateType: 0

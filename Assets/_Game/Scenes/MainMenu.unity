@@ -143,7 +143,6 @@ GameObject:
   m_Component:
   - component: {fileID: 119530894}
   - component: {fileID: 119530893}
-  - component: {fileID: 119530892}
   - component: {fileID: 119530895}
   m_Layer: 0
   m_Name: Main Camera
@@ -152,14 +151,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &119530892
-AudioListener:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 119530891}
-  m_Enabled: 1
 --- !u!20 &119530893
 Camera:
   m_ObjectHideFlags: 0
@@ -1124,6 +1115,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2056552797}
   - component: {fileID: 2056552798}
+  - component: {fileID: 2056552799}
   m_Layer: 0
   m_Name: '@SoundManager'
   m_TagString: Untagged
@@ -1166,6 +1158,14 @@ MonoBehaviour:
   sfxSource: {fileID: 1766630422}
   musicSource: {fileID: 594543969}
   music: {fileID: 0}
+--- !u!81 &2056552799
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2056552796}
+  m_Enabled: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
