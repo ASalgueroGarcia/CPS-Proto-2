@@ -284,6 +284,18 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 
 ---
 
+## 19. Phase 3 execution log (2026-09-22, `d6ffda0`)
+
+**PauseManager** (`Scripts/Core/Managers/PauseManager.cs`) — the single owner. `SetPaused(bool)` writes `PauseManager.IsPaused` + `Time.timeScale` + the legacy `PlayerFSM.IsPaused` flag **atomically in one place**; `SetTimeScale(float)` exists for dev speed control. Static class, zero scene/prefab wiring.
+
+**Routed:** UIManager (StartGame/Pause/Resume/ReturnToMap — the three identical unpause blocks collapsed to one call), `MapBtnBehaviour.ReturnToMap`, `ShopManager.OpenShop/HideShopLogic`, DebugCheats (room-load reset + timescale buttons). Kept raw **by design**: DebugCheats' F1 input-gate (`PlayerFSM.IsPaused = _visible`) — input blocking is not a pause (no timescale change); Phase 5 migrates readers and gives it a proper API. UIManager's own `_isPaused` menu-state field untouched (pause-MENU UI state, not game state).
+
+**Verification:** grep sweep — all `Time.timeScale =` writes live in PauseManager only; all `PlayerFSM.IsPaused =` writes in PauseManager + the one documented DebugCheats gate. Compile + playtest pending (Dima).
+
+**Shop decode pending (`3aeb3c5`):** static forensics found NO defect (all 17 prefab refs resolve in outer doc space; 13/13 assets valid; nested-prefab/loop-hang/two-instance hypotheses dead). Surviving: stale Library import (→ `[Shop] OpenShop: populating 0 item(s)`), runtime population exception (→ `population FAILED at slot N` + stack), manager shadowing (→ paste the two manager #IDs). Next playtest's `[Shop]` lines decide it in one run.
+
+---
+
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
 
 Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).
