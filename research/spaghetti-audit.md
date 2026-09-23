@@ -296,6 +296,26 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 
 ---
 
+## 20. Phase 4 execution log (2026-09-23, `3a04742`..`a41ee9c`)
+
+**Executed: `implementation_plan_enem.md` items 1–3 + `implementation_plan_fsm.md` phases 1–2.**
+
+| Commit | Content |
+|---|---|
+| `3a04742` | Enemy DI: `SetTarget(Transform, Health)` + per-frame `DistanceToPlayer` property; WaveManager caches player once and injects on spawn (per-enemy `FindFirstObjectByType`/Tag search removed); `IEnemyAttackStrategy` no longer carries `distanceToPlayer` through 3 methods (strategies read `owner.DistanceToPlayer`); RangedAttack sphere-fallback → `LogError` + skip |
+| `5317049` | RangedAttack.OnExecute signature matches cleaned interface |
+| `01b3de7` | FSM plan 1.2: `fallbackTimer` failsafe removed (field + watchdog + 2 resets, −18 lines) |
+| `698e11c` | FSM plan 1.1: `SetupScissorTrigger` removed (−23 lines); the kinematic Rigidbody it added at runtime is baked into Player.prefab (2 hitbox GameObjects already had BoxCollider(isTrigger)+Scissors — only the RB was runtime-added; 2 new Rigidbody docs, +36) |
+| `a41ee9c` | FSM plan phase 2: Hades-style attack momentum — `attackImpulseForce=8/Decay=5/Velocity` fields, decaying surge in ApplyMovement replacing the absolute horizontal lock, finisher ×1.5 / special ×0.5 thrust, ResetCombo zeroes impulse |
+
+**Deferred (enemy plan items 4–5):** animation-synced combat prep (needs an `EnemyAnimationForwarder` + SM "waiting for event" mode) and object pooling — new subsystems, own review cycles → Phase 5/6.
+
+**Verification:** full strategy-interface consistency sweep (15 call sites clean); WaveManager line-endings normalized (CRLF); hitbox Rigidbody diff reviewed (pure additions); projectilePrefab confirmed wired on Enemy_Ranged (fallback removal is safe). Compile + playtest pending (Dima).
+
+**Playtest focus:** attack feel (attacks now carry forward momentum — tune `attackImpulseForce/Decay` on the Player prefab if the lunge feels wrong), enemies engage normally (DI path), no `[WaveManager]`/`[Enemy]` errors, hitboxes hit as before (baked RB instead of runtime-added).
+
+---
+
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
 
 Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).
