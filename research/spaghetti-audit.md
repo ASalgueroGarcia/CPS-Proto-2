@@ -316,6 +316,39 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 
 ---
 
+## 21. Strategy-doc artifact completion matrix (2026-09-23, cross-referenced from Dima's team-facing doc)
+
+The team doc ("What we build next", written at `86487ae` on dimas-branch, pre-restructure) as a completion ledger:
+
+| Artifact item | Status |
+|---|---|
+| "1 of 8 room types reach the player" | ✅ FIXED — tier chain verified (MapBehaviour per-depth tiers → Node → SceneController → WaveManager); boss case exists. All 8 tiers *meaningful* still needs design's tier table |
+| "0 of 2 plans executed" | ✅ 2 of 2 (enemy items 1–3, FSM phases 1–2); items 4–5 (pooling, animation-sync) deferred |
+| "562 lines superseded enemy code" | ✅ 0 |
+| "22 runtime object look-ups" | ◐ 20 by line count; ~15 real: CameraFollow ×2 (per-frame, worst), UIManager ×7 (binding dedupe pending), PlayerStatsManager:108 (dead — delete), Shop ×2, Map ×4 (Node.cs:33 name-based Find), Health:169 (dead method). Keep by design: WaveManager:71 (DI cache), DebugCheats ×3 |
+| Move 1: room difficulty from map | ✅ done (pre-dates this PR — dimas-branch lineage) |
+| Move 2: tuning data as assets | ❌ `RoomConfigs` still hardcoded static — queued Phase 5 |
+| Move 3: folders by system | ◐ folders ✅ (PR #39), `.asmdef` boundaries ❌ none exist |
+| Move 4: RunManager / one owner for run state | ❌ UIManager still god-object (PauseManager was the first slice) |
+| Move 5: stop runtime lookups | ◐ enemy DI ✅ done; remainder = the ~15 sites above |
+| Polish: attack momentum | ✅ `a41ee9c` |
+| Polish: delete legacy enemy scripts | ✅ `e2ce344`/`89cf5a4` |
+| Polish: inject player + pool | ◐ injection ✅, **pooling ❌** |
+| Polish: cooldown dial | ✅ `14438f8` |
+| Polish: death sound guard | ✅ `1007183` |
+| Polish: CI compile check per PR | ❌ needs team call (GitHub Actions) |
+| Design asks (4) | ⬜ ALL STILL OPEN — run shape, enemy roster, meta-progression, real power-up list |
+
+## 22. Shop resolution log (2026-09-23)
+
+The saga: restructure lost `powerUpsA` wiring (empty list) → hand-wired 13 references via YAML (`a9fed29`) → **still 13 nulls at runtime** despite byte-verified-correct static state (GUIDs matched, script guid matched, no duplicates, no missing-script warnings, correct fileIDs). Runtime forensics (instrumented `[Shop]` logs + Editor.log mining) proved the deserialization failed while every static fact was correct — an import-pipeline state no CLI edit could responsibly fix.
+
+**Resolution:** one-off Editor tool (`ShopPowerUpRebuildTool`, commit `5972397`) rebuilt the list through Unity's own pipeline — `AssetDatabase.LoadAssetAtPath` → `SerializedObject` assignment → `PrefabUtility.SaveAsPrefabAsset`. Verified working in play: items display (Quickstep $10, Invisible Power $200, Borrowed Warmth $25), purchases refuse correctly when broke (`[Shop] Not enough coins for Borrowed Warmth ($25)`), PauseManager freezes time while shopping. **Tool deleted after success** (one-off rule) — lives in git history if the shop ever regresses.
+
+**Lesson recorded:** for serialized prefab references, prefer editor-side tooling over hand-written YAML, even when the YAML is byte-verified — Unity's importer is the only authority on reference resolution. Related fixed in the same session: the debug panel's missing `EndVertical()` (real Begin/End mismatch — the "Invalid GUILayout state" error) + exception-safe handlers.
+
+---
+
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
 
 Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).
