@@ -1,4 +1,4 @@
- using UnityEngine;
+reset-combo ok special-attack ok normal-attack ok applymovement ok fields ok  using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
@@ -59,6 +59,11 @@ public class PlayerFSM : MonoBehaviour
     private float lastAttackTime = 0;
     [SerializeField] private float attackAnimationSpeed = 1.5f;
     [SerializeField] private float specialAttackAnimationSpeed = 1.2f;
+
+    [Header("Attack Momentum (FSM plan phase 2)")]
+    public float attackImpulseForce = 8f;
+    public float attackImpulseDecay = 5f;
+    private Vector3 attackImpulseVelocity;
 
     [Header("Combo Timing")]
     private bool isComboWindowOpen = false;
@@ -198,9 +203,13 @@ public class PlayerFSM : MonoBehaviour
         }
         else
         {
-            // Still apply gravity but no horizontal movement
+            // Attack momentum: decaying forward surge, gravity still applies
             verticalVelocity -= gravity * Time.deltaTime;
-            controller.Move(new Vector3(0, verticalVelocity * Time.deltaTime, 0));
+            attackImpulseVelocity = Vector3.Lerp(attackImpulseVelocity, Vector3.zero, attackImpulseDecay * Time.deltaTime);
+
+            Vector3 finalAttackMove = attackImpulseVelocity;
+            finalAttackMove.y = verticalVelocity;
+            controller.Move(finalAttackMove * Time.deltaTime);
         }
     }
 
@@ -337,6 +346,10 @@ public class PlayerFSM : MonoBehaviour
                 break;
         }
 
+        // Forward surge: standard push on light steps, bigger lunge on the finisher
+        float impulse = attackImpulseForce * ((comboStep == 3) ? 1.5f : 1f);
+        attackImpulseVelocity = transform.forward * impulse;
+
         // --- THE "SECRET SAUCE" FOR RESPONSIVE COMBAT ---
         if (animator != null)
         {
@@ -469,6 +482,7 @@ public class PlayerFSM : MonoBehaviour
     private void ResetCombo()
     {
         comboStep = 0;
+        attackImpulseVelocity = Vector3.zero;
         isComboWindowOpen = false;
         SetPlayerColor(originalColor);
         if (animator != null) animator.ResetTrigger(HeavyAttackHash);
@@ -498,6 +512,7 @@ public class PlayerFSM : MonoBehaviour
     {
         specialTimer = specialCooldown;
         lastAttackTime = Time.time;
+        attackImpulseVelocity = transform.forward * (attackImpulseForce * 0.5f);
         SetPlayerColor(Color.cyan);
         
         if (animator != null)
