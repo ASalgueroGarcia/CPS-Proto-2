@@ -280,3 +280,29 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 - Routes only through the game's own public APIs (`SceneController.LoadLevel/UnloadLevel`, `PlayerStatsManager.AddCoins/Heal`, `ShopManager.OpenShop`, `Health.TakeDamage`). When Phase 3 lands, timescale buttons should route through the unified pause API.
 - Known v1 limits: cheat-return-to-map skips `MapBtnBehaviour.CompletedNode` (progression stays manual when jumping from the panel); if UIManager's pause was opened via ESC, a cheat timeScale reset can desync `UIManager._isPaused` — exactly the Phase 3 pause-ownership bug.
 - README in the folder per layout rules; owner Dima. First in-Editor compile + playtest pending (Dima).
+
+---
+
+## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
+
+Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).
+
+**Kill (per-frame / per-attack / per-SFX spam):**
+- `SoundManager.cs:72` — "PLAYING: … | pitch …" on **every** SFX (loudest offender)
+- `PlayerFSM.cs:384` — "[COMBO] Playing Attack_…" every attack
+- `PlayerFSM.cs:441` / `467` — "Activated Hitbox_attack12 specifically" / "Hitboxes DISABLED" every swing
+- `PlayerFSM.cs:420, 455–462` — "[HITBOX DEBUG]…" hitbox lifecycle logs
+- `PlayerFSM.cs:562` — "Executing Special Attack (Sphere AOE Only)"
+- `Node.cs:81` — "Node X has N children" per node activation
+- `WaveManager.cs:112` — per-enemy spawn line (replace with one per-wave summary if wanted)
+- `Scissors.cs:52` — per-hit combat log
+
+**Keep (they earned their place during playtesting):**
+- `PlayerStatsManager` "Captured initial player stats." / "Applied persistent stats to new player." — once per scene; proved BindToPlayer runs
+- `ShopManager` "Spent X coins" / "[Shop] Not enough coins for…" — the new economy feedback
+- `PlayerFSM` "[FAILSAFE] stuck in …" warning — real stuck-state detector
+- `SoundManager.PlayRandomSound` empty-list warning
+- `Enemy.cs:278` "{name} killed." + `Health` "{name} has DIED!" — per-death, cheap, validated death flow (drop later if waves get a summary)
+- `DebugCheats` logs — the tool's diagnostics
+
+**Also in this pass:** `PowerUpSelect`'s silent `selectedPowerUp == null` early-return gets a log ("[Shop] Slot {l} is empty - open the shop first") — silent no-ops cost us a debugging session.
