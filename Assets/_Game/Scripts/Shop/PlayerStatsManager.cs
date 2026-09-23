@@ -20,10 +20,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     // DAMAGE.
     private float currentNormalDamage;
-    private float currentCriticalDamage;
-    private float currentSpecialDamage;
     private float currentCritChance;
-    private float currentAttackSpeed;
 
     // SPEED.
     private float currentSpeed;
@@ -111,7 +108,6 @@ public class PlayerStatsManager : MonoBehaviour
         }
 
         PlayerStatsApplied?.Invoke();
-        //Prints();
     }
 
     private void OnDestroy()
@@ -180,11 +176,11 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.CriticalDamage:
-                    currentCriticalDamage += effect.value;
+                    // No runtime effect yet - needs the meta-progression design answer (design ask).
                     break;
 
                 case PowerUpData.PowerUpType.SpecialDamage:
-                    currentSpecialDamage += effect.value;
+                    // No runtime effect yet - needs the meta-progression design answer (design ask).
                     break;
 
                 // SPEED.
@@ -226,14 +222,10 @@ public class PlayerStatsManager : MonoBehaviour
             }
         }
         PlayerStatsApplied?.Invoke();
-        //Prints();
     }
     public void ResetAllThePlayerStats()
     {
         _hasStats = false;
-        currentCriticalDamage = 25.0f;
-        currentSpecialDamage = 20.0f;
-        currentAttackSpeed = 1.0f;
         currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
@@ -241,17 +233,5 @@ public class PlayerStatsManager : MonoBehaviour
 
         // Try to bind immediately if player exists
         BindToPlayer();
-    }
-
-    public void Prints()
-    {
-        Debug.Log($"Daño Normal: {currentNormalDamage}");
-        Debug.Log($"Daño Crítico: {currentCriticalDamage} ({currentCritChance * 100}%)");
-        Debug.Log($"Daño Especial: {currentSpecialDamage}");
-        Debug.Log($"Velocidad: {currentSpeed}");
-        Debug.Log($"Dash Speed: {currentDashSpeed}");
-        Debug.Log($"Attack Speed: {currentAttackSpeed}");
-        Debug.Log($"Salud: {currentHealth}/{maxHealth}");
-        Debug.Log($"Items: {inventoryItems}");
     }
 }
