@@ -68,50 +68,59 @@ public class DebugCheats : MonoBehaviour
         // ---- ROOMS ----
         GUILayout.Space(6);
         GUILayout.Label("ROOMS");
-        if (GUILayout.Button("Load Shop Room")) LoadRoom(NodeTypeEnum.Merchant, RoomType.Shop);
+        if (GUILayout.Button("Load Shop Room")) TryRun(() => LoadRoom(NodeTypeEnum.Merchant, RoomType.Shop));
         _tierIndex = GUILayout.SelectionGrid(_tierIndex, _tierNames, 2);
-        if (GUILayout.Button("Load Combat Room (tier above)")) LoadRoom(NodeTypeEnum.Combat, _tiers[_tierIndex]);
-        if (GUILayout.Button("Load Boss Room")) LoadRoom(NodeTypeEnum.Boss, RoomType.Boss);
-        if (GUILayout.Button("Return to Map")) ReturnToMap();
+        if (GUILayout.Button("Load Combat Room (tier above)")) TryRun(() => LoadRoom(NodeTypeEnum.Combat, _tiers[_tierIndex]));
+        if (GUILayout.Button("Load Boss Room")) TryRun(() => LoadRoom(NodeTypeEnum.Boss, RoomType.Boss));
+        if (GUILayout.Button("Return to Map")) TryRun(ReturnToMap);
 
         // ---- TIME ----
         GUILayout.Space(6);
         GUILayout.Label("TIME");
-        if (GUILayout.Button("Kill All Enemies")) KillAllEnemies();
+        if (GUILayout.Button("Kill All Enemies")) TryRun(KillAllEnemies);
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("x0.25")) { PauseManager.SetTimeScale(0.25f); Log("timescale 0.25"); }
-        if (GUILayout.Button("x1")) { PauseManager.SetTimeScale(1f); Log("timescale 1"); }
-        if (GUILayout.Button("x2")) { PauseManager.SetTimeScale(2f); Log("timescale 2"); }
+        if (GUILayout.Button("x0.25")) TryRun(() => { PauseManager.SetTimeScale(0.25f); Log("timescale 0.25"); });
+        if (GUILayout.Button("x1")) TryRun(() => { PauseManager.SetTimeScale(1f); Log("timescale 1"); });
+        if (GUILayout.Button("x2")) TryRun(() => { PauseManager.SetTimeScale(2f); Log("timescale 2"); });
         GUILayout.EndHorizontal();
 
         // ---- PLAYER ----
         GUILayout.Space(6);
         GUILayout.Label("PLAYER");
-        if (GUILayout.Button("+100 Coins"))
+        if (GUILayout.Button("+100 Coins")) TryRun(() =>
         {
             if (PlayerStatsManager.Instance != null) { PlayerStatsManager.Instance.AddCoins(100); Log("+100 coins"); }
             else Log("PlayerStatsManager not found!");
-        }
-        if (GUILayout.Button("Heal to Full")) { PlayerStatsManager.Instance?.Heal(99999f); Log("heal to full"); }
+        });
+        if (GUILayout.Button("Heal to Full")) TryRun(() => { PlayerStatsManager.Instance?.Heal(99999f); Log("heal to full"); });
 
         // ---- SHOP ----
         GUILayout.Space(6);
         GUILayout.Label("SHOP");
-        if (GUILayout.Button("Open Shop UI"))
+        if (GUILayout.Button("Open Shop UI")) TryRun(() =>
         {
             if (shop != null) { shop.OpenShop(); Log("OpenShop called"); }
             else Log("no ShopManager in this scene - Load Shop Room first");
-        }
+        });
         GUI.enabled = shop != null;
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Buy Slot 0")) { Log("Buy Slot 0"); shop.OpenShop(); shop.PowerUpSelect(0); }
-        if (GUILayout.Button("Buy Slot 1")) { Log("Buy Slot 1"); shop.OpenShop(); shop.PowerUpSelect(1); }
-        if (GUILayout.Button("Buy Slot 2")) { Log("Buy Slot 2"); shop.OpenShop(); shop.PowerUpSelect(2); }
+        if (GUILayout.Button("Buy Slot 0")) TryRun(() => { Log("Buy Slot 0"); shop.OpenShop(); shop.PowerUpSelect(0); });
+        if (GUILayout.Button("Buy Slot 1")) TryRun(() => { Log("Buy Slot 1"); shop.OpenShop(); shop.PowerUpSelect(1); });
+        if (GUILayout.Button("Buy Slot 2")) TryRun(() => { Log("Buy Slot 2"); shop.OpenShop(); shop.PowerUpSelect(2); });
         GUILayout.EndHorizontal();
         GUI.enabled = true;
 
         GUILayout.EndScrollView();
+        GUILayout.EndVertical();
         GUILayout.EndArea();
+    }
+
+    // A handler that throws inside OnGUI corrupts IMGUI's layout state for the rest of the
+    // frame ("Invalid GUILayout state" spam). Log and keep the panel alive instead.
+    private static void TryRun(Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { Debug.LogException(ex); }
     }
 
     private void LoadRoom(NodeTypeEnum nodeType, RoomType tier)
