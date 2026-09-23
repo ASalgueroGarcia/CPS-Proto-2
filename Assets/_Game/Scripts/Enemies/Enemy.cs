@@ -164,16 +164,16 @@ public class Enemy : MonoBehaviour
                 switch (attackSM.CurrentState)
                 {
                     case EnemyAttackStateMachine.State.Approaching:
-                        attackStrategy.OnApproachTarget(this, distanceToPlayer);
+                        attackStrategy.OnApproachTarget(this);
                         break;
                     case EnemyAttackStateMachine.State.Windup:
                         attackStrategy.OnWindup(this);
                         break;
                     case EnemyAttackStateMachine.State.Executing:
-                        attackStrategy.OnExecute(this, distanceToPlayer);
+                        attackStrategy.OnExecute(this);
                         break;
                     case EnemyAttackStateMachine.State.Cooldown:
-                        attackStrategy.OnCooldown(this, distanceToPlayer);
+                        attackStrategy.OnCooldown(this);
                         break;
                 }
                 break;
