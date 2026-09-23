@@ -268,3 +268,15 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 **Deferred to Phase 5** (need scene/prefab surgery + scene-owner coordination): duplicate EventSystem on room unload (`SceneController.cs:51` area), AudioListener lifecycle (0 listeners on Map after unloading a room).
 
 **Decisions made during Phase 2:** enemy-vs-breakable damage defaulted to 1 (the old code crashed there, so no prior behavior to preserve — Ivan to confirm); mojibake coin char replaced by plain number rather than guessing a glyph (font support unknown); UIManager.ReturnToMap dead-twin removal deferred to Phase 4/5 (touches inspector wiring on UI.prefab).
+
+---
+
+## 17. Dev playtest tool (2026-09-22, `f111abc`)
+
+**DebugCheats (F1)** — `Scripts/Core/Debug/DebugCheats.cs`, born from the playtesting pain ("reaching the shop needs several rooms of play").
+
+- Self-spawning via `RuntimeInitializeOnLoadMethod` → **zero scene/prefab wiring**, survives scene loads; guarded `#if UNITY_EDITOR || DEVELOPMENT_BUILD` → never ships.
+- Buttons: Load Shop / Combat (all 8 `RoomType` tiers) / Boss · Return to Map · Kill All Enemies (waves cascade via real death events) · timescale 0.25/1/2 · +100 coins · Heal to Full · Open Shop UI instantly.
+- Routes only through the game's own public APIs (`SceneController.LoadLevel/UnloadLevel`, `PlayerStatsManager.AddCoins/Heal`, `ShopManager.OpenShop`, `Health.TakeDamage`). When Phase 3 lands, timescale buttons should route through the unified pause API.
+- Known v1 limits: cheat-return-to-map skips `MapBtnBehaviour.CompletedNode` (progression stays manual when jumping from the panel); if UIManager's pause was opened via ESC, a cheat timeScale reset can desync `UIManager._isPaused` — exactly the Phase 3 pause-ownership bug.
+- README in the folder per layout rules; owner Dima. First in-Editor compile + playtest pending (Dima).
