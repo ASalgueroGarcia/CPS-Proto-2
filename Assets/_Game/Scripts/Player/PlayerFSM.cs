@@ -36,8 +36,6 @@ public class PlayerFSM : MonoBehaviour
     public InputActionReference attackAction;
     public InputActionReference specialAttackAction;
 
-    [Header("Identification")] public LayerMask enemyLayer;
-
     [Header("Movement Stats")] public float speed = 14f;
     public float dashSpeed = 30f;
     public float gravity = 25f;
@@ -115,9 +113,6 @@ public class PlayerFSM : MonoBehaviour
     {
         if (playerHealth == null) playerHealth = GetComponent<Health>();
         if (dashTrail == null) dashTrail = GetComponent<TrailRenderer>();
-
-        if (enemyLayer.value == 0)
-            enemyLayer = 1 << LayerMask.NameToLayer("Enemy");
 
         if (dashTrail != null)
         {
@@ -526,15 +521,9 @@ public class PlayerFSM : MonoBehaviour
     // Called by Animation Event during the Heavy Attack animation
     public void ExecuteSpecialAttackDamage()
     {
-        
-        // 1. Damage + Knockback (Sphere)
-        Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
-        foreach (Collider enemy in hitEnemies)
-        {
-            Health h = enemy.GetComponentInParent<Health>();
-            if (h != null) h.TakeDamage(weaponBaseDamage * 2, transform.position, 10f);
-        }
-        
+        // 1. Damage + Knockback (Sphere) - shared AOE burst; enemies only (player slot = 0).
+        AOEDamage.Burst(transform.position, specialRange, 0f, weaponBaseDamage * 2f, 10f, gameObject);
+
         // Visual debug for AOE in scene
         StartCoroutine(ShowSpecialAOEVisual());
     }

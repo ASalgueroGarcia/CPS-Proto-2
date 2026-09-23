@@ -90,22 +90,8 @@ public class Projectile : MonoBehaviour
             Destroy(effect, explosionDuration);
         }
 
-        Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
-        foreach (var hit in hits)
-        {
-            // Damage Player
-            if (hit.CompareTag("Player"))
-            {
-                Health h = hit.GetComponent<Health>();
-                if (h != null) h.TakeDamage(damage, transform.position, knockbackForce);
-            }
-            // Damage Enemies (optional, based on design)
-            else if (hit.CompareTag("Enemy") && hit.gameObject != gameObject)
-            {
-                Health h = hit.GetComponent<Health>();
-                if (h != null) h.TakeDamage(damage * 0.5f, transform.position, knockbackForce);
-            }
-        }
+        // Players take the full hit, enemies half of it (self-splash preserved).
+        AOEDamage.Burst(transform.position, explosionRadius, damage, damage * 0.5f, knockbackForce, gameObject);
 
         Destroy(gameObject);
     }
