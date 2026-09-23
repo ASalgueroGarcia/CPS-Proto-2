@@ -88,9 +88,9 @@ public class DebugCheats : MonoBehaviour
         }
         GUI.enabled = shop != null;
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Buy Slot 0")) shop.PowerUpSelect(0);
-        if (GUILayout.Button("Buy Slot 1")) shop.PowerUpSelect(1);
-        if (GUILayout.Button("Buy Slot 2")) shop.PowerUpSelect(2);
+        if (GUILayout.Button("Buy Slot 0")) { shop.OpenShop(); shop.PowerUpSelect(0); }
+        if (GUILayout.Button("Buy Slot 1")) { shop.OpenShop(); shop.PowerUpSelect(1); }
+        if (GUILayout.Button("Buy Slot 2")) { shop.OpenShop(); shop.PowerUpSelect(2); }
         GUILayout.EndHorizontal();
         GUI.enabled = true;
 
