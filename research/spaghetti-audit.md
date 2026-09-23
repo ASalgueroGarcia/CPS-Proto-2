@@ -280,6 +280,7 @@ Backlog impact: mojibake already in Phase 2 (bug #7); EventSystem + AudioListene
 - Routes only through the game's own public APIs (`SceneController.LoadLevel/UnloadLevel`, `PlayerStatsManager.AddCoins/Heal`, `ShopManager.OpenShop`, `Health.TakeDamage`). When Phase 3 lands, timescale buttons should route through the unified pause API.
 - Known v1 limits: cheat-return-to-map skips `MapBtnBehaviour.CompletedNode` (progression stays manual when jumping from the panel); if UIManager's pause was opened via ESC, a cheat timeScale reset can desync `UIManager._isPaused` — exactly the Phase 3 pause-ownership bug.
 - README in the folder per layout rules; owner Dima. First in-Editor compile + playtest pending (Dima).
+- **Playtest iterations (2026-09-22):** panel is now self-diagnosing — live status line (`room loaded / shop FOUND / active scene`) and a `[DebugCheats]` log on every press, because partial console pastes made diagnosis slow. Also: IMGUI clicks are invisible to the combat input system, so every panel press fired a player attack — the panel now sets `PlayerFSM.IsPaused` while open (third writer of that global; Phase 3 consolidates).
 
 ---
 

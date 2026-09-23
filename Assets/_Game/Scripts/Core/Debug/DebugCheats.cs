@@ -37,7 +37,13 @@ public class DebugCheats : MonoBehaviour
     private void Update()
     {
         var kb = Keyboard.current;
-        if (kb != null && kb.f1Key.wasPressedThisFrame) _visible = !_visible;
+        if (kb != null && kb.f1Key.wasPressedThisFrame)
+        {
+            _visible = !_visible;
+            // IMGUI clicks are invisible to the combat input system - every panel press
+            // would also fire a player attack. Gating on IsPaused while the panel is open.
+            PlayerFSM.IsPaused = _visible;
+        }
     }
 
     private void OnGUI()
@@ -48,12 +54,19 @@ public class DebugCheats : MonoBehaviour
             return;
         }
 
-        GUILayout.BeginArea(new Rect(10, 10, 250, 520));
+        bool roomLoaded = SceneManager.GetSceneByName(RoomSceneName).isLoaded;
+        ShopManager shop = FindFirstObjectByType<ShopManager>();
+
+        GUILayout.BeginArea(new Rect(10, 10, 250, 540));
         GUILayout.BeginVertical("box");
         GUILayout.Label("DEBUG CHEATS (dev build only)");
-        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(470));
+        _scroll = GUILayout.BeginScrollView(_scroll, GUILayout.Height(480));
+
+        GUILayout.Label($"room loaded: {roomLoaded} | shop: {(shop != null ? "FOUND" : "none")}");
+        GUILayout.Label($"timescale {Time.timeScale:0.00} | scene: {SceneManager.GetActiveScene().name}");
 
         // ---- ROOMS ----
+        GUILayout.Space(6);
         GUILayout.Label("ROOMS");
         if (GUILayout.Button("Load Shop Room")) LoadRoom(NodeTypeEnum.Merchant, RoomType.Shop);
         _tierIndex = GUILayout.SelectionGrid(_tierIndex, _tierNames, 2);
@@ -66,38 +79,38 @@ public class DebugCheats : MonoBehaviour
         GUILayout.Label("TIME");
         if (GUILayout.Button("Kill All Enemies")) KillAllEnemies();
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("x0.25")) Time.timeScale = 0.25f;
-        if (GUILayout.Button("x1")) Time.timeScale = 1f;
-        if (GUILayout.Button("x2")) Time.timeScale = 2f;
+        if (GUILayout.Button("x0.25")) { Time.timeScale = 0.25f; Log("timescale 0.25"); }
+        if (GUILayout.Button("x1")) { Time.timeScale = 1f; Log("timescale 1"); }
+        if (GUILayout.Button("x2")) { Time.timeScale = 2f; Log("timescale 2"); }
         GUILayout.EndHorizontal();
 
         // ---- PLAYER ----
         GUILayout.Space(6);
         GUILayout.Label("PLAYER");
-        if (GUILayout.Button("+100 Coins")) PlayerStatsManager.Instance?.AddCoins(100);
-        if (GUILayout.Button("Heal to Full")) PlayerStatsManager.Instance?.Heal(99999f);
+        if (GUILayout.Button("+100 Coins"))
+        {
+            if (PlayerStatsManager.Instance != null) { PlayerStatsManager.Instance.AddCoins(100); Log("+100 coins"); }
+            else Log("PlayerStatsManager not found!");
+        }
+        if (GUILayout.Button("Heal to Full")) { PlayerStatsManager.Instance?.Heal(99999f); Log("heal to full"); }
 
         // ---- SHOP ----
         GUILayout.Space(6);
         GUILayout.Label("SHOP");
-        ShopManager shop = FindFirstObjectByType<ShopManager>();
         if (GUILayout.Button("Open Shop UI"))
         {
-            if (shop != null) shop.OpenShop();
-            else Debug.LogWarning("[DebugCheats] No ShopManager in this scene - load a shop room first.");
+            if (shop != null) { shop.OpenShop(); Log("OpenShop called"); }
+            else Log("no ShopManager in this scene - Load Shop Room first");
         }
         GUI.enabled = shop != null;
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Buy Slot 0")) { shop.OpenShop(); shop.PowerUpSelect(0); }
-        if (GUILayout.Button("Buy Slot 1")) { shop.OpenShop(); shop.PowerUpSelect(1); }
-        if (GUILayout.Button("Buy Slot 2")) { shop.OpenShop(); shop.PowerUpSelect(2); }
+        if (GUILayout.Button("Buy Slot 0")) { Log("Buy Slot 0"); shop.OpenShop(); shop.PowerUpSelect(0); }
+        if (GUILayout.Button("Buy Slot 1")) { Log("Buy Slot 1"); shop.OpenShop(); shop.PowerUpSelect(1); }
+        if (GUILayout.Button("Buy Slot 2")) { Log("Buy Slot 2"); shop.OpenShop(); shop.PowerUpSelect(2); }
         GUILayout.EndHorizontal();
         GUI.enabled = true;
 
         GUILayout.EndScrollView();
-        GUILayout.Space(4);
-        GUILayout.Label($"timescale {Time.timeScale:0.00}  |  {SceneManager.GetActiveScene().name}");
-        GUILayout.EndVertical();
         GUILayout.EndArea();
     }
 
@@ -105,7 +118,7 @@ public class DebugCheats : MonoBehaviour
     {
         if (SceneController.Instance == null)
         {
-            Debug.LogWarning("[DebugCheats] SceneController not found - start from the Map scene to load rooms.");
+            Log("SceneController not found - start from the Map scene to load rooms.");
             return;
         }
 
@@ -116,6 +129,7 @@ public class DebugCheats : MonoBehaviour
             SceneController.Instance.UnloadLevel();
         }
 
+        Log($"loading {nodeType} room, tier {tier}");
         SceneController.Instance.LoadLevel(nodeType, tier);
     }
 
@@ -125,7 +139,12 @@ public class DebugCheats : MonoBehaviour
         PlayerFSM.IsPaused = false;
         if (SceneController.Instance != null && SceneManager.GetSceneByName(RoomSceneName).isLoaded)
         {
+            Log("returning to map");
             SceneController.Instance.UnloadLevel();
+        }
+        else
+        {
+            Log("no room loaded - nothing to return from");
         }
     }
 
@@ -142,6 +161,11 @@ public class DebugCheats : MonoBehaviour
             }
         }
         Debug.Log($"[DebugCheats] Killed {killed} enemies.");
+    }
+
+    private static void Log(string message)
+    {
+        Debug.Log($"[DebugCheats] {message}");
     }
 }
 #endif
