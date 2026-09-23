@@ -4,7 +4,7 @@ using UnityEngine;
 /// Lightweight state machine for the Attack phase shared by all enemies.
 /// Handles the universal cycle: Approach -> Windup -> Execute -> Cooldown.
 /// The owning Enemy reads CurrentState each frame and calls the matching
-/// virtual method (OnApproachTarget, OnAttackWindup, OnAttackExecute, OnAttackCooldown).
+/// strategy methods (OnApproachTarget, OnWindup, OnExecute, OnCooldown).
 /// </summary>
 public class EnemyAttackStateMachine
 {
