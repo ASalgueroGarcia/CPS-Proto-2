@@ -97,6 +97,7 @@ public class ShopManager : MonoBehaviour
         PowerUpData selectedPowerUp = _currentPowerUps[l];
         if (selectedPowerUp == null)
         {
+            Debug.Log($"[Shop] Slot {l} is empty - open the shop first (OpenShop fills the slots).");
             return;
         }
 
