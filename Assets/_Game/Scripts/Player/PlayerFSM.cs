@@ -1,4 +1,4 @@
-reset-combo ok special-attack ok normal-attack ok applymovement ok fields ok  using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
