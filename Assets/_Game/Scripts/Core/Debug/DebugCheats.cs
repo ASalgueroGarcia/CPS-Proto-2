@@ -80,12 +80,19 @@ public class DebugCheats : MonoBehaviour
         // ---- SHOP ----
         GUILayout.Space(6);
         GUILayout.Label("SHOP");
+        ShopManager shop = FindFirstObjectByType<ShopManager>();
         if (GUILayout.Button("Open Shop UI"))
         {
-            ShopManager shop = FindFirstObjectByType<ShopManager>();
             if (shop != null) shop.OpenShop();
             else Debug.LogWarning("[DebugCheats] No ShopManager in this scene - load a shop room first.");
         }
+        GUI.enabled = shop != null;
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Buy Slot 0")) shop.PowerUpSelect(0);
+        if (GUILayout.Button("Buy Slot 1")) shop.PowerUpSelect(1);
+        if (GUILayout.Button("Buy Slot 2")) shop.PowerUpSelect(2);
+        GUILayout.EndHorizontal();
+        GUI.enabled = true;
 
         GUILayout.EndScrollView();
         GUILayout.Space(4);
