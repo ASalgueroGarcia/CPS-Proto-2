@@ -81,6 +81,7 @@ public class ShopManager : MonoBehaviour
         }
         
         Time.timeScale = 0f;
+        PlayerFSM.IsPaused = true;
     }
 
     public void HideShopLogic()
@@ -88,6 +89,7 @@ public class ShopManager : MonoBehaviour
         StopAllCoroutines();
         shopPanel.SetActive(false);
         Time.timeScale = 1f;
+        PlayerFSM.IsPaused = false;
     }
 
     public void PowerUpSelect(int l)
