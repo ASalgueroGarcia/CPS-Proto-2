@@ -128,6 +128,17 @@ public class PlayerStatsManager : MonoBehaviour
         currentCoins += amount;
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
     }
+    public bool TrySpendCoins(int amount)
+    {
+        if (currentCoins < amount)
+        {
+            return false;
+        }
+
+        currentCoins -= amount;
+        Debug.Log($"Spent {amount} coins. Total: {currentCoins}");
+        return true;
+    }
 
     public void Heal(float amount)
     {

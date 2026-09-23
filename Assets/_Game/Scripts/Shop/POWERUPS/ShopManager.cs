@@ -93,11 +93,18 @@ public class ShopManager : MonoBehaviour
     public void PowerUpSelect(int l)
     {
         PowerUpData selectedPowerUp = _currentPowerUps[l];
-        // APPLY THE POWERUP.
-        if (_playerStatsManager != null && selectedPowerUp != null)
+        if (selectedPowerUp == null)
         {
-            _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+            return;
         }
+
+        if (_playerStatsManager == null || !_playerStatsManager.TrySpendCoins((int)selectedPowerUp.price))
+        {
+            Debug.Log($"[Shop] Not enough coins for {selectedPowerUp.powerUpName} (${selectedPowerUp.price:0}).");
+            return;
+        }
+
+        _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
         HideShopLogic();
         _uiManager.ShowEoLCanvas();
     }
