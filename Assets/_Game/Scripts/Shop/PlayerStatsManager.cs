@@ -38,6 +38,12 @@ public class PlayerStatsManager : MonoBehaviour
 
     private bool _hasStats = false;
 
+    /// <summary>Fired on every coin mutation (collect, spend, reset) with the new total.</summary>
+    public event System.Action<int> OnCoinsChanged;
+
+    /// <summary>Fired when speed/damage/inventory state is (re)applied - power-up purchase, rebind, reset.</summary>
+    public event System.Action PlayerStatsApplied;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -103,7 +109,8 @@ public class PlayerStatsManager : MonoBehaviour
         {
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
-        
+
+        PlayerStatsApplied?.Invoke();
         //Prints();
     }
 
@@ -125,6 +132,7 @@ public class PlayerStatsManager : MonoBehaviour
     {
         currentCoins += amount;
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
+        OnCoinsChanged?.Invoke(currentCoins);
     }
     public bool TrySpendCoins(int amount)
     {
@@ -135,6 +143,7 @@ public class PlayerStatsManager : MonoBehaviour
 
         currentCoins -= amount;
         Debug.Log($"Spent {amount} coins. Total: {currentCoins}");
+        OnCoinsChanged?.Invoke(currentCoins);
         return true;
     }
 
@@ -216,6 +225,7 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
             }
         }
+        PlayerStatsApplied?.Invoke();
         //Prints();
     }
     public void ResetAllThePlayerStats()
@@ -227,7 +237,8 @@ public class PlayerStatsManager : MonoBehaviour
         currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
-        
+        OnCoinsChanged?.Invoke(currentCoins);
+
         // Try to bind immediately if player exists
         BindToPlayer();
     }

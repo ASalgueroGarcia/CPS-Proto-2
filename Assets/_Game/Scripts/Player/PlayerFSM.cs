@@ -51,12 +51,21 @@ public class PlayerFSM : MonoBehaviour
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
 
-    [Header("Combo Settings")] 
+    [Header("Combo Settings")]
     public int comboStep = 0;
     public float comboResetTime = 1.0f;
     private float lastAttackTime = 0;
     [SerializeField] private float attackAnimationSpeed = 1.5f;
     [SerializeField] private float specialAttackAnimationSpeed = 1.2f;
+
+    /// <summary>Fired whenever comboStep changes - the HUD subscribes for event-driven display.</summary>
+    public event System.Action<int> OnComboChanged;
+
+    private void SetComboStep(int value)
+    {
+        comboStep = value;
+        OnComboChanged?.Invoke(value);
+    }
 
     [Header("Attack Momentum (FSM plan phase 2)")]
     public float attackImpulseForce = 8f;
@@ -306,7 +315,7 @@ public class PlayerFSM : MonoBehaviour
         }
 
         lastAttackTime = Time.time;
-        comboStep++;
+        SetComboStep(comboStep + 1);
         isComboWindowOpen = false; // Close window as hit is accepted
 
         float currentDamage = weaponBaseDamage;
@@ -336,7 +345,7 @@ public class PlayerFSM : MonoBehaviour
                 break;
             default:
                 ResetCombo();
-                comboStep = 1;
+                SetComboStep(1);
                 targetState = "Attack_01";
                 break;
         }
@@ -446,7 +455,7 @@ public class PlayerFSM : MonoBehaviour
     [ContextMenu("Debug: Play Attack 3")]
     public void DebugPlayAttack3()
     {
-        comboStep = 3;
+        SetComboStep(3);
         if (animator != null) animator.SetTrigger(Attack3Hash);
         SwitchState(PlayerState.Attacking);
     }
@@ -470,7 +479,7 @@ public class PlayerFSM : MonoBehaviour
 
     private void ResetCombo()
     {
-        comboStep = 0;
+        SetComboStep(0);
         attackImpulseVelocity = Vector3.zero;
         isComboWindowOpen = false;
         SetPlayerColor(originalColor);
