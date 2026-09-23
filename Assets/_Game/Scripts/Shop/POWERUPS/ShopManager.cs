@@ -122,6 +122,6 @@ public class ShopManager : MonoBehaviour
         _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
         Debug.Log($"[Shop] Purchased {selectedPowerUp.powerUpName} for ${selectedPowerUp.price:0}.");
         HideShopLogic();
-        _uiManager.ShowEoLCanvas();
+        if (_uiManager != null) _uiManager.ShowEoLCanvas();
     }
 }
