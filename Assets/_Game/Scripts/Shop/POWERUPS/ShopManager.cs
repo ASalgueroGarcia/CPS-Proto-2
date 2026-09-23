@@ -70,16 +70,30 @@ public class ShopManager : MonoBehaviour
             }
         }
 
-        for(int i = 0; i < iRandom.Count; i++)
+        Debug.Log($"[Shop] OpenShop: populating {iRandom.Count} slot(s) from {powerUpsA.Count} item(s) - manager #{GetInstanceID()}, panel '{(shopPanel != null ? shopPanel.name : "NULL")}'");
+        int failingSlot = -1;
+        try
         {
-            _currentPowerUps[i] = powerUpsA[iRandom[i]];
-            
-            itemNameTexts[i].text = _currentPowerUps[i].powerUpName;
-            itemDescriptionTexts[i].text = _currentPowerUps[i].powerUpDescription;
-            itemPriceTexts[i].text = "$" + _currentPowerUps[i].price.ToString();
-            powerUpImage[i].sprite = _currentPowerUps[i].powerUpIcon;
+            for(int i = 0; i < iRandom.Count; i++)
+            {
+                failingSlot = i;
+                PowerUpData item = powerUpsA[iRandom[i]];
+                Debug.Log($"[Shop] slot {i} <- item #{iRandom[i]} {(item != null ? item.powerUpName : "NULL (missing PowerUpData asset?)")}");
+
+                _currentPowerUps[i] = item;
+
+                itemNameTexts[i].text = item != null ? item.powerUpName : "";
+                itemDescriptionTexts[i].text = item != null ? item.powerUpDescription : "";
+                itemPriceTexts[i].text = item != null ? "$" + item.price.ToString() : "$0";
+                powerUpImage[i].sprite = item != null ? item.powerUpIcon : null;
+            }
         }
-        
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[Shop] OpenShop population FAILED at slot {failingSlot} (the last '[Shop] slot' line above names the culprit).", this);
+            Debug.LogException(ex);
+        }
+
         Time.timeScale = 0f;
         PlayerFSM.IsPaused = true;
     }
@@ -108,6 +122,7 @@ public class ShopManager : MonoBehaviour
         }
 
         _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+        Debug.Log($"[Shop] Purchased {selectedPowerUp.powerUpName} for ${selectedPowerUp.price:0}.");
         HideShopLogic();
         _uiManager.ShowEoLCanvas();
     }
