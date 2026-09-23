@@ -164,9 +164,4 @@ public class Health : MonoBehaviour
         SetHealth(_maxHealth);
     }
 
-    public void ResetAllHealthsInScene()
-    {
-        Health[] allHealths = Object.FindObjectsByType<Health>(FindObjectsSortMode.None);
-        foreach (Health h in allHealths) h.ResetHealth();
-    }
 }

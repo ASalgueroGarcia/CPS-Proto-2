@@ -9,7 +9,6 @@ public class PlayerStatsManager : MonoBehaviour
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
-    private WaveManager waveManager;
 
     // HEALTH.
     private float currentHealth;
@@ -105,7 +104,6 @@ public class PlayerStatsManager : MonoBehaviour
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
         
-        waveManager = FindFirstObjectByType<WaveManager>();
         //Prints();
     }
 
@@ -212,12 +210,7 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.enemySpawn:
-                    // WaveManager doesn't have spawnInterval yet, maybe increase budget?
-                    if (waveManager != null)
-                    {
-                        // Placeholder for wave modification
-                        Debug.Log("Increasing wave difficulty via powerup");
-                    }
+                    // Placeholder until design defines the spawn-modifier effect (design ask).
                     break;
                 default:
                     break;
