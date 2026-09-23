@@ -1,9 +1,15 @@
 using UnityEngine;
+using UnityEngine.Pool;
 
 public class Projectile : MonoBehaviour
 {
     private float damage;
     private Rigidbody rb;
+
+    [Header("Pooling")]
+    [Tooltip("Pooled lifetime: Despawn() hands the projectile back to its pool instead of Destroying it.")]
+    public bool pooledDespawn = false;
+    private ObjectPool<GameObject> _owningPool;
 
     [Header("Explosion Settings")]
     [SerializeField] private bool isExplosive = true;
@@ -12,8 +18,27 @@ public class Projectile : MonoBehaviour
     [SerializeField] private float explosionDuration = 2f;
     [SerializeField] private float knockbackForce = 10f;
 
+    /// <summary>
+    /// Called once by the owning pool (RangedAttack). Setup() itself is the full
+    /// reset: it re-caches the rigidbody, zeroes/relaunches velocity and restarts
+    /// the lifetime countdown, so nothing extra is needed on reuse.
+    /// </summary>
+    public void BindToPool(ObjectPool<GameObject> pool)
+    {
+        _owningPool = pool;
+        if (pool != null) pooledDespawn = true;
+    }
+
+    private void Despawn()
+    {
+        CancelInvoke(nameof(Despawn));
+        if (pooledDespawn && _owningPool != null) _owningPool.Release(gameObject);
+        else Destroy(gameObject);
+    }
+
     public void Setup(Vector3 targetPos, float dmg, float angle)
     {
+        CancelInvoke(nameof(Despawn));
         damage = dmg;
         rb = GetComponent<Rigidbody>();
         if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
@@ -61,7 +86,7 @@ public class Projectile : MonoBehaviour
         // Make the projectile face the direction of travel
         transform.forward = launchVelocity.normalized;
 
-        Destroy(gameObject, 5f);
+        Invoke(nameof(Despawn), 5f);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -74,11 +99,11 @@ public class Projectile : MonoBehaviour
         {
             Health playerHealth = other.GetComponent<Health>();
             if (playerHealth != null) playerHealth.TakeDamage(damage);
-            Destroy(gameObject);
+            Despawn();
         }
         else if (other.gameObject.layer == LayerMask.NameToLayer("Default") || other.CompareTag("Ground"))
         {
-            Destroy(gameObject);
+            Despawn();
         }
     }
 
@@ -93,7 +118,7 @@ public class Projectile : MonoBehaviour
         // Players take the full hit, enemies half of it (self-splash preserved).
         AOEDamage.Burst(transform.position, explosionRadius, damage, damage * 0.5f, knockbackForce, gameObject);
 
-        Destroy(gameObject);
+        Despawn();
     }
 
     private void OnDrawGizmosSelected()

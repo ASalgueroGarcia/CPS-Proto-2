@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Pool;
 
 /// <summary>
 /// Strategy: maintain distance from the player, aim during windup, then fire a projectile.
@@ -25,6 +26,36 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     [Header("Audio")]
     [SerializeField] private AudioClip shootSound;
+
+    // Projectile pooling: one pool per RangedAttack component; projectiles stay parented
+    // to the room so they outlive the enemy that fired them and die with the room.
+    private ObjectPool<GameObject> _projectilePool;
+
+    private GameObject GetProjectile(Enemy owner, Vector3 spawnPos)
+    {
+        if (_projectilePool == null)
+        {
+            _projectilePool = new ObjectPool<GameObject>(
+                createFunc: CreateProjectile,
+                actionOnRelease: pooled => pooled.SetActive(false),
+                collectionCheck: true);
+        }
+
+        GameObject projectile = _projectilePool.Get();
+        projectile.transform.SetParent(owner.transform.parent, false);
+        projectile.transform.position = spawnPos;
+        projectile.transform.rotation = Quaternion.identity;
+        projectile.SetActive(true);
+        return projectile;
+    }
+
+    private GameObject CreateProjectile()
+    {
+        GameObject obj = Instantiate(projectilePrefab);
+        Projectile proj = obj.GetComponent<Projectile>();
+        if (proj != null) proj.BindToPool(_projectilePool);
+        return obj;
+    }
 
     // IEnemyAttackStrategy contract ---------------------------------------------------------------
 
@@ -86,16 +117,14 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     private void Shoot(Enemy owner)
     {
-        Vector3 spawnPos = GetSpawnPosition(owner);
-        GameObject projObj;
-
         if (projectilePrefab == null)
         {
             Debug.LogError($"[{owner.name}] No projectile prefab assigned - skipping the attack. Assign one in the Inspector.", this);
             return;
         }
 
-        projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity, owner.transform.parent);
+        Vector3 spawnPos = GetSpawnPosition(owner);
+        GameObject projObj = GetProjectile(owner, spawnPos);
 
         Projectile proj = projObj.GetComponent<Projectile>();
         if (proj != null)
