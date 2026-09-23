@@ -426,6 +426,12 @@ Dima's call: implement ALL remaining findings even if not the file owners. Execu
 
 **One-off tool:** `Assets/_Game/Scripts/Editor/SessionSceneFixTool.cs` — two menu items (Wire LineHolder into Map Nodes; Fix AudioListener Lifecycle), scene-saving guarded against dirty open scenes. To be deleted after Dima runs both items and the fixes verify in play (same rule as §22's shop tool).
 
+**TOOL RESULTS (verified on disk + Dima's run):** LineHolder wired into 21/21 map nodes (all now `lineHolder: {fileID: 94840739}` → the "LineHolder" GameObject); permanent AudioListener added to SoundManager's object (MainMenu block `2056552799` → GameObject `2056552796`); camera listeners stripped from all three scenes (MainMenu −9, _MapScene −9 inside the +74/−9 net, SetScene −9). Menu items ran clean; delete-after-success rule applied.
+
+**NEW PROCESS LESSON (paid for once):** raw `AddComponent` inside an editor tool does NOT reliably mark the scene dirty — the first pass's `SaveOpenSceneIfDirty()` skipped the save and the follow-up `OpenScene` silently DISCARDED the added AudioListener (tool logged success, file had nothing). Hardened pattern for one-off scene tools: `Undo.AddComponent` (registers the change) + explicit `MarkSceneDirty` + `SaveScene` + re-open from disk and assert the change survived. Add this to hard rule 1's spirit: read-back verification must happen for TOOL-side scene edits too, not just file edits.
+
+**RoomConfig_Medium budget 6 → 20** — Dima's designer playtest tuning (edit-mode change, persisted); committed separately from the scene fixes.
+
 **Still open (unchanged):** `RunManager` (design-blocked on meta-progression), `asmdef` boundaries + GitHub Actions CI (team config calls), shadow-atlas bump (ProjectSettings/Quality — config call), Arena Flat mesh tessellation (asset owner), projectile pooling (step 5, after enemies verified in a full E2E run), Phase-5 structural leftovers (shared AOE helper, event-driven HUD, stats single-source-of-truth).
 
 ---
