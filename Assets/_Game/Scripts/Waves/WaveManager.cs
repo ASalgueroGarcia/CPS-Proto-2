@@ -26,7 +26,9 @@ public class WaveManager : MonoBehaviour
 
     [Header("Room Setup")]
     public RoomType currentRoomType = RoomType.Medium;
-    public RoomConfig config;
+    public RoomConfigData config;
+    [Tooltip("Library asset holding one RoomConfigData per tier (Data/Rooms).")]
+    [SerializeField] private RoomConfigLibrary roomConfigLibrary;
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
@@ -95,7 +97,13 @@ public class WaveManager : MonoBehaviour
         if (roomCleared) return; // Safety check: don't spawn waves if room is already cleared
 
         currentWaveIndex++;
-        config = RoomConfigs.Get(currentRoomType);
+        if (roomConfigLibrary == null)
+        {
+            Debug.LogError("[WaveManager] No RoomConfigLibrary assigned - assign Data/Rooms/RoomConfigLibrary.asset on the WaveManager.", this);
+            return;
+        }
+
+        config = roomConfigLibrary.Get(currentRoomType);
         
         int budget = config.budget;
         List<EnemyType> pool = config.enemyPool;
@@ -190,7 +198,8 @@ public class WaveManager : MonoBehaviour
 
     private void CheckWaveCompletion()
     {
-        RoomConfig currentConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData currentConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (currentConfig == null) return;
         
         if (currentWaveIndex < currentConfig.maxWaves)
         {
@@ -216,7 +225,8 @@ public class WaveManager : MonoBehaviour
 
     private void SpawnRewards()
     {
-        RoomConfig roomConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData roomConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (roomConfig == null) return;
         
         // Use transform.position as the base center
         Vector3 centerPos = transform.position;
