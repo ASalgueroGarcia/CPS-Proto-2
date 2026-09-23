@@ -349,6 +349,38 @@ The saga: restructure lost `powerUpsA` wiring (empty list) → hand-wired 13 ref
 
 ---
 
+## 23. SESSION HANDOFF (2026-09-23 evening) — read this first in a fresh context
+
+**Branch state:** `feature/cleanup` = PR #40 (READY FOR REVIEW), 45+ commits since base `4da72cd`, everything pushed through `1953e8f`. Merge order: **#39 first, then #40**. E2E-playtested by Dima: shop works end-to-end, room tiers flow from map depth, boss case real, pause unified, attack momentum live.
+
+**Done since §22:** RoomConfigs → `RoomConfigData`/`RoomConfigLibrary` SOs + 8 tier assets + library wired into 11 room prefabs **via one-off migration tool, tool deleted after success** (commits `8a5f820`, `25e247c` fix, `82c898a` artifacts). Runtime-lookup purge round 2 (`c40fe16`: CameraFollow cooldown re-find + null-safe Start, UIManager `BindToPlayer()` dedupe −41 lines, dead Shop→Waves edge + `ResetAllHealthsInScene` removed). Log cleanup per §18 (`ebe6165`). EventSystem duplicate warning fixed (`1953e8f`: SceneController awaits the additive unload before reactivating the map EventSystem). The debug-panel `EndVertical` bug + `_uiManager` NRE source fixed.
+
+**Chunk D — POOLING (designed, not implemented — next session's first task):**
+1. `Health`: add a skip-destroy path for pooled enemies (`public bool pooledDespawn` set by the pool; `Die()` skips `Destroy(gameObject, 0.1f)` when set).
+2. `Enemy.ResetForReuse()`: reset state → `currentState = Patrol`, `attackSM.Reset()`, `ApplyDataStats()` (resets Health), re-inject via `WaveManager.SetTarget`, UI re-init check.
+3. `WaveManager`: per-prefab pool dictionary `Dictionary<GameObject, ObjectPool<GameObject>>` (use built-in `UnityEngine.Pool.ObjectPool` — native, no new library), `Retrieve` on spawn, `Release` in `OnEnemyDeath` after wave bookkeeping, `collectionCheck: true` so double-release throws visibly.
+4. Watch out: `Enemy.HandleDeath` also destroys — both destroy sites must honor the pooled path; `WorldSpaceHealthBar`/`EnemyUIAutoSetup` state on reuse; death listeners on Health persist across reuse ✓.
+5. Projectiles: same pattern in `RangedAttack.Shoot`/`Projectile.Explode` — SECOND step, after enemies are verified pooled.
+Playtest gate: kill a room with the panel's Kill All → enemies respawn from the pool across 3+ waves with zero "destroyed pooled object" errors.
+
+**Remaining after pooling (with owners/blocks):**
+- AudioListener lifecycle (0 listeners on Map after room) — needs scene wiring on `_MapScene` camera; Antonio
+- `Node.cs:33 GameObject.Find("LineHolder")` — needs a wired reference in SetScene; Antonio
+- Naming sweep (class `Breakable_Objects` → `BreakableObject`, `Scripts/Shop/POWERUPS/` casing, 10 spaced item asset names, `"Breakeable"` tag rename in TagManager + prefab + Scissors.cs:55) — asset renames, do after #40 merges
+- `RunManager` (strategy-doc move 4) — **design-blocked** on the meta-progression answer
+- `asmdef` boundaries + GitHub Actions CI — team config calls (ask before touching config)
+- `GEMINI.md` rewrite — quick win, local file, untracked
+
+**PROCESS HARD RULES (paid for in blood this session):**
+1. Read-back verification of the modified file (head + changed regions + brace balance) happens BEFORE commit, never after. Three pushes shipped broken states when verify ran post-push.
+2. Detect each file's line endings per-file (`Contains([char]13)`) — never assume CRLF or LF. The mixed set: most `.cs` are CRLF; `DebugCheats.cs`, research docs, Enemy.cs, IEnemyAttackStrategy.cs are LF; prefabs are LF.
+3. NEVER wrap file edits in functions that Write-Output — PowerShell captures the diagnostics INTO the returned text. Inline replacements only.
+4. Serialized prefab references: editor-side tooling only (§22) — never hand-write YAML references, even byte-verified ones.
+5. Read `Editor.log` directly (`$env:LOCALAPPDATA\Unity\Editor\Editor.log`) instead of asking Dima to paste; Unity must be running for the log to be live.
+6. Play-mode Inspector edits do NOT persist — tuning tests happen in EDIT mode.
+
+---
+
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
 
 Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).
