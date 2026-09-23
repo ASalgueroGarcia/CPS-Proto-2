@@ -94,16 +94,14 @@ public class ShopManager : MonoBehaviour
             Debug.LogException(ex);
         }
 
-        Time.timeScale = 0f;
-        PlayerFSM.IsPaused = true;
+        PauseManager.SetPaused(true);
     }
 
     public void HideShopLogic()
     {
         StopAllCoroutines();
         shopPanel.SetActive(false);
-        Time.timeScale = 1f;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
     }
 
     public void PowerUpSelect(int l)

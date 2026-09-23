@@ -386,9 +386,8 @@ public class UIManager : MonoBehaviour
 
     public void StartGame()
     {
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
@@ -416,9 +415,8 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(true);
         }
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
-        Time.timeScale = 0f;
         _isPaused = true;
-        PlayerFSM.IsPaused = _isPaused;
+        PauseManager.SetPaused(true);
     }
 
     public void Resume()
@@ -430,16 +428,14 @@ public class UIManager : MonoBehaviour
             inGamePauseButton.gameObject.SetActive(true);
         }
         
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
     }
     
     public void ReturnToMap()
     {
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 

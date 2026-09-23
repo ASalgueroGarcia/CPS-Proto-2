@@ -79,9 +79,9 @@ public class DebugCheats : MonoBehaviour
         GUILayout.Label("TIME");
         if (GUILayout.Button("Kill All Enemies")) KillAllEnemies();
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("x0.25")) { Time.timeScale = 0.25f; Log("timescale 0.25"); }
-        if (GUILayout.Button("x1")) { Time.timeScale = 1f; Log("timescale 1"); }
-        if (GUILayout.Button("x2")) { Time.timeScale = 2f; Log("timescale 2"); }
+        if (GUILayout.Button("x0.25")) { PauseManager.SetTimeScale(0.25f); Log("timescale 0.25"); }
+        if (GUILayout.Button("x1")) { PauseManager.SetTimeScale(1f); Log("timescale 1"); }
+        if (GUILayout.Button("x2")) { PauseManager.SetTimeScale(2f); Log("timescale 2"); }
         GUILayout.EndHorizontal();
 
         // ---- PLAYER ----
@@ -124,8 +124,7 @@ public class DebugCheats : MonoBehaviour
 
         if (SceneManager.GetSceneByName(RoomSceneName).isLoaded)
         {
-            Time.timeScale = 1f;
-            PlayerFSM.IsPaused = false;
+            PauseManager.SetPaused(false);
             SceneController.Instance.UnloadLevel();
         }
 
@@ -135,8 +134,7 @@ public class DebugCheats : MonoBehaviour
 
     private void ReturnToMap()
     {
-        Time.timeScale = 1f;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
         if (SceneController.Instance != null && SceneManager.GetSceneByName(RoomSceneName).isLoaded)
         {
             Log("returning to map");
