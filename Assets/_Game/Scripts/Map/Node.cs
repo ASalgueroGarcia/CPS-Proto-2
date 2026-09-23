@@ -30,7 +30,7 @@ public class Node : MonoBehaviour
 
     private void Awake()
     {
-        lineHolder = GameObject.Find("LineHolder");
+        if (lineHolder == null) lineHolder = GameObject.Find("LineHolder");
         GenerateNodeType();
     }
 
