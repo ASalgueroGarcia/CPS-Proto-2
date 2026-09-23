@@ -43,6 +43,10 @@ public class WaveManager : MonoBehaviour
 
     private bool hasInitialized = false;
 
+    // Cached player refs for dependency injection into spawned enemies (implementation_plan_enem).
+    private Transform _playerTransform;
+    private Health _playerHealth;
+
     /// <summary>
     /// Sets the difficulty tier for this room. Called by SceneController immediately
     /// after the room prefab is instantiated, which is before Start() runs.
@@ -62,6 +66,15 @@ public class WaveManager : MonoBehaviour
     private void Start()
     {
         hasInitialized = true;
+
+        // Cache the player once; spawned enemies get the references injected (no per-enemy searching).
+        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        if (playerObj != null)
+        {
+            _playerTransform = playerObj.transform;
+            _playerHealth = playerObj.GetComponent<Health>();
+        }
+
         InitializeRoom();
     }
 
@@ -146,6 +159,13 @@ public class WaveManager : MonoBehaviour
         {
             GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
             activeEnemies.Add(enemy);
+
+            // Dependency injection: the enemy never searches for the player itself.
+            Enemy enemyComponent = enemy.GetComponent<Enemy>();
+            if (enemyComponent != null)
+            {
+                enemyComponent.SetTarget(_playerTransform, _playerHealth);
+            }
             
             Health h = enemy.GetComponent<Health>();
             if (h != null)

@@ -20,7 +20,7 @@ public class MeleeAttack : MonoBehaviour, IEnemyAttackStrategy
 
     public float ExecutingDuration => 0f; // Instant attack
 
-    public void OnApproachTarget(Enemy owner, float distanceToPlayer)
+    public void OnApproachTarget(Enemy owner)
     {
         // Standard chase
         owner.MoveTowards(owner.PlayerTransform.position, owner.data.speed);
@@ -32,10 +32,10 @@ public class MeleeAttack : MonoBehaviour, IEnemyAttackStrategy
         owner.FlashColor(Color.red, 0.15f);
     }
 
-    public void OnExecute(Enemy owner, float distanceToPlayer)
+    public void OnExecute(Enemy owner)
     {
         // Damage if still in range (with forgiving lunge)
-        if (distanceToPlayer <= attackRange + attackLunge)
+        if (owner.DistanceToPlayer <= attackRange + attackLunge)
         {
             if (owner.PlayerHealth != null)
                 owner.PlayerHealth.TakeDamage(owner.data.damage);
@@ -44,7 +44,7 @@ public class MeleeAttack : MonoBehaviour, IEnemyAttackStrategy
         owner.FlashColor(Color.red, flashDuration);
     }
 
-    public void OnCooldown(Enemy owner, float distanceToPlayer)
+    public void OnCooldown(Enemy owner)
     {
         // Default: do nothing while catching breath
     }
