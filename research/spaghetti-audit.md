@@ -381,6 +381,29 @@ Playtest gate: kill a room with the panel's Kill All → enemies respawn from th
 
 ---
 
+## 24. Chunk D execution log — enemy pooling (2026-09-23 evening, next session)
+
+**Implemented per the §23 design, one commit: WaveManager (CRLF), Enemy (LF), Health (CRLF), DashAttack (LF).**
+
+| File | Change |
+|---|---|
+| `Health.cs` | `public bool pooledDespawn` (Settings header); `Die()` skips the delayed `Destroy` when set; new `ResetForReuse()` — clears the `isDying` latch, stops a mid-flash coroutine and restores the renderer colour, refills via `SetHealth(_maxHealth)` (fires OnHealthChanged → the pooled health bar shows full before reactivation) |
+| `Enemy.cs` | New `ResetForReuse()`: cancels pending `ResetColor`, restores colour, `attackSM.Reset()`, `ApplyDataStats()` (re-seeds stats + attack timings + Health values), `Health.ResetForReuse()`, `Agent.ResetPath()`, `currentState = Patrol`. `HandleDeath()` skips `Destroy` when `Health.pooledDespawn` |
+| `WaveManager.cs` | `using UnityEngine.Pool;` + `_poolsByPrefab`/`_poolOfInstance` dictionaries (`Dictionary<GameObject, ObjectPool<GameObject>>`); `TrySpawnEnemy` now: sample point → `GetPooledEnemy` → **reposition while still inactive** (NavMeshAgent wakes at the new spot, no cross-room lerp) → `ResetForReuse()` → `SetTarget` → `SetActive(true)`; per-instance death listener registered ONCE in `createFunc` (the old per-spawn `AddListener` would have double-fired on reuse); `OnEnemyDeath` releases the body to its pool **even when the room already cleared**, then does wave bookkeeping |
+| `DashAttack.cs` | New `OnDisable` clears + stops the dash trail (a death mid-dash left `emitting = true` — with pooling the corpse persists, so the trail had to stop on deactivate) |
+
+**Design notes recorded during implementation:**
+- `collectionCheck: true` (double-release throws visibly); no `maxSize` → default 10 000, never hit; pools live on the room's WaveManager → bodies unload with the room.
+- `Health.Die()`'s `CancelInvoke(CheckFall)` was left as-is and NOT paired with a re-schedule: `CheckFall()` already guards on `isDying`, so the fall-check schedule persists across reuse harmlessly — a re-arm flag was deliberately not added.
+- Release order is safe because `Health.OnDeath` listeners run synchronously: HandleDeath (skip destroy) → OnEnemyDeath (release → SetActive(false)). Double-death is latched by `isDying`.
+- Enemy state on reuse that needed no code: `EnemyUIAutoSetup`/`WorldSpaceHealthBar` (children persist, listeners persist, bar refills via OnHealthChanged), strategy state (`hasDealtDamage`/trail reset in OnWindup/OnCooldown/OnDisable), layer assignment (persists).
+
+**Verification (static):** msbuild on Unity's own `Assembly-CSharp.csproj` → clean compile, only the two pre-existing warnings (DemoController CS0108, `isMovingToPatrolPoint` CS0414). Brace balance 4/4 files; line endings preserved per-file (hard rule 2). Unity-side compile + playtest pending — **gate per §23: Kill All via panel → 3+ waves of pooled respawns, zero "destroyed pooled object" errors.**
+
+**Deferred:** projectile pooling (§23 step 5) — `RangedAttack.Shoot`/`Projectile.Explode`, after enemies are verified in play.
+
+---
+
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
 
 Rule of thumb from Dima: strip spam, **keep anything that tells us what happened** (once-per-scene, per-purchase, per-wave, warnings).

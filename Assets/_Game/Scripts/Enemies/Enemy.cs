@@ -112,6 +112,23 @@ public class Enemy : MonoBehaviour
         PlayerHealth = playerHealth;
     }
 
+    /// <summary>
+    /// WaveManager calls this on pooled reuse, after retrieving the instance and
+    /// before re-activating it: fresh behaviour state, attack timings and health.
+    /// </summary>
+    public void ResetForReuse()
+    {
+        CancelInvoke(nameof(ResetColor));
+        ResetColor();
+
+        attackSM.Reset();
+        ApplyDataStats();
+        Health.ResetForReuse();
+
+        Agent.ResetPath();
+        currentState = EnemyState.Patrol;
+    }
+
     private void Start()
     {
         if (gameObject.layer == 0)
@@ -272,6 +289,7 @@ public class Enemy : MonoBehaviour
     private void HandleDeath()
     {
         Debug.Log($"{gameObject.name} killed.");
+        if (Health.pooledDespawn) return; // pooled lifetime: the pool deactivates, no Destroy
         Destroy(gameObject, 0.1f);
     }
 

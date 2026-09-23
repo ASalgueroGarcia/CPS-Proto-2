@@ -17,6 +17,8 @@ public class Health : MonoBehaviour
     public UnityEvent OnDeath;
 
     [Header("Settings")]
+    [Tooltip("Pooled lifetime: Die() skips the delayed Destroy - the pool deactivates instead.")]
+    public bool pooledDespawn = false;
     public bool autoResetOnDeath = false;
     public bool isInvulnerable = false;
 
@@ -155,8 +157,28 @@ public class Health : MonoBehaviour
         Debug.Log($"{gameObject.name} has DIED!");
         
         if (SoundManager.Instance != null && deathClip != null) SoundManager.Instance.PlaySound(deathClip);
-        
+
+        if (pooledDespawn) return; // pooled lifetime: the pool deactivates, no Destroy
         Destroy(gameObject, 0.1f);
+    }
+
+    /// <summary>
+    /// Re-arms a pooled instance for its next life: clears the dying latch,
+    /// restores a flash-tinted renderer and refills health.
+    /// Called by Enemy.ResetForReuse().
+    /// </summary>
+    public void ResetForReuse()
+    {
+        isDying = false;
+
+        if (flashCoroutine != null)
+        {
+            StopCoroutine(flashCoroutine);
+            flashCoroutine = null;
+        }
+        if (targetRenderer != null) targetRenderer.material.color = originalColor;
+
+        SetHealth(_maxHealth);
     }
 
     public void ResetHealth()

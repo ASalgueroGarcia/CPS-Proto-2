@@ -29,6 +29,16 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
         SetupDashTrail();
     }
 
+    // Pooled reuse: a death mid-dash leaves the trail emitting - stop it on deactivate.
+    private void OnDisable()
+    {
+        if (dashTrail != null)
+        {
+            dashTrail.Clear();
+            dashTrail.emitting = false;
+        }
+    }
+
     private void SetupDashTrail()
     {
         dashTrail = GetComponent<TrailRenderer>();

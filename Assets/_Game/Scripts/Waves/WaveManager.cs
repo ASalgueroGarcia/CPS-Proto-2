@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Pool;
 using Random = UnityEngine.Random;
 
 public class WaveManager : MonoBehaviour
@@ -33,6 +34,12 @@ public class WaveManager : MonoBehaviour
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
     private List<GameObject> activePickups = new List<GameObject>();
+
+    // Enemy pooling: one ObjectPool per enemy prefab; every spawned instance maps
+    // back to its pool for release. Both dictionaries die with this WaveManager,
+    // so pooled bodies unload together with the room.
+    private readonly Dictionary<GameObject, ObjectPool<GameObject>> _poolsByPrefab = new Dictionary<GameObject, ObjectPool<GameObject>>();
+    private readonly Dictionary<GameObject, ObjectPool<GameObject>> _poolOfInstance = new Dictionary<GameObject, ObjectPool<GameObject>>();
 
     [Header("Rewards Placeholders")]
     [SerializeField] private GameObject coinPrefab;
@@ -162,35 +169,76 @@ public class WaveManager : MonoBehaviour
 
     private bool TrySpawnEnemy(GameObject prefab)
     {
-        Vector3 spawnPos;
-        if (TryGetRandomPoint(out spawnPos))
-        {
-            GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
-            activeEnemies.Add(enemy);
+        if (!TryGetRandomPoint(out Vector3 spawnPos)) return false;
 
-            // Dependency injection: the enemy never searches for the player itself.
-            Enemy enemyComponent = enemy.GetComponent<Enemy>();
-            if (enemyComponent != null)
-            {
-                enemyComponent.SetTarget(_playerTransform, _playerHealth);
-            }
-            
-            Health h = enemy.GetComponent<Health>();
-            if (h != null)
-            {
-                h.OnDeath.AddListener(() => OnEnemyDeath(enemy));
-            }
-            return true;
+        GameObject enemy = GetPooledEnemy(prefab);
+        if (enemy == null) return false;
+
+        // Reposition while still inactive: a NavMeshAgent woken up at the new spot
+        // won't lerp across the room from where it last died.
+        enemy.transform.SetParent(transform, false);
+        enemy.transform.position = spawnPos;
+        enemy.transform.rotation = Quaternion.identity;
+
+        // Dependency injection: the enemy never searches for the player itself.
+        Enemy enemyComponent = enemy.GetComponent<Enemy>();
+        if (enemyComponent != null)
+        {
+            enemyComponent.ResetForReuse();
+            enemyComponent.SetTarget(_playerTransform, _playerHealth);
         }
-        return false;
+
+        enemy.SetActive(true);
+        activeEnemies.Add(enemy);
+        return true;
+    }
+
+    private GameObject GetPooledEnemy(GameObject prefab)
+    {
+        if (!_poolsByPrefab.TryGetValue(prefab, out ObjectPool<GameObject> pool))
+        {
+            pool = new ObjectPool<GameObject>(
+                createFunc: () => CreatePooledEnemy(prefab),
+                actionOnRelease: pooled => pooled.SetActive(false),
+                collectionCheck: true);
+            _poolsByPrefab[prefab] = pool;
+        }
+
+        GameObject enemy = pool.Get();
+        _poolOfInstance[enemy] = pool;
+        return enemy;
+    }
+
+    private GameObject CreatePooledEnemy(GameObject prefab)
+    {
+        GameObject enemy = Instantiate(prefab);
+        Health h = enemy.GetComponent<Health>();
+        if (h != null)
+        {
+            // Pooled lifetime: death flags the pool instead of a delayed Destroy.
+            // The death listener is registered once per instance, not per spawn.
+            h.pooledDespawn = true;
+            h.OnDeath.AddListener(() => OnEnemyDeath(enemy));
+        }
+        return enemy;
+    }
+
+    private void ReleaseEnemy(GameObject enemy)
+    {
+        if (_poolOfInstance.TryGetValue(enemy, out ObjectPool<GameObject> pool))
+        {
+            pool.Release(enemy);
+        }
     }
 
     private void OnEnemyDeath(GameObject enemy)
     {
-        if (roomCleared) return;
-
+        // Wave bookkeeping first, then hand the body back to its pool - even when
+        // the room already cleared, so no pooled instance is left dangling.
         activeEnemies.Remove(enemy);
-        if (activeEnemies.Count == 0)
+        ReleaseEnemy(enemy);
+
+        if (!roomCleared && activeEnemies.Count == 0)
         {
             CheckWaveCompletion();
         }
