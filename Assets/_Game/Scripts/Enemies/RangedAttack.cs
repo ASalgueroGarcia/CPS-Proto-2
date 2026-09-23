@@ -58,7 +58,7 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
         owner.FlashColor(Color.red, 0.15f);
     }
 
-    public void OnExecute(Enemy owner, float distanceToPlayer)
+    public void OnExecute(Enemy owner)
     {
         FacePlayer(owner);
         Shoot(owner);
