@@ -125,7 +125,10 @@ public class Enemy : MonoBehaviour
         ApplyDataStats();
         Health.ResetForReuse();
 
-        Agent.ResetPath();
+        // No Agent.ResetPath here - the instance is still inactive at this point and
+        // the agent rejects it ("not placed on a NavMesh"). The stale path from the
+        // previous life is overwritten by GetNewPatrolTarget's SetDestination once
+        // the enemy re-enters Patrol.
         currentState = EnemyState.Patrol;
     }
 
