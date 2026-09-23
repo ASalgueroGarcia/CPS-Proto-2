@@ -69,7 +69,6 @@ public class SoundManager : MonoBehaviour
     public void PlaySoundWithRandomPitch(AudioClip clip)
     {
         float pitch = Random.Range(pitchMin, pitchMax);
-        Debug.Log($"PLAYING: {clip.name} | pitch: {pitch} | sfxSource active: {sfxSource.gameObject.activeInHierarchy}");
         sfxSource.pitch = pitch;
         sfxSource.PlayOneShot(clip);
     }

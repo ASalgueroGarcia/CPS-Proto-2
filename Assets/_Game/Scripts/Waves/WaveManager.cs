@@ -130,7 +130,6 @@ public class WaveManager : MonoBehaviour
                 if (TrySpawnEnemy(prefabConfig.prefab))
                 {
                     currentSpent += prefabConfig.cost;
-                    Debug.Log($"Spawned {type} (Cost: {prefabConfig.prefab.name}). Remaining Budget: {budget - currentSpent}");
                     totalEnemiesInCurrentWave++;
                     if (type == EnemyType.Slimo) slimoCountInCurrentWave++;
                     if (type == EnemyType.Heavy) heavyCountInCurrentWave++;
@@ -153,6 +152,7 @@ public class WaveManager : MonoBehaviour
             }
         }
         
+        Debug.Log($"[WaveManager] Wave {currentWaveIndex}: spawned {totalEnemiesInCurrentWave} enemies (budget {budget}).");
         // If we failed to spawn any enemies for some reason, check if room is cleared
         if (activeEnemies.Count == 0 && !roomCleared)
         {

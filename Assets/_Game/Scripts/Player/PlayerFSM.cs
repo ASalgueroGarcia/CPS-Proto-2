@@ -354,8 +354,7 @@ public class PlayerFSM : MonoBehaviour
         if (animator != null)
         {
             animator.CrossFadeInFixedTime(targetState, 0.05f);
-            Debug.Log($"[COMBO] Playing {targetState} (Step {comboStep})");
-        }
+            }
 
         GameObject activeHitbox = (comboStep == 3) ? Hitbox_attack3 : Hitbox_attack12;
         if (activeHitbox == null) activeHitbox = generalAttackHitbox; 
@@ -389,7 +388,6 @@ public class PlayerFSM : MonoBehaviour
         // Ignore events if they fire when we aren't in a combo step (prevents phantom damage)
         if (comboStep == 0) return;
 
-        Debug.Log($"Hitbox ENABLED via Animation Event. Combo Step: {comboStep}");
         
         if (comboStep == 3)
         {
@@ -411,8 +409,7 @@ public class PlayerFSM : MonoBehaviour
         if (Hitbox_attack12) 
         {
             Hitbox_attack12.SetActive(true);
-            Debug.Log("Activated Hitbox_attack12 specifically");
-        }
+            }
         else if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
     }
 
@@ -424,10 +421,8 @@ public class PlayerFSM : MonoBehaviour
 
         if (Hitbox_attack3) 
         {
-            Debug.Log($"[HITBOX DEBUG] Attempting to activate Hitbox_attack3. Current State: {Hitbox_attack3.activeSelf}");
-            Hitbox_attack3.SetActive(true);
-            Debug.Log($"[HITBOX DEBUG] Hitbox_attack3 is now: {Hitbox_attack3.activeInHierarchy}");
-        }
+                Hitbox_attack3.SetActive(true);
+            }
         else 
         {
             Debug.LogError("[HITBOX DEBUG] Hitbox_attack3 is NULL! Please check the Inspector.");
@@ -437,7 +432,6 @@ public class PlayerFSM : MonoBehaviour
 
     public void DisableHitbox()
     {
-        Debug.Log("Hitboxes DISABLED");
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
         if (Hitbox_attack12) Hitbox_attack12.SetActive(false);
         if (Hitbox_attack3) Hitbox_attack3.SetActive(false);
@@ -532,7 +526,6 @@ public class PlayerFSM : MonoBehaviour
     // Called by Animation Event during the Heavy Attack animation
     public void ExecuteSpecialAttackDamage()
     {
-        Debug.Log("Executing Special Attack (Sphere AOE Only)");
         
         // 1. Damage + Knockback (Sphere)
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
