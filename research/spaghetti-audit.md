@@ -402,6 +402,32 @@ Playtest gate: kill a room with the panel's Kill All → enemies respawn from th
 
 **Deferred:** projectile pooling (§23 step 5) — `RangedAttack.Shoot`/`Projectile.Explode`, after enemies are verified in play.
 
+**PLAYTEST RESULT (2026-09-23 evening, Dima, Entrance + Medium 2-wave run): GATE PASSED.** Wave 2 reused pooled bodies (10 reused + 2 new), all deaths flow through `CreatePooledEnemy` → `OnEnemyDeath` → release; zero "destroyed pooled object" errors; coins/EoL unaffected. One bug found and fixed in the same commit: `Agent.ResetPath()` inside `ResetForReuse()` ran while the instance was still inactive ("can only be called on an active agent that has been placed on a NavMesh", ×10 per wave) — line removed; the stale path self-heals because `GetNewPatrolTarget`'s `SetDestination` overwrites it within `idleDuration`. Cosmetic noise observed (not pooling-related): shadow-atlas warnings scale with room size (8→26 punctual maps, 2048² atlas), and a NEW finding — `Arena Flat` mesh triangle warning (vertices > 500 units apart; asset-level tessellation task, no code fix).
+
+## 25. §23 remaining-queue execution (2026-09-23 late evening, continuing after the pooling gate)
+
+Dima's call: implement ALL remaining findings even if not the file owners. Executed in this order:
+
+**1. GEMINI.md — DELETED (not rewritten).** It was 100% stale (all 13 paths pre-restructure: `FinalScenes/`, `_IvanAssets/`, `_DimaAsstets/`, `--UI--.prefab`) and git-ignored (.gitignore:81). Dima: "I use only Claude Code and opencode — those two adapt well to each other" → deleted outright, no replacement doc.
+
+**2. `Node.cs:33 GameObject.Find("LineHolder")` — fixed two-sided.** The serialized `lineHolder` field (Node.cs:12) existed all along but Awake stomped it with the global Find — and all 21 Node components in `_MapScene.unity` serialize `lineHolder: {fileID: 0}` (unwired), so the Find was load-bearing. Fix: code guard (`if (lineHolder == null) Find(...)`) + one-off editor tool wires the real reference into the 21 nodes (serialized via `SerializedObject`, per the §22 rule). The handoff's "wire in SetScene" was a typo — LineHolder lives in `_MapScene` (line 239).
+
+**3. AudioListener lifecycle — redesigned from §23's prescription after the YAML forensics contradicted it.** §23 said "needs scene wiring on `_MapScene` camera" — but `_MapScene`'s Main Camera ALREADY had an enabled AudioListener (line 716), as do MainMenu's and SetScene's cameras. The actual failure mode (seen in both playtests): the map camera is deactivated in `LoadLevel` BEFORE the additive SetScene camera exists → a one-frame 0-listener window → "There are no audio listeners" once per room load. Deactivate/activate ordering can never close a sub-frame window — so the fix gives the listener to the one object that is NEVER deactivated: SoundManager's DontDestroyOnLoad object (all game audio routes through its single `PlayOneShot` sources, so listener position is irrelevant), and the three scene cameras' AudioListeners are stripped. Exactly one listener, always. Applied via the same one-off editor tool (Unity pipeline, not YAML).
+
+**4. Naming sweep (was gated on "#40 merges", overruled by Dima):**
+- Class `Breakable_Objects` → `BreakableObject` — file renamed with its `.meta` (GUID preserved → the prefab's script ref stays valid), class + `Scissors.cs` usages updated.
+- Tag `"Breakeable"` → `"Breakable"` — TagManager.asset + `BreakableObject.prefab` m_TagString + Scissors.cs (all three, atomically).
+- `Scripts/Shop/POWERUPS/` → `PowerUps/` — Windows `core.ignorecase=true` makes git blind to case-only renames; the two-step `git mv` through a temp name forces the index update.
+- 9 spaced `Data/Items` assets renamed without spaces (asset + `.meta` pairs; GUID-based refs unaffected; no code referenced the names).
+- `--POWERUPS TEXT--` object in `shop_scene.prefab` → `PowerupsText` (name-only YAML change; zero code references).
+- RepoLayout §6 naming items NOT touched (team-scope or risky): `Hitbox_attack12/3`, `Triggered`/`onCooldon`, `EUI`/`aInteracted`, lowercase enum members, `_MapScene.unity` leading underscore, Rooms/ style mix, one-class-per-file violations.
+
+**5. Duplicate-UIManager item DISSOLVED (audit correction).** §2 claimed MainMenu.unity has a direct UIManager component at line ~757. Forensics: that block is a **stripped prefab-instance component** (`m_GameObject: {fileID: 0}`, `m_CorrespondingSourceObject` points into the UI.prefab guid) — it IS the UI.prefab instance's own UIManager, surfaced in the scene file for override targeting. No direct duplicate exists; the Phase-4 "remove the duplicate UIManager from MainMenu.unity" item is a false positive. The runtime `Awake` dedupe guard stays as cheap insurance.
+
+**One-off tool:** `Assets/_Game/Scripts/Editor/SessionSceneFixTool.cs` — two menu items (Wire LineHolder into Map Nodes; Fix AudioListener Lifecycle), scene-saving guarded against dirty open scenes. To be deleted after Dima runs both items and the fixes verify in play (same rule as §22's shop tool).
+
+**Still open (unchanged):** `RunManager` (design-blocked on meta-progression), `asmdef` boundaries + GitHub Actions CI (team config calls), shadow-atlas bump (ProjectSettings/Quality — config call), Arena Flat mesh tessellation (asset owner), projectile pooling (step 5, after enemies verified in a full E2E run), Phase-5 structural leftovers (shared AOE helper, event-driven HUD, stats single-source-of-truth).
+
 ---
 
 ## 18. Task list addition: Debug.Log cleanup (Phase 5 sweep, scoped 2026-09-22)
