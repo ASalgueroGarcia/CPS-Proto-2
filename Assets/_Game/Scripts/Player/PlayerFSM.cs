@@ -62,7 +62,6 @@ public class PlayerFSM : MonoBehaviour
 
     [Header("Combo Timing")]
     private bool isComboWindowOpen = false;
-    private float fallbackTimer = 0f;
 
     [Header("Scissor / Hitbox Objects")]
     [SerializeField] private GameObject generalAttackHitbox; 
@@ -178,21 +177,6 @@ public class PlayerFSM : MonoBehaviour
     void Update()
     {
         if (specialTimer > 0) specialTimer -= Time.deltaTime;
-
-        // FAILSAFE: If we are stuck in an attack state for too long, force return to idle
-        if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
-        {
-            fallbackTimer += Time.deltaTime;
-            if (fallbackTimer > 3.0f)
-            {
-                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 3.0s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
-                ReturnToIdle();
-            }
-        }
-        else
-        {
-            fallbackTimer = 0;
-        }
 
         if (comboStep > 0 && Time.time - lastAttackTime > comboResetTime)
         {
@@ -343,7 +327,6 @@ public class PlayerFSM : MonoBehaviour
         lastAttackTime = Time.time;
         comboStep++;
         isComboWindowOpen = false; // Close window as hit is accepted
-        fallbackTimer = 0; // Reset failsafe on new input
 
         float currentDamage = weaponBaseDamage;
         float currentCritChance = baseCritChance;
@@ -538,7 +521,6 @@ public class PlayerFSM : MonoBehaviour
     {
         specialTimer = specialCooldown;
         lastAttackTime = Time.time;
-        fallbackTimer = 0;
         SetPlayerColor(Color.cyan);
         
         if (animator != null)
