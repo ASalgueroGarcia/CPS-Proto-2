@@ -84,10 +84,6 @@ public class PlayerFSM : MonoBehaviour
         
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Setup hitbox component if missing
-        SetupScissorTrigger(generalAttackHitbox);
-        SetupScissorTrigger(Hitbox_attack12);
-        SetupScissorTrigger(Hitbox_attack3);
 
         // Ensure hitboxes are off at start
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
@@ -97,25 +93,6 @@ public class PlayerFSM : MonoBehaviour
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
     }
 
-    private void SetupScissorTrigger(GameObject scissor)
-    {
-        if (scissor == null) return;
-        
-        // 1. Ensure Scissor script is present
-        if (scissor.GetComponent<Scissors>() == null)
-            scissor.AddComponent<Scissors>();
-        
-        // 2. Ensure there is a trigger collider
-        Collider col = scissor.GetComponent<Collider>();
-        if (col != null) col.isTrigger = true;
-
-        // 3. CRITICAL: Unity OnTriggerEnter REQUIRES at least one Rigidbody.
-        // If neither the hitbox nor the enemy has a RB, triggers won't fire.
-        Rigidbody rb = scissor.GetComponent<Rigidbody>();
-        if (rb == null) rb = scissor.AddComponent<Rigidbody>();
-        rb.isKinematic = true; 
-        rb.useGravity = false;
-    }
 
     [Header("Special Attack")] public float specialCooldown = 10f;
     public float specialTimer = 0; // Made public for UI access
