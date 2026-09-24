@@ -49,8 +49,7 @@ public class Scissors : MonoBehaviour
                 targetHealth.TakeDamage(finalDamage, transform.root.position, knockbackForce);
                 hitEnemies.Add(targetHealth);
                 
-                Debug.Log($"[Combat] {transform.root.name} hit {targetHealth.gameObject.name} for {finalDamage} damage");
-            }
+                    }
         }
         else if (other.CompareTag("Breakeable"))
         {

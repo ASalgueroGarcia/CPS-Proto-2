@@ -70,35 +70,58 @@ public class ShopManager : MonoBehaviour
             }
         }
 
-        for(int i = 0; i < iRandom.Count; i++)
+        Debug.Log($"[Shop] OpenShop: populating {iRandom.Count} slot(s) from {powerUpsA.Count} item(s) - manager #{GetInstanceID()}, panel '{(shopPanel != null ? shopPanel.name : "NULL")}'");
+        int failingSlot = -1;
+        try
         {
-            _currentPowerUps[i] = powerUpsA[iRandom[i]];
-            
-            itemNameTexts[i].text = _currentPowerUps[i].powerUpName;
-            itemDescriptionTexts[i].text = _currentPowerUps[i].powerUpDescription;
-            itemPriceTexts[i].text = "$" + _currentPowerUps[i].price.ToString();
-            powerUpImage[i].sprite = _currentPowerUps[i].powerUpIcon;
+            for(int i = 0; i < iRandom.Count; i++)
+            {
+                failingSlot = i;
+                PowerUpData item = powerUpsA[iRandom[i]];
+                Debug.Log($"[Shop] slot {i} <- item #{iRandom[i]} {(item != null ? item.powerUpName : "NULL (missing PowerUpData asset?)")}");
+
+                _currentPowerUps[i] = item;
+
+                itemNameTexts[i].text = item != null ? item.powerUpName : "";
+                itemDescriptionTexts[i].text = item != null ? item.powerUpDescription : "";
+                itemPriceTexts[i].text = item != null ? "$" + item.price.ToString() : "$0";
+                powerUpImage[i].sprite = item != null ? item.powerUpIcon : null;
+            }
         }
-        
-        Time.timeScale = 0f;
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"[Shop] OpenShop population FAILED at slot {failingSlot} (the last '[Shop] slot' line above names the culprit).", this);
+            Debug.LogException(ex);
+        }
+
+        PauseManager.SetPaused(true);
     }
 
     public void HideShopLogic()
     {
         StopAllCoroutines();
         shopPanel.SetActive(false);
-        Time.timeScale = 1f;
+        PauseManager.SetPaused(false);
     }
 
     public void PowerUpSelect(int l)
     {
         PowerUpData selectedPowerUp = _currentPowerUps[l];
-        // APPLY THE POWERUP.
-        if (_playerStatsManager != null && selectedPowerUp != null)
+        if (selectedPowerUp == null)
         {
-            _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+            Debug.Log($"[Shop] Slot {l} is empty - open the shop first (OpenShop fills the slots).");
+            return;
         }
+
+        if (_playerStatsManager == null || !_playerStatsManager.TrySpendCoins((int)selectedPowerUp.price))
+        {
+            Debug.Log($"[Shop] Not enough coins for {selectedPowerUp.powerUpName} (${selectedPowerUp.price:0}).");
+            return;
+        }
+
+        _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+        Debug.Log($"[Shop] Purchased {selectedPowerUp.powerUpName} for ${selectedPowerUp.price:0}.");
         HideShopLogic();
-        _uiManager.ShowEoLCanvas();
+        if (_uiManager != null) _uiManager.ShowEoLCanvas();
     }
 }

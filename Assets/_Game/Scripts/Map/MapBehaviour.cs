@@ -166,9 +166,9 @@ public class MapBehaviour : MonoBehaviour
         if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
     }
 
-    private void ChooseStartingNode() 
-    { 
-        _startCoord = Random.Range(0, _map[0].Length); 
+    private void ChooseStartingNode()
+    {
+        _startCoord = Random.Range(0, _map[0].Length);
         _startingNode = _map[0][_startCoord];
 
         if (!_startingNode)
@@ -178,19 +178,24 @@ public class MapBehaviour : MonoBehaviour
             InitializeMap();
             return;
         }
-        
-        if (!_startingNode.IsStartingNode())
+
+        // Bounded re-pick instead of unbounded recursion
+        for (var attempt = 0; attempt < 10 && _startingNode.IsStartingNode(); attempt++)
         {
-            _startingNode.SetStartingNode(); 
-            _startingNode.SetType(NodeTypeEnum.Combat); 
-            _currNode = _startingNode;
+            _startCoord = Random.Range(0, _map[0].Length);
+            _startingNode = _map[0][_startCoord];
+            if (!_startingNode)
+            {
+                Debug.Log("No Starting node found");
+                ResetMap();
+                InitializeMap();
+                return;
+            }
         }
-        else
-        {
-            ChooseStartingNode();
-        } 
-        
-        //Debug.Log("Starting node: [0," + _startCoord + "]");
+
+        _startingNode.SetStartingNode();
+        _startingNode.SetType(NodeTypeEnum.Combat);
+        _currNode = _startingNode;
     }
 
     private void ConnectNextNode(int layerIndex, int nodeIndex)
@@ -209,11 +214,17 @@ public class MapBehaviour : MonoBehaviour
 
         if (_currNode.HasNode(_nextNode))
         {
-            minIndex = Mathf.Clamp(nodeIndex - 1, 0, _map[nextLayerIndex].Length - 1);
-            maxIndex = Mathf.Clamp(nodeIndex + 1, 0, _map[nextLayerIndex].Length - 1);
-            nextIndex = Random.Range(minIndex, maxIndex + 1);
+            var alternatives = new System.Collections.Generic.List<int>();
+            for (var k = minIndex; k <= maxIndex; k++)
+            {
+                if (k != nextIndex) alternatives.Add(k);
+            }
 
-            _nextNode = _map[nextLayerIndex][nextIndex];
+            if (alternatives.Count > 0)
+            {
+                nextIndex = alternatives[Random.Range(0, alternatives.Count)];
+                _nextNode = _map[nextLayerIndex][nextIndex];
+            }
         }
 
         _currNode.SetChildNode(_nextNode);
@@ -271,7 +282,7 @@ public class MapBehaviour : MonoBehaviour
             {
                 var node = _map[i][j];
                 var nodeBtn = node.GetComponentInChildren<Button>();
-                nodeBtn.interactable = nodeBtn && node.IsStartingNode();
+                if (nodeBtn != null) nodeBtn.interactable = node.IsStartingNode();
             }
         }
 

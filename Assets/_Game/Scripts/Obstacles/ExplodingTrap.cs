@@ -39,12 +39,12 @@ public class ExplodingTrap : TrapBase
             //Debug.Log("Color cambiado a amarillo");
         }
 
+        yield return new WaitForSeconds(delayBetweenTrigger);
+
         if (trapRender != null){
             trapRender.material.color = Color.red;
             //Debug.Log("Color cambiado a rojo");
         }
-
-        yield return new WaitForSeconds(delayBetweenTrigger);
         if(explosionEffectRef != null)
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);

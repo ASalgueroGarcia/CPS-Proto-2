@@ -12,7 +12,7 @@ public interface IEnemyAttackStrategy
     /// Called every frame while the state machine is in the <b>Approaching</b> sub-state.
     /// Override if the enemy needs special positioning (e.g. ranged enemies keeping distance).
     /// </summary>
-    void OnApproachTarget(Enemy owner, float distanceToPlayer);
+    void OnApproachTarget(Enemy owner);
 
     /// <summary>
     /// Called every frame while the state machine is in the <b>Windup</b> sub-state.
@@ -24,14 +24,14 @@ public interface IEnemyAttackStrategy
     /// Called once when the state machine enters the <b>Executing</b> sub-state.
     /// Implement the actual attack here: damage, projectiles, dash, etc.
     /// </summary>
-    void OnExecute(Enemy owner, float distanceToPlayer);
+    void OnExecute(Enemy owner);
 
     /// <summary>
     /// Called every frame while the state machine is in the <b>Cooldown</b> sub-state.
     /// If the attack needs repositioning between attacks (e.g. ranged keeping distance),
     /// or doing nothing while catching breath, implement it here.
     /// </summary>
-    void OnCooldown(Enemy owner, float distanceToPlayer);
+    void OnCooldown(Enemy owner);
 
     /// <summary>
     /// How many seconds the Executing sub-state should last.

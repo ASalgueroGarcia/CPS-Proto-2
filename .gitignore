@@ -19,6 +19,9 @@
 # Recordings can get excessive in size
 /[Rr]ecordings/
 
+# Unity crash-recovery scene backups (RepoLayout section 9) - never commit these
+/Assets/_Recovery/
+
 # Uncomment this line if you wish to ignore the asset store tools plugin
 # /[Aa]ssets/AssetStoreTools*
 
@@ -85,7 +88,8 @@ GEMINI.md
 *.docx
 *.md
 *.md.meta
-# Except: in-repo docs (READMEs, Docs folder) stay tracked
+# Except: in-repo docs (READMEs, Docs folder, research notes) stay tracked
 !README.md
 !README.md.meta
 !Docs/**
+!research/**

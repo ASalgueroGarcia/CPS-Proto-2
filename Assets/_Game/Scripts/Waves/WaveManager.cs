@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Pool;
 using Random = UnityEngine.Random;
 
 public class WaveManager : MonoBehaviour
@@ -26,11 +27,19 @@ public class WaveManager : MonoBehaviour
 
     [Header("Room Setup")]
     public RoomType currentRoomType = RoomType.Medium;
-    public RoomConfig config;
+    public RoomConfigData config;
+    [Tooltip("Library asset holding one RoomConfigData per tier (Data/Rooms).")]
+    [SerializeField] private RoomConfigLibrary roomConfigLibrary;
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
     private List<GameObject> activePickups = new List<GameObject>();
+
+    // Enemy pooling: one ObjectPool per enemy prefab; every spawned instance maps
+    // back to its pool for release. Both dictionaries die with this WaveManager,
+    // so pooled bodies unload together with the room.
+    private readonly Dictionary<GameObject, ObjectPool<GameObject>> _poolsByPrefab = new Dictionary<GameObject, ObjectPool<GameObject>>();
+    private readonly Dictionary<GameObject, ObjectPool<GameObject>> _poolOfInstance = new Dictionary<GameObject, ObjectPool<GameObject>>();
 
     [Header("Rewards Placeholders")]
     [SerializeField] private GameObject coinPrefab;
@@ -42,6 +51,10 @@ public class WaveManager : MonoBehaviour
     private int totalEnemiesInCurrentWave = 0;
 
     private bool hasInitialized = false;
+
+    // Cached player refs for dependency injection into spawned enemies (implementation_plan_enem).
+    private Transform _playerTransform;
+    private Health _playerHealth;
 
     /// <summary>
     /// Sets the difficulty tier for this room. Called by SceneController immediately
@@ -62,6 +75,15 @@ public class WaveManager : MonoBehaviour
     private void Start()
     {
         hasInitialized = true;
+
+        // Cache the player once; spawned enemies get the references injected (no per-enemy searching).
+        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        if (playerObj != null)
+        {
+            _playerTransform = playerObj.transform;
+            _playerHealth = playerObj.GetComponent<Health>();
+        }
+
         InitializeRoom();
     }
 
@@ -82,7 +104,13 @@ public class WaveManager : MonoBehaviour
         if (roomCleared) return; // Safety check: don't spawn waves if room is already cleared
 
         currentWaveIndex++;
-        config = RoomConfigs.Get(currentRoomType);
+        if (roomConfigLibrary == null)
+        {
+            Debug.LogError("[WaveManager] No RoomConfigLibrary assigned - assign Data/Rooms/RoomConfigLibrary.asset on the WaveManager.", this);
+            return;
+        }
+
+        config = roomConfigLibrary.Get(currentRoomType);
         
         int budget = config.budget;
         List<EnemyType> pool = config.enemyPool;
@@ -109,7 +137,6 @@ public class WaveManager : MonoBehaviour
                 if (TrySpawnEnemy(prefabConfig.prefab))
                 {
                     currentSpent += prefabConfig.cost;
-                    Debug.Log($"Spawned {type} (Cost: {prefabConfig.prefab.name}). Remaining Budget: {budget - currentSpent}");
                     totalEnemiesInCurrentWave++;
                     if (type == EnemyType.Slimo) slimoCountInCurrentWave++;
                     if (type == EnemyType.Heavy) heavyCountInCurrentWave++;
@@ -132,6 +159,7 @@ public class WaveManager : MonoBehaviour
             }
         }
         
+        Debug.Log($"[WaveManager] Wave {currentWaveIndex}: spawned {totalEnemiesInCurrentWave} enemies (budget {budget}).");
         // If we failed to spawn any enemies for some reason, check if room is cleared
         if (activeEnemies.Count == 0 && !roomCleared)
         {
@@ -141,28 +169,76 @@ public class WaveManager : MonoBehaviour
 
     private bool TrySpawnEnemy(GameObject prefab)
     {
-        Vector3 spawnPos;
-        if (TryGetRandomPoint(out spawnPos))
+        if (!TryGetRandomPoint(out Vector3 spawnPos)) return false;
+
+        GameObject enemy = GetPooledEnemy(prefab);
+        if (enemy == null) return false;
+
+        // Reposition while still inactive: a NavMeshAgent woken up at the new spot
+        // won't lerp across the room from where it last died.
+        enemy.transform.SetParent(transform, false);
+        enemy.transform.position = spawnPos;
+        enemy.transform.rotation = Quaternion.identity;
+
+        // Dependency injection: the enemy never searches for the player itself.
+        Enemy enemyComponent = enemy.GetComponent<Enemy>();
+        if (enemyComponent != null)
         {
-            GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
-            activeEnemies.Add(enemy);
-            
-            Health h = enemy.GetComponent<Health>();
-            if (h != null)
-            {
-                h.OnDeath.AddListener(() => OnEnemyDeath(enemy));
-            }
-            return true;
+            enemyComponent.ResetForReuse();
+            enemyComponent.SetTarget(_playerTransform, _playerHealth);
         }
-        return false;
+
+        enemy.SetActive(true);
+        activeEnemies.Add(enemy);
+        return true;
+    }
+
+    private GameObject GetPooledEnemy(GameObject prefab)
+    {
+        if (!_poolsByPrefab.TryGetValue(prefab, out ObjectPool<GameObject> pool))
+        {
+            pool = new ObjectPool<GameObject>(
+                createFunc: () => CreatePooledEnemy(prefab),
+                actionOnRelease: pooled => pooled.SetActive(false),
+                collectionCheck: true);
+            _poolsByPrefab[prefab] = pool;
+        }
+
+        GameObject enemy = pool.Get();
+        _poolOfInstance[enemy] = pool;
+        return enemy;
+    }
+
+    private GameObject CreatePooledEnemy(GameObject prefab)
+    {
+        GameObject enemy = Instantiate(prefab);
+        Health h = enemy.GetComponent<Health>();
+        if (h != null)
+        {
+            // Pooled lifetime: death flags the pool instead of a delayed Destroy.
+            // The death listener is registered once per instance, not per spawn.
+            h.pooledDespawn = true;
+            h.OnDeath.AddListener(() => OnEnemyDeath(enemy));
+        }
+        return enemy;
+    }
+
+    private void ReleaseEnemy(GameObject enemy)
+    {
+        if (_poolOfInstance.TryGetValue(enemy, out ObjectPool<GameObject> pool))
+        {
+            pool.Release(enemy);
+        }
     }
 
     private void OnEnemyDeath(GameObject enemy)
     {
-        if (roomCleared) return;
-
+        // Wave bookkeeping first, then hand the body back to its pool - even when
+        // the room already cleared, so no pooled instance is left dangling.
         activeEnemies.Remove(enemy);
-        if (activeEnemies.Count == 0)
+        ReleaseEnemy(enemy);
+
+        if (!roomCleared && activeEnemies.Count == 0)
         {
             CheckWaveCompletion();
         }
@@ -170,7 +246,8 @@ public class WaveManager : MonoBehaviour
 
     private void CheckWaveCompletion()
     {
-        RoomConfig currentConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData currentConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (currentConfig == null) return;
         
         if (currentWaveIndex < currentConfig.maxWaves)
         {
@@ -196,7 +273,8 @@ public class WaveManager : MonoBehaviour
 
     private void SpawnRewards()
     {
-        RoomConfig roomConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData roomConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (roomConfig == null) return;
         
         // Use transform.position as the base center
         Vector3 centerPos = transform.position;
@@ -305,32 +383,3 @@ public class WaveManager : MonoBehaviour
     }
 }
 
-public class RoomConfig
-{
-    public int budget;
-    public float baseWaveChance;
-    public int maxWaves;
-    public List<EnemyType> enemyPool;
-    public int expectedCurrency;
-    public float healthDropChance;
-}
-
-public static class RoomConfigs
-{
-    private static Dictionary<RoomType, RoomConfig> configs = new Dictionary<RoomType, RoomConfig>
-    {
-        { RoomType.Entrance, new RoomConfig { budget = 4, baseWaveChance = 0f, maxWaves = 1, enemyPool = new List<EnemyType>{EnemyType.Slimo}, expectedCurrency = 1, healthDropChance = 0f }},
-        { RoomType.Medium, new RoomConfig { budget = 6, baseWaveChance = 0.15f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged}, expectedCurrency = 2, healthDropChance = 0.1f }},    
-        { RoomType.MediumHard, new RoomConfig { budget = 9, baseWaveChance = 0.30f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 2, healthDropChance = 0.2f }},
-        { RoomType.Hard, new RoomConfig { budget = 12, baseWaveChance = 0.45f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 3, healthDropChance = 0.3f }},
-        { RoomType.MiniBoss, new RoomConfig { budget = 16, baseWaveChance = 0.60f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 4, healthDropChance = 0.6f }},
-        { RoomType.Boss, new RoomConfig { budget = 12, baseWaveChance = 1.0f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 6, healthDropChance = 1.0f }},
-        { RoomType.Shop, new RoomConfig { budget = 0, baseWaveChance = 0, maxWaves = 0, enemyPool = new List<EnemyType>(), expectedCurrency = 0, healthDropChance = 0 }},
-        { RoomType.Treasure, new RoomConfig { budget = 0, baseWaveChance = 0, maxWaves = 0, enemyPool = new List<EnemyType>(), expectedCurrency = 0, healthDropChance = 1.0f }}
-    };
-
-    public static RoomConfig Get(RoomType type)
-    {
-        return configs[type];
-    }
-}
