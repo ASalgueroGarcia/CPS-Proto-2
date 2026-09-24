@@ -428,6 +428,17 @@ Dima's call: implement ALL remaining findings even if not the file owners. Execu
 
 **TOOL RESULTS (verified on disk + Dima's run):** LineHolder wired into 21/21 map nodes (all now `lineHolder: {fileID: 94840739}` → the "LineHolder" GameObject); permanent AudioListener added to SoundManager's object (MainMenu block `2056552799` → GameObject `2056552796`); camera listeners stripped from all three scenes (MainMenu −9, _MapScene −9 inside the +74/−9 net, SetScene −9). Menu items ran clean; delete-after-success rule applied.
 
+## 27. Ownership strip (2026-09-24, Dima's call)
+
+Dima: the shop and map changes belong to their codeowners and the owners will rewrite those systems entirely — the shared PR must not carry them. `feature/cleanup` (PR #40) was rebuilt from the pre-chunk base with the keepers only (pooling, ResetPath fix, RoomConfig tune, docs); the owner chunks moved to disposable owner branches + draft PRs **explicitly ready to die**:
+
+| Owner | Branch | Carries |
+|---|---|---|
+| Antonio | `feature/antonio-map-audio` | Node.cs LineHolder guard + the scene commit (LineHolder wiring into 21 nodes + AudioListener lifecycle: permanent listener on SoundManager, camera listeners stripped from MainMenu/_MapScene/SetScene) |
+| Ivan | `feature/ivan-shop-naming` | BreakableObject class/tag rename (cross-touches Scissors.cs + TagManager + Ana's prefab) + shop naming (PowerUps folder, 9 item assets, PowerupsText) |
+
+If an owner discards their PR, the only loss is the cosmetic/scene cleanup — BUT two things must survive any rewrite of theirs: (1) one always-active AudioListener on a persistent object (the transient 0-listener warnings return otherwise), and (2) the serialized-reference-over-Find pattern (§25). `feature/phase5-structural` (PR #41) was rebased onto the stripped base so its diff stays core-only; its HUD chunk touches Ivan-owned UIManager/PlayerStatsManager — if Ivan rewrites those files the HUD chunk rebases into his rewrite.
+
 **NEW PROCESS LESSON (paid for once):** raw `AddComponent` inside an editor tool does NOT reliably mark the scene dirty — the first pass's `SaveOpenSceneIfDirty()` skipped the save and the follow-up `OpenScene` silently DISCARDED the added AudioListener (tool logged success, file had nothing). Hardened pattern for one-off scene tools: `Undo.AddComponent` (registers the change) + explicit `MarkSceneDirty` + `SaveScene` + re-open from disk and assert the change survived. Add this to hard rule 1's spirit: read-back verification must happen for TOOL-side scene edits too, not just file edits.
 
 **RoomConfig_Medium budget 6 → 20** — Dima's designer playtest tuning (edit-mode change, persisted); committed separately from the scene fixes.
