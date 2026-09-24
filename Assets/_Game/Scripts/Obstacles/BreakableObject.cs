@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Breakable_Objects : MonoBehaviour
+public class BreakableObject : MonoBehaviour
 {
     [Header("General Settings")]
     [SerializeField] private int hp = 2;
