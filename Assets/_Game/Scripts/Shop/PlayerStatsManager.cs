@@ -20,10 +20,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     // DAMAGE.
     private float currentNormalDamage;
-    private float currentCriticalDamage;
-    private float currentSpecialDamage;
     private float currentCritChance;
-    private float currentAttackSpeed;
 
     // SPEED.
     private float currentSpeed;
@@ -37,6 +34,12 @@ public class PlayerStatsManager : MonoBehaviour
     public List<PowerUpData> InventoryItems => listOfInventoryItems;
 
     private bool _hasStats = false;
+
+    /// <summary>Fired on every coin mutation (collect, spend, reset) with the new total.</summary>
+    public event System.Action<int> OnCoinsChanged;
+
+    /// <summary>Fired when speed/damage/inventory state is (re)applied - power-up purchase, rebind, reset.</summary>
+    public event System.Action PlayerStatsApplied;
 
     private void Awake()
     {
@@ -103,8 +106,9 @@ public class PlayerStatsManager : MonoBehaviour
         {
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
-        
-        //Prints();
+
+        Phase5Verify.Log("PlayerStatsApplied fired (BindToPlayer)");
+        PlayerStatsApplied?.Invoke();
     }
 
     private void OnDestroy()
@@ -125,6 +129,7 @@ public class PlayerStatsManager : MonoBehaviour
     {
         currentCoins += amount;
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
+        OnCoinsChanged?.Invoke(currentCoins);
     }
     public bool TrySpendCoins(int amount)
     {
@@ -135,6 +140,7 @@ public class PlayerStatsManager : MonoBehaviour
 
         currentCoins -= amount;
         Debug.Log($"Spent {amount} coins. Total: {currentCoins}");
+        OnCoinsChanged?.Invoke(currentCoins);
         return true;
     }
 
@@ -171,11 +177,11 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.CriticalDamage:
-                    currentCriticalDamage += effect.value;
+                    // No runtime effect yet - needs the meta-progression design answer (design ask).
                     break;
 
                 case PowerUpData.PowerUpType.SpecialDamage:
-                    currentSpecialDamage += effect.value;
+                    // No runtime effect yet - needs the meta-progression design answer (design ask).
                     break;
 
                 // SPEED.
@@ -216,31 +222,18 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
             }
         }
-        //Prints();
+        Phase5Verify.Log("PlayerStatsApplied fired (power-up applied)");
+        PlayerStatsApplied?.Invoke();
     }
     public void ResetAllThePlayerStats()
     {
         _hasStats = false;
-        currentCriticalDamage = 25.0f;
-        currentSpecialDamage = 20.0f;
-        currentAttackSpeed = 1.0f;
         currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
-        
+        OnCoinsChanged?.Invoke(currentCoins);
+
         // Try to bind immediately if player exists
         BindToPlayer();
-    }
-
-    public void Prints()
-    {
-        Debug.Log($"Daño Normal: {currentNormalDamage}");
-        Debug.Log($"Daño Crítico: {currentCriticalDamage} ({currentCritChance * 100}%)");
-        Debug.Log($"Daño Especial: {currentSpecialDamage}");
-        Debug.Log($"Velocidad: {currentSpeed}");
-        Debug.Log($"Dash Speed: {currentDashSpeed}");
-        Debug.Log($"Attack Speed: {currentAttackSpeed}");
-        Debug.Log($"Salud: {currentHealth}/{maxHealth}");
-        Debug.Log($"Items: {inventoryItems}");
     }
 }

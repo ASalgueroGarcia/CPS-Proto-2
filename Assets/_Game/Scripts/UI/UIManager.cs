@@ -119,6 +119,24 @@ public class UIManager : MonoBehaviour
             OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
         }
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
+
+        // Event-driven HUD subscriptions (idempotent across re-binds).
+        if (_playerStats != null)
+        {
+            _playerStats.OnCoinsChanged -= OnCoinsChanged;
+            _playerStats.OnCoinsChanged += OnCoinsChanged;
+            _playerStats.PlayerStatsApplied -= RefreshStaticStats;
+            _playerStats.PlayerStatsApplied += RefreshStaticStats;
+        }
+
+        if (_playerFsm != null)
+        {
+            _playerFsm.OnComboChanged -= OnComboChanged;
+            _playerFsm.OnComboChanged += OnComboChanged;
+        }
+
+        // Initial paint of the static stat strings.
+        RefreshStaticStats();
     }
 
     private void OnPlayerHealthChanged(float current, float max)
@@ -270,21 +288,40 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
-        // Safety check: Ensure HUD stays hidden in non-gameplay scenes
-        RefreshHUDVisibility();
-
+        // Event-driven HUD (Phase 5): the only per-frame work left is the cooldown
+        // dial's live countdown. Static stat strings repaint via events.
         if (_isPaused) return;
+        if (playerUICanvas == null || !playerUICanvas.activeSelf) return;
+        if (_playerFsm != null) RefreshCooldownDial();
+    }
 
-        if (playerUICanvas != null && playerUICanvas.activeSelf)
+    // --- EVENT-DRIVEN HUD (Phase 5) ---
+
+    private bool _specialReadyShown = false;
+
+    // Per-frame: only the live countdown. Static stat strings repaint via events.
+    private void RefreshCooldownDial()
+    {
+        if (cooldown == null && specialCDText == null) return;
+
+        if (_playerFsm.specialTimer > 0f)
         {
-            UpdatePlayerUI();
+            _specialReadyShown = false;
+            if (cooldown != null) cooldown.fillAmount = 1f - (_playerFsm.specialTimer / _playerFsm.specialCooldown);
+            if (specialCDText != null) specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
+        }
+        else if (!_specialReadyShown)
+        {
+            _specialReadyShown = true;
+            if (cooldown != null) cooldown.fillAmount = 1f;
+            if (specialCDText != null) specialCDText.text = "READY";
+            Phase5Verify.Log("HUD cooldown -> READY");
         }
     }
 
-    private void UpdatePlayerUI()
+    // Repaints everything that only changes on events: speed, damage, combo, coins, inventory.
+    private void RefreshStaticStats()
     {
-        if (_playerHealth == null) BindToPlayer();
-
         if (_playerFsm != null)
         {
             if (speedText != null)
@@ -295,23 +332,6 @@ public class UIManager : MonoBehaviour
             if (damageText != null)
             {
                 damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
-            }
-
-            if (specialCDText != null)
-            {
-                if (_playerFsm.specialTimer > 0)
-                {
-                    cooldown.fillAmount = 1f - (_playerFsm.specialTimer / _playerFsm.specialCooldown);
-                    specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
-                }
-                    
-
-                else
-                {
-                    specialCDText.text = "READY";
-                    cooldown.fillAmount = 1f;
-                }
-                    
             }
 
             if (comboText != null)
@@ -346,6 +366,18 @@ public class UIManager : MonoBehaviour
                 inventoryText.text = itemNames;
             }
         }
+    }
+
+    private void OnCoinsChanged(int total)
+    {
+        if (coinsText != null) coinsText.text = $"{total}";
+        Phase5Verify.Log($"HUD coins <- {total}");
+    }
+
+    private void OnComboChanged(int step)
+    {
+        if (comboText != null) comboText.text = $"{step}";
+        Phase5Verify.Log($"HUD combo <- {step}");
     }
 
     public void StartGame()
