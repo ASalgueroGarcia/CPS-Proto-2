@@ -32,6 +32,7 @@ public class Projectile : MonoBehaviour
     private void Despawn()
     {
         CancelInvoke(nameof(Despawn));
+        Phase5Verify.Log($"projectile despawned (pooled={pooledDespawn})");
         if (pooledDespawn && _owningPool != null) _owningPool.Release(gameObject);
         else Destroy(gameObject);
     }

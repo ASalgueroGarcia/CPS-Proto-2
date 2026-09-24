@@ -41,6 +41,7 @@ public static class AOEDamage
             hitCount++;
         }
 
+        Phase5Verify.Log($"AOE burst r={radius} -> {hitCount} victim(s) (player {playerDamage:0.#}, enemy {enemyDamage:0})");
         return hitCount;
     }
 }

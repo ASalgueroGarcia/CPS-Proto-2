@@ -107,6 +107,7 @@ public class PlayerStatsManager : MonoBehaviour
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
 
+        Phase5Verify.Log("PlayerStatsApplied fired (BindToPlayer)");
         PlayerStatsApplied?.Invoke();
     }
 
@@ -221,6 +222,7 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
             }
         }
+        Phase5Verify.Log("PlayerStatsApplied fired (power-up applied)");
         PlayerStatsApplied?.Invoke();
     }
     public void ResetAllThePlayerStats()

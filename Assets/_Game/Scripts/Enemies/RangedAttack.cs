@@ -46,6 +46,7 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
         projectile.transform.position = spawnPos;
         projectile.transform.rotation = Quaternion.identity;
         projectile.SetActive(true);
+        Phase5Verify.Log($"{owner.name}: projectile reused from pool");
         return projectile;
     }
 
@@ -54,6 +55,7 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
         GameObject obj = Instantiate(projectilePrefab);
         Projectile proj = obj.GetComponent<Projectile>();
         if (proj != null) proj.BindToPool(_projectilePool);
+        Phase5Verify.Log($"projectile pool: created new instance (total now {_projectilePool.CountInactive + 1} inactive capacity)");
         return obj;
     }
 

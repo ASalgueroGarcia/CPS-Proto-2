@@ -227,6 +227,7 @@ public class WaveManager : MonoBehaviour
     {
         if (_poolOfInstance.TryGetValue(enemy, out ObjectPool<GameObject> pool))
         {
+            Phase5Verify.Log($"{enemy.name} released to pool");
             pool.Release(enemy);
         }
     }

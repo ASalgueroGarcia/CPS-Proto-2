@@ -315,6 +315,7 @@ public class UIManager : MonoBehaviour
             _specialReadyShown = true;
             if (cooldown != null) cooldown.fillAmount = 1f;
             if (specialCDText != null) specialCDText.text = "READY";
+            Phase5Verify.Log("HUD cooldown -> READY");
         }
     }
 
@@ -370,11 +371,13 @@ public class UIManager : MonoBehaviour
     private void OnCoinsChanged(int total)
     {
         if (coinsText != null) coinsText.text = $"{total}";
+        Phase5Verify.Log($"HUD coins <- {total}");
     }
 
     private void OnComboChanged(int step)
     {
         if (comboText != null) comboText.text = $"{step}";
+        Phase5Verify.Log($"HUD combo <- {step}");
     }
 
     public void StartGame()
