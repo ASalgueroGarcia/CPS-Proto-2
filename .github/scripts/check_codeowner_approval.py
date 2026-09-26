@@ -98,6 +98,24 @@ def changed_lines_by_owner(files, rules):
     return per
 
 
+def required_owner(lines_by_owner, min_lines, author):
+    """The ONE owner that must approve: the most-touched non-author owner whose
+    owned paths carry >= min_lines changed lines. None if no such owner exists.
+
+    Kalashnikov rule: exactly one approval is ever required, so a cross-owner
+    PR can never jam on a second reviewer. Ties break alphabetically.
+    Team owners ('@org/team') are skipped - no org here to resolve them.
+    """
+    candidates = {
+        owner: lines
+        for owner, lines in lines_by_owner.items()
+        if lines >= min_lines and owner.lstrip("@") != author and "/" not in owner
+    }
+    if not candidates:
+        return None
+    return min(candidates.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
 def approved_logins(reviews):
     """Logins whose LATEST review state is APPROVED (a later dismissal or
     changes-requested overrides an earlier approval, like GitHub does)."""
@@ -147,31 +165,39 @@ def main():
         print("No code-owner paths touched - gate passes")
         return 0
 
-    missing = []
+    required = required_owner(lines_by_owner, min_lines, author)
+
     for owner, lines in sorted(lines_by_owner.items()):
+        if required and owner == required[0]:
+            continue
         login = owner.lstrip("@")
-        needs = lines >= min_lines and login != author
-        if not needs:
-            print(f"INFO {owner}: {lines} changed lines (below the {min_lines}-line threshold or author-exempt)")
-            continue
-        if "/" in owner:
-            print(f"::warning::{owner} is a team owner - org APIs needed, cannot verify, skipping")
-            continue
-        if login in approved:
-            print(f"OK   {owner}: {lines} changed lines, APPROVED review present")
+        if login == author:
+            tag = "author's own paths"
+        elif lines < min_lines:
+            tag = f"below the {min_lines}-line threshold"
+        elif "/" in owner:
+            tag = "team owner, org APIs unavailable"
         else:
-            print(f"MISS {owner}: {lines} changed lines, no APPROVED review")
-            missing.append(owner)
+            tag = "not the most-touched owner"
+        print(f"INFO {owner}: {lines} changed lines ({tag})")
 
-    if missing:
-        print(
-            f"::error::Code-owner approval missing from: {', '.join(missing)} "
-            f"({min_lines}+ changed lines in their paths requires their APPROVED review)"
-        )
-        return 1
+    if required is None:
+        print("No owner past the threshold (or only the author's own paths) - gate passes")
+        return 0
 
-    print(f"Code-owner approval gate passed ({len(files)} files checked)")
-    return 0
+    top_owner, top_lines = required
+    login = top_owner.lstrip("@")
+    if login in approved:
+        print(f"OK   {top_owner}: {top_lines} changed lines, APPROVED review present")
+        print(f"Code-owner approval gate passed ({len(files)} files checked)")
+        return 0
+
+    print(f"MISS {top_owner}: {top_lines} changed lines (most-touched owner)")
+    print(
+        f"::error::Code-owner approval missing from {top_owner} - "
+        f"the most-touched owner must APPROVE this PR"
+    )
+    return 1
 
 
 if __name__ == "__main__":

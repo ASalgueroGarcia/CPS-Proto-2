@@ -36,11 +36,13 @@ In every case: the code owner's review + **APPROVAL is obligatory** before merge
 
 ## 4. The approval gate (automatic)
 
-The `Code-owner approval gate` workflow (`.github/workflows/codeowner-approval.yml`) runs on every PR, on every new review, and on demand:
+The `Code-owner approval gate` workflow (`.github/workflows/codeowner-approval.yml`) runs on every PR, on every new review, and on demand. Kalashnikov-simple — **exactly one approval is ever required**:
 
 - sums the **changed lines** (additions + deletions) inside each owner's paths
-- **≥ 10 changed lines in an owner's paths → that owner must have an APPROVED review**, otherwise the check fails
-- the PR author cannot cover themselves (GitHub rule), team owners are unsupported (no org)
+- the single **most-touched owner** (if their paths carry ≥ 10 changed lines) must have an **APPROVED review** — nobody else is asked
+- the PR author cannot cover themselves; if the most-touched paths are the author's own, the gate passes
+- below the threshold, or no owned paths at all → gate passes, zero approvals
+- when the required owner approves, the check re-runs and goes green automatically
 
 Today the check is **advisory** — it reports, it doesn't block. To make it blocking, the repo owner (Antonio — only the repo admin can) opens **Settings → Branches → Add branch protection rule** on the default branch → **Require status checks** → select `Code-owner approval gate`.
 
