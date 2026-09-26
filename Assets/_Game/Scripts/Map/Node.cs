@@ -78,6 +78,7 @@ public class Node : MonoBehaviour
     
     public void ActivateChildren(Node endingNode = null)
     {
+        Debug.Log($"Node: {gameObject.name} has {_childNodes.Count} children");
 
         if (_childNodes.Count == 0)
         {
