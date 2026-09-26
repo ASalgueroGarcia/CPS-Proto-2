@@ -34,17 +34,16 @@ Need a change in code you don't own? Don't push. Use one of the three routes bel
 
 In every case: the code owner's review + **APPROVAL is obligatory** before merge. The owner is free to close a PR built for them ("ready to die" PRs are fine — say so in the PR body).
 
-## 4. The approval gate (automatic)
+## 4. The approval gate (on request)
 
-The `Code-owner approval gate` workflow (`.github/workflows/codeowner-approval.yml`) runs on every PR, on every new review, and on demand. Kalashnikov-simple — **exactly one approval is ever required**:
+The `Code-owner approval gate` workflow (`.github/workflows/codeowner-approval.yml`) runs **only when requested**: Actions → *Code-owner approval gate* → *Run workflow* → PR number. Kalashnikov-simple — **exactly one approval is ever required**:
 
 - sums the **changed lines** (additions + deletions) inside each owner's paths
 - the single **most-touched owner** (if their paths carry ≥ 10 changed lines) must have an **APPROVED review** — nobody else is asked
 - the PR author cannot cover themselves; if the most-touched paths are the author's own, the gate passes
 - below the threshold, or no owned paths at all → gate passes, zero approvals
-- when the required owner approves, the check re-runs and goes green automatically
 
-Today the check is **advisory** — it reports, it doesn't block. To make it blocking, the repo owner (Antonio — only the repo admin can) opens **Settings → Branches → Add branch protection rule** on the default branch → **Require status checks** → select `Code-owner approval gate`.
+The automatic triggers (run on every PR / every review) are **disabled and preserved commented** in the workflow file — uncomment the two trigger blocks to restore them. To make requested runs blocking, the repo owner (Antonio — only the repo admin can) opens **Settings → Branches → Add branch protection rule** on the default branch → **Require status checks** → select `Code-owner approval gate`.
 
 ## 5. Hygiene
 
