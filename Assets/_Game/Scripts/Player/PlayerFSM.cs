@@ -1,4 +1,4 @@
- using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections;
 using System.Collections.Generic;
@@ -52,7 +52,6 @@ public class PlayerFSM : MonoBehaviour
     public bool wasHit = false;
     public float attackRange = 2.0f;
     public float specialRange = 5.0f;
-    [SerializeField] private float knockBackForce = 7;
 
     [Header("Combo Settings")] 
     public int comboStep = 0;
@@ -61,9 +60,13 @@ public class PlayerFSM : MonoBehaviour
     [SerializeField] private float attackAnimationSpeed = 1.5f;
     [SerializeField] private float specialAttackAnimationSpeed = 1.2f;
 
+    [Header("Attack Momentum (FSM plan phase 2)")]
+    public float attackImpulseForce = 8f;
+    public float attackImpulseDecay = 5f;
+    private Vector3 attackImpulseVelocity;
+
     [Header("Combo Timing")]
     private bool isComboWindowOpen = false;
-    private float fallbackTimer = 0f;
 
     [Header("Scissor / Hitbox Objects")]
     [SerializeField] private GameObject generalAttackHitbox; 
@@ -86,10 +89,6 @@ public class PlayerFSM : MonoBehaviour
         
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Setup hitbox component if missing
-        SetupScissorTrigger(generalAttackHitbox);
-        SetupScissorTrigger(Hitbox_attack12);
-        SetupScissorTrigger(Hitbox_attack3);
 
         // Ensure hitboxes are off at start
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
@@ -99,25 +98,6 @@ public class PlayerFSM : MonoBehaviour
         if (bodyRenderer != null) originalColor = bodyRenderer.material.color;
     }
 
-    private void SetupScissorTrigger(GameObject scissor)
-    {
-        if (scissor == null) return;
-        
-        // 1. Ensure Scissor script is present
-        if (scissor.GetComponent<Scissors>() == null)
-            scissor.AddComponent<Scissors>();
-        
-        // 2. Ensure there is a trigger collider
-        Collider col = scissor.GetComponent<Collider>();
-        if (col != null) col.isTrigger = true;
-
-        // 3. CRITICAL: Unity OnTriggerEnter REQUIRES at least one Rigidbody.
-        // If neither the hitbox nor the enemy has a RB, triggers won't fire.
-        Rigidbody rb = scissor.GetComponent<Rigidbody>();
-        if (rb == null) rb = scissor.AddComponent<Rigidbody>();
-        rb.isKinematic = true; 
-        rb.useGravity = false;
-    }
 
     [Header("Special Attack")] public float specialCooldown = 10f;
     public float specialTimer = 0; // Made public for UI access
@@ -180,21 +160,6 @@ public class PlayerFSM : MonoBehaviour
     {
         if (specialTimer > 0) specialTimer -= Time.deltaTime;
 
-        // FAILSAFE: If we are stuck in an attack state for too long, force return to idle
-        if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
-        {
-            fallbackTimer += Time.deltaTime;
-            if (fallbackTimer > 3.0f)
-            {
-                Debug.LogWarning($"[FAILSAFE] Stuck in {currentState} for 3.0s. Animator: {animator.GetCurrentAnimatorStateInfo(0).fullPathHash}. Transitioning: {animator.IsInTransition(0)}");
-                ReturnToIdle();
-            }
-        }
-        else
-        {
-            fallbackTimer = 0;
-        }
-
         if (comboStep > 0 && Time.time - lastAttackTime > comboResetTime)
         {
             ResetCombo();
@@ -238,9 +203,13 @@ public class PlayerFSM : MonoBehaviour
         }
         else
         {
-            // Still apply gravity but no horizontal movement
+            // Attack momentum: decaying forward surge, gravity still applies
             verticalVelocity -= gravity * Time.deltaTime;
-            controller.Move(new Vector3(0, verticalVelocity * Time.deltaTime, 0));
+            attackImpulseVelocity = Vector3.Lerp(attackImpulseVelocity, Vector3.zero, attackImpulseDecay * Time.deltaTime);
+
+            Vector3 finalAttackMove = attackImpulseVelocity;
+            finalAttackMove.y = verticalVelocity;
+            controller.Move(finalAttackMove * Time.deltaTime);
         }
     }
 
@@ -344,7 +313,6 @@ public class PlayerFSM : MonoBehaviour
         lastAttackTime = Time.time;
         comboStep++;
         isComboWindowOpen = false; // Close window as hit is accepted
-        fallbackTimer = 0; // Reset failsafe on new input
 
         float currentDamage = weaponBaseDamage;
         float currentCritChance = baseCritChance;
@@ -378,12 +346,15 @@ public class PlayerFSM : MonoBehaviour
                 break;
         }
 
+        // Forward surge: standard push on light steps, bigger lunge on the finisher
+        float impulse = attackImpulseForce * ((comboStep == 3) ? 1.5f : 1f);
+        attackImpulseVelocity = transform.forward * impulse;
+
         // --- THE "SECRET SAUCE" FOR RESPONSIVE COMBAT ---
         if (animator != null)
         {
             animator.CrossFadeInFixedTime(targetState, 0.05f);
-            Debug.Log($"[COMBO] Playing {targetState} (Step {comboStep})");
-        }
+            }
 
         GameObject activeHitbox = (comboStep == 3) ? Hitbox_attack3 : Hitbox_attack12;
         if (activeHitbox == null) activeHitbox = generalAttackHitbox; 
@@ -417,7 +388,6 @@ public class PlayerFSM : MonoBehaviour
         // Ignore events if they fire when we aren't in a combo step (prevents phantom damage)
         if (comboStep == 0) return;
 
-        Debug.Log($"Hitbox ENABLED via Animation Event. Combo Step: {comboStep}");
         
         if (comboStep == 3)
         {
@@ -439,8 +409,7 @@ public class PlayerFSM : MonoBehaviour
         if (Hitbox_attack12) 
         {
             Hitbox_attack12.SetActive(true);
-            Debug.Log("Activated Hitbox_attack12 specifically");
-        }
+            }
         else if (generalAttackHitbox) generalAttackHitbox.SetActive(true);
     }
 
@@ -452,10 +421,8 @@ public class PlayerFSM : MonoBehaviour
 
         if (Hitbox_attack3) 
         {
-            Debug.Log($"[HITBOX DEBUG] Attempting to activate Hitbox_attack3. Current State: {Hitbox_attack3.activeSelf}");
-            Hitbox_attack3.SetActive(true);
-            Debug.Log($"[HITBOX DEBUG] Hitbox_attack3 is now: {Hitbox_attack3.activeInHierarchy}");
-        }
+                Hitbox_attack3.SetActive(true);
+            }
         else 
         {
             Debug.LogError("[HITBOX DEBUG] Hitbox_attack3 is NULL! Please check the Inspector.");
@@ -465,7 +432,6 @@ public class PlayerFSM : MonoBehaviour
 
     public void DisableHitbox()
     {
-        Debug.Log("Hitboxes DISABLED");
         if (generalAttackHitbox) generalAttackHitbox.SetActive(false);
         if (Hitbox_attack12) Hitbox_attack12.SetActive(false);
         if (Hitbox_attack3) Hitbox_attack3.SetActive(false);
@@ -510,6 +476,7 @@ public class PlayerFSM : MonoBehaviour
     private void ResetCombo()
     {
         comboStep = 0;
+        attackImpulseVelocity = Vector3.zero;
         isComboWindowOpen = false;
         SetPlayerColor(originalColor);
         if (animator != null) animator.ResetTrigger(HeavyAttackHash);
@@ -539,7 +506,7 @@ public class PlayerFSM : MonoBehaviour
     {
         specialTimer = specialCooldown;
         lastAttackTime = Time.time;
-        fallbackTimer = 0;
+        attackImpulseVelocity = transform.forward * (attackImpulseForce * 0.5f);
         SetPlayerColor(Color.cyan);
         
         if (animator != null)
@@ -559,7 +526,6 @@ public class PlayerFSM : MonoBehaviour
     // Called by Animation Event during the Heavy Attack animation
     public void ExecuteSpecialAttackDamage()
     {
-        Debug.Log("Executing Special Attack (Sphere AOE Only)");
         
         // 1. Damage + Knockback (Sphere)
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position, specialRange, enemyLayer);
@@ -648,7 +614,6 @@ public class PlayerFSM : MonoBehaviour
     private IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration)
     {
         float t = 0f;
-        force = knockBackForce;
         while (t < duration)
         {
             controller.Move(direction * force * Time.deltaTime);

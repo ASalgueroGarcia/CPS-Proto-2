@@ -24,6 +24,9 @@ public class Enemy : MonoBehaviour
     public Transform PlayerTransform { get; private set; }
     public Health PlayerHealth { get; private set; }
 
+    /// <summary>Distance to the injected player, computed once per frame in Update().</summary>
+    public float DistanceToPlayer { get; private set; }
+
     public MeshRenderer MeshRenderer { get; private set; }
     public Color OriginalColor { get; private set; }
 
@@ -99,15 +102,38 @@ public class Enemy : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// WaveManager injects the player reference here when spawning the enemy.
+    /// No per-enemy searching: the spawner owns player discovery (dependency injection).
+    /// </summary>
+    public void SetTarget(Transform playerTransform, Health playerHealth)
+    {
+        PlayerTransform = playerTransform;
+        PlayerHealth = playerHealth;
+    }
+
+    /// <summary>
+    /// WaveManager calls this on pooled reuse, after retrieving the instance and
+    /// before re-activating it: fresh behaviour state, attack timings and health.
+    /// </summary>
+    public void ResetForReuse()
+    {
+        CancelInvoke(nameof(ResetColor));
+        ResetColor();
+
+        attackSM.Reset();
+        ApplyDataStats();
+        Health.ResetForReuse();
+
+        // No Agent.ResetPath here - the instance is still inactive at this point and
+        // the agent rejects it ("not placed on a NavMesh"). The stale path from the
+        // previous life is overwritten by GetNewPatrolTarget's SetDestination once
+        // the enemy re-enters Patrol.
+        currentState = EnemyState.Patrol;
+    }
+
     private void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
-        if (playerObj != null)
-        {
-            PlayerTransform = playerObj.transform;
-            PlayerHealth = playerObj.GetComponent<Health>();
-        }
-
         if (gameObject.layer == 0)
         {
             int enemyLayer = LayerMask.NameToLayer("Enemy");
@@ -119,21 +145,11 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        // Recover player reference if lost (scene loading, respawn, etc.)
-        if (PlayerTransform == null || !PlayerTransform.gameObject.activeInHierarchy)
-        {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                PlayerTransform = playerObj.transform;
-                PlayerHealth = playerObj.GetComponent<Health>();
-            }
-        }
-
         if (PlayerTransform == null) return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, PlayerTransform.position);
-        ExecuteBehaviorLoop(distanceToPlayer);
+        // Computed once per frame; strategies read it via owner.DistanceToPlayer.
+        DistanceToPlayer = Vector3.Distance(transform.position, PlayerTransform.position);
+        ExecuteBehaviorLoop(DistanceToPlayer);
     }
 
     private void ExecuteBehaviorLoop(float distanceToPlayer)
@@ -168,16 +184,16 @@ public class Enemy : MonoBehaviour
                 switch (attackSM.CurrentState)
                 {
                     case EnemyAttackStateMachine.State.Approaching:
-                        attackStrategy.OnApproachTarget(this, distanceToPlayer);
+                        attackStrategy.OnApproachTarget(this);
                         break;
                     case EnemyAttackStateMachine.State.Windup:
                         attackStrategy.OnWindup(this);
                         break;
                     case EnemyAttackStateMachine.State.Executing:
-                        attackStrategy.OnExecute(this, distanceToPlayer);
+                        attackStrategy.OnExecute(this);
                         break;
                     case EnemyAttackStateMachine.State.Cooldown:
-                        attackStrategy.OnCooldown(this, distanceToPlayer);
+                        attackStrategy.OnCooldown(this);
                         break;
                 }
                 break;
@@ -276,6 +292,7 @@ public class Enemy : MonoBehaviour
     private void HandleDeath()
     {
         Debug.Log($"{gameObject.name} killed.");
+        if (Health.pooledDespawn) return; // pooled lifetime: the pool deactivates, no Destroy
         Destroy(gameObject, 0.1f);
     }
 

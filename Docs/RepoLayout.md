@@ -291,8 +291,11 @@ Already checked in the code:
 
 ## 11. Open questions — answered in v3
 
-1. **Rooms:** both sets are real. Ana's `Layout_001–010` are the base layouts,
-   Antonio's `CombatScene_001/002` + `ShopScene_001` are add-ons. All live in `Rooms/`.
+1. **Rooms:** both sets are real. Ana's `Layout_001–010` are the base layouts and
+   the only ones the map currently loads. Antonio's `CombatScene_001/002` +
+   `ShopScene_001` are **unwired** (no code path loads them — `SceneController`
+   references only `Layout_001–010` + `shop_scene`); kept in `Rooms/` pending
+   Antonio's decision to wire or retire them (cleanup audit, 2026-09-21).
 2. **`_Sandbox`:** committed — everyone can open your test scenes.
 3. **`CODEOWNERS`:** yes, added at the repo root.
 4. **Who does the move:** done, on `feature/repo-restructure`.
@@ -317,9 +320,21 @@ Already checked in the code:
 - NavMesh check: `SetScene.unity` references `NavMesh-NavMesh Surface 1.asset`
   (now `Scenes/SetScene/`). The two other copies are referenced by nothing —
   Antonio's copy sits in `_Sandbox/Antonio/` until the cleanup PR deletes both.
-- Deliberately **not** touched (cleanup PR): `Prefabs/NOT USED/`, `_Recovery/`,
-  `Extras/TutorialInfo/`, old enemy scripts, `TextMesh Pro/Examples & Extras/`,
+- Deliberately **not** touched (cleanup PR): `TextMesh Pro/Examples & Extras/`,
   the `1000_F_*.jpg` stock images (license check), and `Health.mat`'s odd home in
-  `Art/Characters/`.
+  `Art/Characters/`. *(The other former items — `Prefabs/NOT USED/`, `_Recovery/`,
+  `Extras/`, old enemy scripts — were removed by the cleanup branch; see the v3.1
+  note below.)*
 - `com.simoxus.folder-icons` installed in `Packages/manifest.json` (pinned commit;
-  see `/research/unity-folder-icons-package.md` locally for why not the Wooshii pack).
+  see `/research/unity-folder-icons-package.md` — now tracked in git — for why not
+  the Wooshii pack).
+
+**v3.1 update (2026-09-21, `feature/cleanup`):** the anticipated cleanup PR, executed.
+Deleted: old enemy scripts + `EnemyMigrationTool` (migration was already complete —
+prefabs verified on the new `Enemy` + strategy system), `Prefabs/NOT USED/`,
+`Assets/_Recovery/` and `Assets/Extras/` (§9; `_Recovery/` now gitignored), and
+phantom volume overrides from `DefaultVolumeProfile.asset`. Relocated to owners'
+sandboxes: `FallingTrap` (Ivan), `EnemySpawner` (Dima). Tracked: README and folder
+`.meta` files, `research/` notes. Fixed: the shop's empty `powerUpsA` list wired to
+the 13 `Data/Items` assets (Ivan to review). Full audit and execution log:
+`/research/spaghetti-audit.md`.

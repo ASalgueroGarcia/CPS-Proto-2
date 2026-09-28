@@ -88,39 +88,37 @@ public class UIManager : MonoBehaviour
         // Hide Player UI in Main Menu and Map Scene
         RefreshHUDVisibility();
 
-        // Refresh references when a new scene is loaded
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
-        _playerStats = PlayerStatsManager.Instance;
-        
-        // Unsubscribe from old health component if any
-        if (_playerHealth != null)
+        // Refresh references when a new scene is loaded (single re-binding routine)
+        BindToPlayer();
+        if (PlayerStatsManager.Instance != null)
         {
-            _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
+            PlayerStatsManager.Instance.BindToPlayer();
         }
+    }
 
-        // FIND PLAYER HEALTH SPECIFICALLY via PlayerFSM to avoid finding enemies
+    /// <summary>
+    /// Single re-binding routine (was copy-pasted in OnSceneLoaded, Start and UpdatePlayerUI).
+    /// </summary>
+    private void BindToPlayer()
+    {
+        if (_playerFsm == null) _playerFsm = FindFirstObjectByType<PlayerFSM>();
         if (_playerFsm != null)
         {
             _playerHealth = _playerFsm.GetComponent<Health>();
-            
-            // Re-bind stats manager to new player when a new level is loaded additively
-            if (PlayerStatsManager.Instance != null)
-            {
-                PlayerStatsManager.Instance.BindToPlayer();
-            }
         }
         else
         {
-            // Fallback: search for object tagged Player
             GameObject playerObj = GameObject.FindWithTag("Player");
             if (playerObj != null) _playerHealth = playerObj.GetComponent<Health>();
         }
-        
+
         if (_playerHealth != null)
         {
+            _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
             _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
             OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
         }
+        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
     }
 
     private void OnPlayerHealthChanged(float current, float max)
@@ -146,7 +144,7 @@ public class UIManager : MonoBehaviour
         if (playerUICanvas == null) return;
 
         string currentBaseScene = SceneManager.GetActiveScene().name;
-        bool isMenu = currentBaseScene == "MainMenu" || currentBaseScene == "UI_Basic";
+        bool isMenu = currentBaseScene == "MainMenu";
         
         // HUD should be visible in ANY scene that isn't a menu, provided a player exists
         bool hasPlayer = _playerFsm != null || GameObject.FindWithTag("Player") != null;
@@ -163,29 +161,9 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
-        _playerStats = FindFirstObjectByType<PlayerStatsManager>();
+        BindToPlayer();
 
         if (playerUICanvas == null) playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
-
-        if (_playerHealth != null) _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
-        
-        // FIND PLAYER HEALTH SPECIFICALLY via PlayerFSM
-        if (_playerFsm != null)
-        {
-            _playerHealth = _playerFsm.GetComponent<Health>();
-        }
-        else
-        {
-            GameObject playerObj = GameObject.FindWithTag("Player");
-            if (playerObj != null) _playerHealth = playerObj.GetComponent<Health>();
-        }
-        
-        if (_playerHealth != null)
-        {
-            _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
-            OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
-        }
 
         // Try to find missing references in children
         if (playerHealthSlider == null) playerHealthSlider = GetComponentInChildren<Slider>(true);
@@ -305,21 +283,7 @@ public class UIManager : MonoBehaviour
 
     private void UpdatePlayerUI()
     {
-        if (_playerHealth == null)
-        {
-            _playerFsm = FindFirstObjectByType<PlayerFSM>();
-            if (_playerFsm != null)
-            {
-                _playerHealth = _playerFsm.GetComponent<Health>();
-                if (_playerHealth != null)
-                {
-                    _playerHealth.OnHealthChanged.AddListener(OnPlayerHealthChanged);
-                    OnPlayerHealthChanged(_playerHealth.currentHealth, _playerHealth.maxHealth);
-                }
-            }
-            
-            _playerStats = FindFirstObjectByType<PlayerStatsManager>();
-        }
+        if (_playerHealth == null) BindToPlayer();
 
         if (_playerFsm != null)
         {
@@ -337,7 +301,7 @@ public class UIManager : MonoBehaviour
             {
                 if (_playerFsm.specialTimer > 0)
                 {
-                    cooldown.fillAmount += _playerFsm.specialTimer;
+                    cooldown.fillAmount = 1f - (_playerFsm.specialTimer / _playerFsm.specialCooldown);
                     specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
                 }
                     
@@ -345,7 +309,7 @@ public class UIManager : MonoBehaviour
                 else
                 {
                     specialCDText.text = "READY";
-                    cooldown.fillAmount = float.MaxValue;
+                    cooldown.fillAmount = 1f;
                 }
                     
             }
@@ -360,7 +324,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"{_playerStats.CurrentCoins} €";
+                coinsText.text = $"{_playerStats.CurrentCoins}";
             }
 
             if (inventoryText != null)
@@ -386,9 +350,8 @@ public class UIManager : MonoBehaviour
 
     public void StartGame()
     {
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
@@ -416,9 +379,8 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(true);
         }
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
-        Time.timeScale = 0f;
         _isPaused = true;
-        PlayerFSM.IsPaused = _isPaused;
+        PauseManager.SetPaused(true);
     }
 
     public void Resume()
@@ -430,16 +392,14 @@ public class UIManager : MonoBehaviour
             inGamePauseButton.gameObject.SetActive(true);
         }
         
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
     }
     
     public void ReturnToMap()
     {
-        Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        PauseManager.SetPaused(false);
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 

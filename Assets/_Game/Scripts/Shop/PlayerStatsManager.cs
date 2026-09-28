@@ -9,7 +9,6 @@ public class PlayerStatsManager : MonoBehaviour
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
-    private WaveManager waveManager;
 
     // HEALTH.
     private float currentHealth;
@@ -60,13 +59,13 @@ public class PlayerStatsManager : MonoBehaviour
         playerController = FindFirstObjectByType<PlayerFSM>();
         if (playerController == null) return;
 
-        healthPlayer = playerController.GetComponent<Health>();
         
         // Unsubscribe from old health if any
         if (healthPlayer != null)
         {
             healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
         }
+        healthPlayer = playerController.GetComponent<Health>();
 
         if (!_hasStats)
         {
@@ -105,7 +104,6 @@ public class PlayerStatsManager : MonoBehaviour
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
         
-        waveManager = FindFirstObjectByType<WaveManager>();
         //Prints();
     }
 
@@ -127,6 +125,17 @@ public class PlayerStatsManager : MonoBehaviour
     {
         currentCoins += amount;
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
+    }
+    public bool TrySpendCoins(int amount)
+    {
+        if (currentCoins < amount)
+        {
+            return false;
+        }
+
+        currentCoins -= amount;
+        Debug.Log($"Spent {amount} coins. Total: {currentCoins}");
+        return true;
     }
 
     public void Heal(float amount)
@@ -201,12 +210,7 @@ public class PlayerStatsManager : MonoBehaviour
                     break;
 
                 case PowerUpData.PowerUpType.enemySpawn:
-                    // WaveManager doesn't have spawnInterval yet, maybe increase budget?
-                    if (waveManager != null)
-                    {
-                        // Placeholder for wave modification
-                        Debug.Log("Increasing wave difficulty via powerup");
-                    }
+                    // Placeholder until design defines the spawn-modifier effect (design ask).
                     break;
                 default:
                     break;

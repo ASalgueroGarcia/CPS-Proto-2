@@ -19,7 +19,8 @@ public class Breakable_Objects : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         if (!collision.gameObject.CompareTag("Player") && !collision.gameObject.CompareTag("Enemy")) return;
-        
-        TakeDamage((int)collision.gameObject.GetComponent<PlayerFSM>().GetPlayerDamage());
+
+        var player = collision.gameObject.GetComponent<PlayerFSM>();
+        TakeDamage(player != null ? (int)player.GetPlayerDamage() : 1);
     }
 }

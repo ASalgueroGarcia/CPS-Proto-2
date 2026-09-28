@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3982278338224714923}
   - component: {fileID: 1145523010169353818}
   - component: {fileID: 9214518418293766735}
+  - component: {fileID: 5600000000000000001}
   m_Layer: 8
   m_Name: Hitbox_attack12
   m_TagString: Untagged
@@ -18,6 +19,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
+--- !u!54 &5600000000000000001
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 974475659849659198}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+
 --- !u!4 &3982278338224714923
 Transform:
   m_ObjectHideFlags: 0
@@ -77,6 +95,7 @@ GameObject:
   - component: {fileID: 7001433046218882026}
   - component: {fileID: 8024509449325654262}
   - component: {fileID: 2772999424941036166}
+  - component: {fileID: 5600000000000000002}
   m_Layer: 8
   m_Name: Hitbox_attack3
   m_TagString: Untagged
@@ -84,6 +103,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
+--- !u!54 &5600000000000000002
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1349782548685538138}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+
 --- !u!4 &7001433046218882026
 Transform:
   m_ObjectHideFlags: 0

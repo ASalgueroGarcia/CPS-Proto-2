@@ -29,6 +29,16 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
         SetupDashTrail();
     }
 
+    // Pooled reuse: a death mid-dash leaves the trail emitting - stop it on deactivate.
+    private void OnDisable()
+    {
+        if (dashTrail != null)
+        {
+            dashTrail.Clear();
+            dashTrail.emitting = false;
+        }
+    }
+
     private void SetupDashTrail()
     {
         dashTrail = GetComponent<TrailRenderer>();
@@ -61,7 +71,7 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
 
     public float ExecutingDuration => dashDuration;
 
-    public void OnApproachTarget(Enemy owner, float distanceToPlayer)
+    public void OnApproachTarget(Enemy owner)
     {
         // Move toward player until in dash range
         owner.MoveTowards(owner.PlayerTransform.position, owner.data.speed);
@@ -82,13 +92,13 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
         }
     }
 
-    public void OnExecute(Enemy owner, float distanceToPlayer)
+    public void OnExecute(Enemy owner)
     {
         // Move manually (ignoring NavMesh pathing) for the dash
         owner.Agent.Move(dashDirection * dashSpeed * Time.deltaTime);
 
         // Damage on first contact within hit range
-        if (!hasDealtDamage && distanceToPlayer <= hitDistance)
+        if (!hasDealtDamage && owner.DistanceToPlayer <= hitDistance)
         {
             if (owner.PlayerHealth != null)
                 owner.PlayerHealth.TakeDamage(owner.data.damage);
@@ -97,7 +107,7 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
         }
     }
 
-    public void OnCooldown(Enemy owner, float distanceToPlayer)
+    public void OnCooldown(Enemy owner)
     {
         // Clean up trail
         if (dashTrail != null)

@@ -20,7 +20,7 @@ public class MapBtnBehaviour : MonoBehaviour
             if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
             if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
             
-            Time.timeScale = 1f;
+            PauseManager.SetPaused(false);
             _mapBehaviour.CompletedNode();
             SceneController.Instance.UnloadLevel();
         }

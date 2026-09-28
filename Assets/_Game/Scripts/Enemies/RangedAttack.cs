@@ -30,14 +30,14 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     public float ExecutingDuration => 0f; // Instant fire
 
-    public void OnApproachTarget(Enemy owner, float distanceToPlayer)
+    public void OnApproachTarget(Enemy owner)
     {
         // Keep ideal distance: too close → flee, too far → chase, in zone → stay
-        if (distanceToPlayer < idealDistance - distanceDeadzone)
+        if (owner.DistanceToPlayer < idealDistance - distanceDeadzone)
         {
             owner.MoveAwayFrom(owner.PlayerTransform.position, owner.data.speed);
         }
-        else if (distanceToPlayer > idealDistance + distanceDeadzone)
+        else if (owner.DistanceToPlayer > idealDistance + distanceDeadzone)
         {
             owner.MoveTowards(owner.PlayerTransform.position, owner.data.speed);
         }
@@ -58,17 +58,17 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
         owner.FlashColor(Color.red, 0.15f);
     }
 
-    public void OnExecute(Enemy owner, float distanceToPlayer)
+    public void OnExecute(Enemy owner)
     {
         FacePlayer(owner);
         Shoot(owner);
         owner.FlashColor(Color.red, 0.2f);
     }
 
-    public void OnCooldown(Enemy owner, float distanceToPlayer)
+    public void OnCooldown(Enemy owner)
     {
         // Maintain distance while on cooldown
-        if (distanceToPlayer < idealDistance - 5f)
+        if (owner.DistanceToPlayer < idealDistance - 5f)
         {
             owner.MoveAwayFrom(owner.PlayerTransform.position, owner.data.speed);
         }
@@ -89,20 +89,13 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
         Vector3 spawnPos = GetSpawnPosition(owner);
         GameObject projObj;
 
-        if (projectilePrefab != null)
+        if (projectilePrefab == null)
         {
-            projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity, owner.transform.parent);
+            Debug.LogError($"[{owner.name}] No projectile prefab assigned - skipping the attack. Assign one in the Inspector.", this);
+            return;
         }
-        else
-        {
-            // Fallback: create a primitive sphere if prefab is missing
-            projObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            projObj.transform.SetParent(owner.transform.parent);
-            projObj.transform.position = spawnPos;
-            projObj.transform.localScale = Vector3.one * 0.5f;
-            projObj.GetComponent<SphereCollider>().isTrigger = true;
-            projObj.AddComponent<Projectile>();
-        }
+
+        projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity, owner.transform.parent);
 
         Projectile proj = projObj.GetComponent<Projectile>();
         if (proj != null)

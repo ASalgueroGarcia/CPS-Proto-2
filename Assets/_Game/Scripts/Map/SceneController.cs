@@ -44,12 +44,19 @@ public class SceneController : MonoBehaviour
 
     public void UnloadLevel()
     {
-        SceneManager.UnloadSceneAsync(CurrentLevelScene);
-        //_onMapLoaded?.Invoke();
+        // The additive room scene still carries its own EventSystem while the async
+        // unload is in flight - reactivating the map EventSystem immediately produced
+        // "2 event systems" warnings. Reactivate only after the unload has finished.
+        if (_spawnedInstance) Destroy(_spawnedInstance);
+        StartCoroutine(UnloadLevelRoutine());
+    }
+
+    private System.Collections.IEnumerator UnloadLevelRoutine()
+    {
+        yield return SceneManager.UnloadSceneAsync(CurrentLevelScene);
         mapCanvas.gameObject.SetActive(true);
         if (mapCamera != null) mapCamera.SetActive(true);
         if (mapEventSystem != null) mapEventSystem.SetActive(true);
-        if (_spawnedInstance) Destroy(_spawnedInstance);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
