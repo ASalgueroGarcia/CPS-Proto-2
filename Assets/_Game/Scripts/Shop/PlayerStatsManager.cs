@@ -170,8 +170,8 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void MoreSpeed(float v)
     {
-        currentAttackSpeed += v;
-        if (playerController != null ) 
+        currentSpeed += v;
+        if (playerController != null)
         {
             playerController.speed = currentSpeed;
         }
@@ -193,7 +193,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void MoreMaxHealth(float v)
     {
-        if (healthPlayer != null || playerController != null)
+        if (healthPlayer != null)
         {
 
             healthPlayer.maxHealth += v;

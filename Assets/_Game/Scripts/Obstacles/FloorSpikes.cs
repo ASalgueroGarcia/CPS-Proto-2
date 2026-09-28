@@ -19,8 +19,9 @@ public class FloorSpikes : MonoBehaviour
 
     private void Start()
     {
-        if (spikesRenderer != null)
+        if (spikesRenderer != null){
             _originalColor = spikesRenderer.material.color;
+        }
         StartCoroutine(SpikeC());
     }
 
@@ -54,9 +55,7 @@ public class FloorSpikes : MonoBehaviour
     {
         if(!_isA)return;
         if (!other.CompareTag("Enemy") && !other.CompareTag("Player")) return;
-
-        // health comp of the -> player or enemy.
-        var health = other.GetComponent<Health>(); 
+        var health = other.GetComponentInParent<Health>();
         if(health==null)return;
         health.TakeDamage(damage);
     }

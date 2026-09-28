@@ -8,7 +8,7 @@ public class ExplodingTrap : MonoBehaviour
     [SerializeField] private float damageToEnemy = 20f;
 
     [Header("EXPLODING TRAP SETTINGS")]
-    [SerializeField] private float explosionRadius = 5.0f;
+    [SerializeField] private float explosionRadius = 20.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
     [SerializeField] private float knockbackEffect = 10.0f;
 
@@ -17,7 +17,7 @@ public class ExplodingTrap : MonoBehaviour
     [SerializeField] private float expTime = 2.0f;
     [SerializeField] private Renderer trapRender;
 
-    [Header("SFX Settings")] 
+    [Header("SFX Settings")]
     [SerializeField] private AudioClip explosionClip;
     
     private bool _isTriggered = false;
@@ -29,8 +29,8 @@ public class ExplodingTrap : MonoBehaviour
 
         if (other.CompareTag("Player") || other.CompareTag("Enemy"))
         {
-            Vector3 closestPoint = other.ClosestPoint(transform.position);
-            if (Vector3.Distance(transform.position, closestPoint) > explosionRadius)
+            float distanceToEnter = Vector3.Distance(other.transform.position, transform.position);
+            if (distanceToEnter > explosionRadius)
             {
                 return;
             }
