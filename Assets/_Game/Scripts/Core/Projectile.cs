@@ -70,7 +70,7 @@ public class Projectile : MonoBehaviour
         {
             Explode();
         }
-        else if (other.CompareTag("Player") || other.GetComponent<PlayerFSM>() != null)
+        else if (other.CompareTag("Player") || other.GetComponent<Player>() != null)
         {
             Health playerHealth = other.GetComponent<Health>();
             if (playerHealth != null) playerHealth.TakeDamage(damage);

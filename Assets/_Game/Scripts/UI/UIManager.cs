@@ -35,7 +35,7 @@ public class UIManager : MonoBehaviour
     private bool _isPaused = false;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
-    private PlayerFSM _playerFsm;
+    private Player _playerFsm;
     private static UIManager _instance;
 
     public static UIManager Instance => _instance;
@@ -89,7 +89,7 @@ public class UIManager : MonoBehaviour
         RefreshHUDVisibility();
 
         // Refresh references when a new scene is loaded
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = PlayerStatsManager.Instance;
         
         // Unsubscribe from old health component if any
@@ -163,7 +163,7 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
 
         if (playerUICanvas == null) playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
@@ -307,7 +307,7 @@ public class UIManager : MonoBehaviour
     {
         if (_playerHealth == null)
         {
-            _playerFsm = FindFirstObjectByType<PlayerFSM>();
+            _playerFsm = FindFirstObjectByType<Player>();
             if (_playerFsm != null)
             {
                 _playerHealth = _playerFsm.GetComponent<Health>();
@@ -330,15 +330,15 @@ public class UIManager : MonoBehaviour
 
             if (damageText != null)
             {
-                damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
+                damageText.text = $"DMG: {_playerFsm.WeaponBaseDamage:F1}";
             }
 
             if (specialCDText != null)
             {
-                if (_playerFsm.specialTimer > 0)
+                if (_playerFsm.SpecialTimer > 0)
                 {
-                    cooldown.fillAmount += _playerFsm.specialTimer;
-                    specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
+                    cooldown.fillAmount += _playerFsm.SpecialTimer;
+                    specialCDText.text = $"{_playerFsm.SpecialTimer:F1}s";
                 }
                     
 
@@ -352,7 +352,7 @@ public class UIManager : MonoBehaviour
 
             if (comboText != null)
             {
-                comboText.text = $"{_playerFsm.comboStep}";
+                comboText.text = $"{_playerFsm.ComboStep}";
             }
         }
 
@@ -360,7 +360,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"{_playerStats.CurrentCoins} €";
+                coinsText.text = $"{_playerStats.CurrentCoins} ï¿½";
             }
 
             if (inventoryText != null)
@@ -388,7 +388,7 @@ public class UIManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
@@ -418,7 +418,7 @@ public class UIManager : MonoBehaviour
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
         Time.timeScale = 0f;
         _isPaused = true;
-        PlayerFSM.IsPaused = _isPaused;
+        Player.IsPaused = _isPaused;
     }
 
     public void Resume()
@@ -432,14 +432,14 @@ public class UIManager : MonoBehaviour
         
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
     }
     
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 

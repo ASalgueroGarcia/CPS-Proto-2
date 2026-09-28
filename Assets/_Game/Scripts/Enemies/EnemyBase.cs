@@ -62,7 +62,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        var playerObj = FindFirstObjectByType<Player>();
         if (playerObj != null) 
         {
             playerTransform = playerObj.transform;

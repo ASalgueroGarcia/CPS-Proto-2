@@ -57,7 +57,7 @@ public class CombatDummy : MonoBehaviour
         {
             Health playerHealth = hit.GetComponent<Health>();
             // Ensure it's the player (by tag or by having PlayerFSM)
-            if (playerHealth != null && hit.GetComponent<PlayerFSM>() != null)
+            if (playerHealth != null && hit.GetComponent<Player>() != null)
             {
                 playerHealth.TakeDamage(counterDamage);
                 Debug.Log("Dummy counter-attacked Player!");

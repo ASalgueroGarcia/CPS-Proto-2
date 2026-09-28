@@ -101,7 +101,7 @@ public class Enemy : MonoBehaviour
 
     private void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        var playerObj = FindFirstObjectByType<Player>();
         if (playerObj != null)
         {
             PlayerTransform = playerObj.transform;
