@@ -2,6 +2,8 @@
 
 v3 · 2026-09-17 · **implemented** on `feature/repo-restructure` · questions → [issue #38](https://github.com/ASalgueroGarcia/CPS-Proto-2/issues/38)
 
+v3.1 · 2026-09-29 · the §9 cleanup is done; see §13 at the bottom.
+
 v3 changes (vs v2 draft): **implemented for real** — see "What actually happened" at the
 bottom. Two ideas adopted from another team's layout ("Overdose"): `Scripts/Core/Managers/`
 for cross-feature managers, and `Scenes/Prototype/` as a future slot for shared prototype
@@ -323,3 +325,29 @@ Already checked in the code:
   `Art/Characters/`.
 - `com.simoxus.folder-icons` installed in `Packages/manifest.json` (pinned commit;
   see `/research/unity-folder-icons-package.md` locally for why not the Wooshii pack).
+
+---
+
+## 13. Cleanup (v3.1, 2026-09-29)
+
+Done, per §9:
+
+- `_Recovery/` deleted and added to `.gitignore`, so crash backups stop getting committed.
+- `Extras/` deleted: the URP template's `Readme` and `TutorialInfo`, plus an orphan `Settings.meta`.
+- `Prefabs/NOT USED/` deleted, together with `CombatDummy.cs`, its only user.
+- The old enemy scripts (`EnemyBase`, `BasicEnemy`, `HeavyEnemy`, `RangedEnemy`) and
+  `EnemyMigrationTool` deleted.
+- `Scripts/Pickups/EnemySpawner.cs` moved to `_Sandbox/Dima/Scripts/`; only the sandbox
+  `CharacterController` scene uses it.
+
+Left for the owners. Nothing on `main` references these, but they're in your folders:
+
+- **Antonio:** `Scenes/SetScene/NavMesh-NavMesh Surface.asset` (SetScene uses `… Surface 1`),
+  `_Sandbox/Antonio/NavMesh-NavMesh Surface.asset`, the map-node prefabs
+  `Prefabs/Map/{Boss,Combat,Merchant,MiniBoss,Treasure}Node.prefab` and the materials
+  `Art/Map/{Boss,Combat,MiniBoss}Node.mat`.
+- **Ana:** `Rooms/Layout_001/NavMesh-NavMesh Surface.asset`.
+- **Ivan:** `Scripts/Obstacles/Pit.cs`.
+
+Still open from §9: `TextMesh Pro/Examples & Extras/` (check the UI's fonts first), the
+`1000_F_*.jpg` stock images (license check), and `Health.mat` living in `Art/Characters/`.
