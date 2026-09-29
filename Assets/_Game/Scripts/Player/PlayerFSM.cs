@@ -54,6 +54,14 @@ public class PlayerFSM : MonoBehaviour
     public float specialRange = 5.0f;
     [SerializeField] private float knockBackForce = 7;
 
+    [Header("Attack Momentum")]
+    [Tooltip("Forward speed injected when a swing starts. The finisher gets 1.5x this.")]
+    public float attackImpulseForce = 8f;
+    [Tooltip("How quickly the forward push bleeds off. Higher = shorter step.")]
+    public float attackImpulseDecay = 5f;
+    // Live forward surge for the current swing; decays to zero inside ApplyMovement.
+    private Vector3 attackImpulseVelocity = Vector3.zero;
+
     [Header("Combo Settings")] 
     public int comboStep = 0;
     public float comboResetTime = 1.0f;
@@ -238,9 +246,15 @@ public class PlayerFSM : MonoBehaviour
         }
         else
         {
-            // Still apply gravity but no horizontal movement
+            // Attacks no longer glue the player to the floor: the swing carries a
+            // decaying forward surge, so a combo steps into its target instead of
+            // swinging at the air the enemy just left.
             verticalVelocity -= gravity * Time.deltaTime;
-            controller.Move(new Vector3(0, verticalVelocity * Time.deltaTime, 0));
+            attackImpulseVelocity = Vector3.Lerp(attackImpulseVelocity, Vector3.zero, attackImpulseDecay * Time.deltaTime);
+
+            Vector3 finalAttackMove = attackImpulseVelocity;
+            finalAttackMove.y = verticalVelocity;
+            controller.Move(finalAttackMove * Time.deltaTime);
         }
     }
 
@@ -356,12 +370,14 @@ public class PlayerFSM : MonoBehaviour
             case 1:
                 comboColor = Color.white;
                 targetState = "Attack_01";
+                attackImpulseVelocity = transform.forward * attackImpulseForce;
                 SoundManager.Instance.PlayRandomSound(lightAttackClips);
                 break;
             case 2:
                 currentDamage *= 1.2f; // Slightly more damage
                 comboColor = Color.yellow;
                 targetState = "Attack_02";
+                attackImpulseVelocity = transform.forward * attackImpulseForce;
                 SoundManager.Instance.PlayRandomSound(lightAttackClips);
                 break;
             case 3:
@@ -369,6 +385,7 @@ public class PlayerFSM : MonoBehaviour
                 currentCritChance += 0.25f;
                 comboColor = Color.red;
                 targetState = "Attack_03";
+                attackImpulseVelocity = transform.forward * (attackImpulseForce * 1.5f);
                 SoundManager.Instance.PlaySound(specialAttackClip);
                 break;
             default:
@@ -511,6 +528,7 @@ public class PlayerFSM : MonoBehaviour
     {
         comboStep = 0;
         isComboWindowOpen = false;
+        attackImpulseVelocity = Vector3.zero;
         SetPlayerColor(originalColor);
         if (animator != null) animator.ResetTrigger(HeavyAttackHash);
     }
@@ -539,6 +557,7 @@ public class PlayerFSM : MonoBehaviour
     {
         specialTimer = specialCooldown;
         lastAttackTime = Time.time;
+        attackImpulseVelocity = transform.forward * (attackImpulseForce * 0.5f);
         fallbackTimer = 0;
         SetPlayerColor(Color.cyan);
         
