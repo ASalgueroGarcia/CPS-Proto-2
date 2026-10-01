@@ -18,6 +18,9 @@ public interface IWeapon
     int CurrentComboStep { get; }
     bool HasActiveHitbox { get; }
 
+    bool CanAttack { get; }
+    float AttackCooldownRemaining { get; }
+
     void TickTimers();
     void TickFallback(float failsafeSeconds);
     void ResetCombo();

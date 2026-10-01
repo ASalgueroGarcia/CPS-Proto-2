@@ -38,6 +38,8 @@ public class PlayerWeaponController : MonoBehaviour
     {
         if (CurrentWeapon == null) return;
 
+        if (!CurrentWeapon.CanAttack) return;
+
         if (_player.currentState == Player.PlayerState.Attacking && !CurrentWeapon.IsComboWindowOpen)
             return;
 

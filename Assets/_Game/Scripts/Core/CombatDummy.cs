@@ -1,4 +1,5 @@
 using UnityEngine;
+using Core.Utils;
 
 public class CombatDummy : MonoBehaviour
 {
@@ -25,10 +26,7 @@ public class CombatDummy : MonoBehaviour
             dummyHealth.OnDamageTaken.AddListener(OnDamage);
         }
 
-        if (GetComponent<EnemyUIAutoSetup>() == null)
-        {
-            gameObject.AddComponent<EnemyUIAutoSetup>();
-        }
+        gameObject.GetOrAddComponent<EnemyUIAutoSetup>();
     }
 
     private void OnDisable()
