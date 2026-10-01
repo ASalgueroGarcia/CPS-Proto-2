@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3982278338224714923}
   - component: {fileID: 1145523010169353818}
-  - component: {fileID: 9214518418293766735}
+  - component: {fileID: 5911965898354552191}
   m_Layer: 8
   m_Name: Hitbox_attack12
   m_TagString: Untagged
@@ -54,7 +54,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.5, y: 1.5, z: 2}
   m_Center: {x: 0, y: 0.31, z: 0}
---- !u!114 &9214518418293766735
+--- !u!114 &5911965898354552191
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -63,9 +63,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 974475659849659198}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76ad06178f3a5ab48b574cc25564dbb0, type: 3}
+  m_Script: {fileID: 11500000, guid: d4c8017a76c240340a988eda2635bf48, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Scissors
+  m_EditorClassIdentifier: Assembly-CSharp::HitboxTrigger
 --- !u!1 &1349782548685538138
 GameObject:
   m_ObjectHideFlags: 0
@@ -76,7 +76,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7001433046218882026}
   - component: {fileID: 8024509449325654262}
-  - component: {fileID: 2772999424941036166}
+  - component: {fileID: 8356436619306895469}
   m_Layer: 8
   m_Name: Hitbox_attack3
   m_TagString: Untagged
@@ -120,7 +120,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2, y: 1.5, z: 3}
   m_Center: {x: 0, y: 0.31, z: 0.18}
---- !u!114 &2772999424941036166
+--- !u!114 &8356436619306895469
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -129,9 +129,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 1349782548685538138}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76ad06178f3a5ab48b574cc25564dbb0, type: 3}
+  m_Script: {fileID: 11500000, guid: d4c8017a76c240340a988eda2635bf48, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Scissors
+  m_EditorClassIdentifier: Assembly-CSharp::HitboxTrigger
 --- !u!1 &1970894349322054118
 GameObject:
   m_ObjectHideFlags: 0
@@ -141,10 +141,12 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4126966682884568193}
-  - component: {fileID: 6235866373182003459}
   - component: {fileID: 9110893211808302761}
   - component: {fileID: 4876334175014463599}
   - component: {fileID: 7513664657486097797}
+  - component: {fileID: 1500000000000000000}
+  - component: {fileID: 2094165966615472359}
+  - component: {fileID: 6235866373182003459}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -170,6 +172,163 @@ Transform:
   - {fileID: 7001433046218882026}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &9110893211808302761
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 2
+  m_Radius: 0.48
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 1, z: 0.2}
+--- !u!114 &4876334175014463599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 382ecbd8c625e444b91064413715a035, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player
+  currentState: 0
+  controller: {fileID: 9110893211808302761}
+  bodyRenderer: {fileID: 9210296788372958781}
+  playerHealth: {fileID: 7513664657486097797}
+  audioSource: {fileID: 0}
+  animator: {fileID: 4285226302787309333}
+  moveAction: {fileID: 0}
+  dashAction: {fileID: 0}
+  attackAction: {fileID: 0}
+  specialAttackAction: {fileID: 0}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  config: {fileID: 11400000, guid: a1b2c3d4e5f60718293a4b5c6d7e8f90, type: 2}
+  data: {fileID: 11400000, guid: 6348c508fb164e4e933e328612cc1109, type: 2}
+  _damageBusHeader: 0
+--- !u!114 &7513664657486097797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Health
+  _maxHealth: 100
+  _currentHealth: 100
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDamageTaken:
+    m_PersistentCalls:
+      m_Calls: []
+  OnDeath:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 3800037361132362013, guid: c493dfdb091a7c742b01ebd51d1573d6, type: 3}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: ShowDeathScreen
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnKnockbackReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  isInvulnerable: 0
+  useInternalKnockback: 0
+  targetRenderer: {fileID: 0}
+  checkFall: 1
+  fallThreshold: -5
+  checkInterval: 0.5
+  hitImpactClip: {fileID: 8300000, guid: 3a7ea63d4a333e04db9353df6e076649, type: 3}
+  deathClip: {fileID: 0}
+--- !u!114 &1500000000000000000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f20b8cdf2aba27a438a088c2d48a7727, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScissorsWeapon
+  _data: {fileID: 11400000, guid: b2c3d4e5f6071829a3b4c5d6e7f80910, type: 2}
+  _comboSteps:
+  - DamageMultiplier: 1
+    CritBonus: 0
+    Knockback: 3
+    Color: {r: 1, g: 1, b: 1, a: 0}
+    AnimState: Attack_01
+    HitboxIndex: 1
+    UseRandomLightClip: 1
+    AudioClip: {fileID: 0}
+  - DamageMultiplier: 1.2
+    CritBonus: 0
+    Knockback: 5
+    Color: {r: 0.67295593, g: 0.33647788, b: 0.61930656, a: 0}
+    AnimState: Attack_02
+    HitboxIndex: 1
+    UseRandomLightClip: 1
+    AudioClip: {fileID: 0}
+  - DamageMultiplier: 1.5
+    CritBonus: 0.25
+    Knockback: 8
+    Color: {r: 1, g: 0, b: 0.8372092, a: 0}
+    AnimState: Attack_03
+    HitboxIndex: 2
+    UseRandomLightClip: 0
+    AudioClip: {fileID: 0}
+  generalAttackHitbox: {fileID: 974475659849659198}
+  hitboxAttack12: {fileID: 974475659849659198}
+  hitboxAttack3: {fileID: 1349782548685538138}
+  lightAttackClips:
+  - {fileID: 8300000, guid: 270b915a803d06c41b24817f2775a9d1, type: 3}
+  - {fileID: 8300000, guid: e63191143d3c0aa4a92b7b04d7ffa2da, type: 3}
+  specialAttackClip: {fileID: 8300000, guid: 8f6f21b4a139f5e4e82235cc767516ce, type: 3}
+  showSpecialGizmo: 0
+--- !u!114 &2094165966615472359
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a53123bf0054a6848b0a398508f3725f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScissorsWeaponGizmos
 --- !u!96 &6235866373182003459
 TrailRenderer:
   serializedVersion: 4
@@ -280,128 +439,6 @@ TrailRenderer:
   m_Autodestruct: 0
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
---- !u!143 &9110893211808302761
-CharacterController:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970894349322054118}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 2
-  m_Radius: 0.48
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 1, z: 0.2}
---- !u!114 &4876334175014463599
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970894349322054118}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 382ecbd8c625e444b91064413715a035, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerFSM
-  currentState: 0
-  controller: {fileID: 9110893211808302761}
-  bodyRenderer: {fileID: 9210296788372958781}
-  playerHealth: {fileID: 7513664657486097797}
-  audioSource: {fileID: 0}
-  animator: {fileID: 4285226302787309333}
-  moveAction: {fileID: 0}
-  dashAction: {fileID: 0}
-  attackAction: {fileID: 0}
-  specialAttackAction: {fileID: 0}
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  speed: 14
-  dashSpeed: 30
-  gravity: 25
-  runAnimationSpeed: 2.75
-  dashDuration: 0.2
-  weaponBaseDamage: 10
-  baseCritChance: 0.05
-  wasHit: 0
-  attackRange: 2
-  specialRange: 3.75
-  knockBackForce: 4
-  comboStep: 3
-  comboResetTime: 1
-  attackAnimationSpeed: 1
-  specialAttackAnimationSpeed: 1
-  generalAttackHitbox: {fileID: 974475659849659198}
-  Hitbox_attack12: {fileID: 974475659849659198}
-  Hitbox_attack3: {fileID: 1349782548685538138}
-  modelTransform: {fileID: 4126966682884568193}
-  lightAttackClips:
-  - {fileID: 8300000, guid: 270b915a803d06c41b24817f2775a9d1, type: 3}
-  - {fileID: 8300000, guid: e63191143d3c0aa4a92b7b04d7ffa2da, type: 3}
-  specialAttackClip: {fileID: 8300000, guid: 8f6f21b4a139f5e4e82235cc767516ce, type: 3}
-  dashClips:
-  - {fileID: 8300000, guid: 5f64b99294fc60e4fa76c13c6d982543, type: 3}
-  - {fileID: 8300000, guid: 2a288a98942cd8b49913f460917f3e84, type: 3}
-  - {fileID: 8300000, guid: d9fdaab828bf17e4f8c7e6cafcc5d8ab, type: 3}
-  specialCooldown: 10
-  specialTimer: 0
---- !u!114 &7513664657486097797
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970894349322054118}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Health
-  _maxHealth: 400
-  _currentHealth: 400
-  OnHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDamageTaken:
-    m_PersistentCalls:
-      m_Calls: []
-  OnDeath:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 3800037361132362013, guid: c493dfdb091a7c742b01ebd51d1573d6, type: 3}
-        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
-        m_MethodName: ShowDeathScreen
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  autoResetOnDeath: 0
-  isInvulnerable: 0
-  targetRenderer: {fileID: 0}
-  checkFall: 1
-  fallThreshold: -5
-  checkInterval: 0.5
-  hitImpactClip: {fileID: 8300000, guid: 3a7ea63d4a333e04db9353df6e076649, type: 3}
-  deathClip: {fileID: 0}
 --- !u!1001 &8029285051819117020
 PrefabInstance:
   m_ObjectHideFlags: 0

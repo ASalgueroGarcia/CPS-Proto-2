@@ -8,7 +8,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     // REFS.
     private Health healthPlayer;
-    private PlayerFSM playerController;
+    private Player playerController;
     private WaveManager waveManager;
 
     // HEALTH.
@@ -57,7 +57,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void BindToPlayer()
     {
-        playerController = FindFirstObjectByType<PlayerFSM>();
+        playerController = FindFirstObjectByType<Player>();
         if (playerController == null) return;
 
         healthPlayer = playerController.GetComponent<Health>();
@@ -72,8 +72,8 @@ public class PlayerStatsManager : MonoBehaviour
             // FIRST TIME: Capture defaults from the player prefab instance
             currentSpeed = playerController.speed;
             currentDashSpeed = playerController.dashSpeed;
-            currentNormalDamage = playerController.weaponBaseDamage;
-            currentCritChance = playerController.baseCritChance;
+            currentNormalDamage = playerController.WeaponBaseDamage;
+            currentCritChance = playerController.BaseCritChance;
 
             if (healthPlayer != null)
             {
@@ -87,8 +87,8 @@ public class PlayerStatsManager : MonoBehaviour
         {
             playerController.speed = currentSpeed;
             playerController.dashSpeed = currentDashSpeed;
-            playerController.weaponBaseDamage = currentNormalDamage;
-            playerController.baseCritChance = currentCritChance;
+            playerController.WeaponBaseDamage = currentNormalDamage;
+            playerController.BaseCritChance = currentCritChance;
 
             if (healthPlayer != null)
             {
@@ -154,7 +154,7 @@ public class PlayerStatsManager : MonoBehaviour
         currentNormalDamage += v;
         if (playerController != null)
         {
-            playerController.weaponBaseDamage = currentNormalDamage;
+            playerController.WeaponBaseDamage = currentNormalDamage;
         }
     }
 

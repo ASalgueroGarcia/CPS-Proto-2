@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using Core.Utils;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(NavMeshAgent))]
@@ -48,10 +49,7 @@ public abstract class EnemyBase : MonoBehaviour
         health.OnDeath.AddListener(HandleDeath);
 
         // Ensure UI is setup
-        if (GetComponent<EnemyUIAutoSetup>() == null)
-        {
-            gameObject.AddComponent<EnemyUIAutoSetup>();
-        }
+        gameObject.GetOrAddComponent<EnemyUIAutoSetup>();
     }
 
     protected virtual void HandleDeath()
@@ -62,7 +60,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        var playerObj = FindFirstObjectByType<Player>();
         if (playerObj != null) 
         {
             playerTransform = playerObj.transform;
