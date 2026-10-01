@@ -1,3 +1,4 @@
+// LEGACY (review): Old ranged enemy controller. Current Ranged prefab uses Enemy with RangedAttack.
 using UnityEngine;
 
 public class RangedEnemy : EnemyBase

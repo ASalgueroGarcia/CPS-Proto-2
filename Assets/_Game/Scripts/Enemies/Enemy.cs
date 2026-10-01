@@ -3,13 +3,13 @@ using UnityEngine.AI;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(EnemyVisualFeedback))]
 public class Enemy : MonoBehaviour
 {
     public enum EnemyState { Patrol, Alert, Attack, Idle }
 
-    [Header("Configuration")]
-    [Tooltip("Data asset containing all tunable stats for this enemy.")]
-    public EnemyData data;
+    [SerializeField] private EnemySettings settings = new EnemySettings();
+    public EnemySettings Settings => settings;
 
     [Header("Attack Strategy")]
     [Tooltip("The attack behaviour component. Drag any MonoBehaviour that implements IEnemyAttackStrategy.")]
@@ -18,7 +18,6 @@ public class Enemy : MonoBehaviour
     [Header("State Tracker")]
     public EnemyState currentState = EnemyState.Patrol;
 
-    // Cached references (exposed as read-only for strategies)
     public Health Health { get; private set; }
     public NavMeshAgent Agent { get; private set; }
     public Transform PlayerTransform { get; private set; }
@@ -26,37 +25,33 @@ public class Enemy : MonoBehaviour
 
     public MeshRenderer MeshRenderer { get; private set; }
     public Color OriginalColor { get; private set; }
+    public EnemyVisualFeedback VisualFeedback { get; private set; }
+    public float AttackStateProgress => attackStateMachine?.StateProgress ?? 0f;
 
-    // Internal
     private float stateTimer;
-    private EnemyAttackStateMachine attackSM;
+    private bool isAware;
+    private EnemyAttackStateMachine attackStateMachine;
     private IEnemyAttackStrategy attackStrategy;
-
-    // Patrol
-    private Vector3 patrolTarget;
-    private bool isMovingToPatrolPoint;
 
     private void Awake()
     {
         Health = GetComponent<Health>();
         Agent = GetComponent<NavMeshAgent>();
         MeshRenderer = GetComponentInChildren<MeshRenderer>();
-        if (MeshRenderer != null) OriginalColor = MeshRenderer.material.color;
+        VisualFeedback = GetComponent<EnemyVisualFeedback>();
+        VisualFeedback.Initialize(MeshRenderer);
+        OriginalColor = VisualFeedback.BaseColor;
 
-        attackSM = new EnemyAttackStateMachine();
+        attackStateMachine = new EnemyAttackStateMachine();
         ResolveAttackStrategy();
-        ApplyDataStats();
+        ApplySettings();
 
         Health.OnDeath.AddListener(HandleDeath);
+        Health.OnDamageTaken.AddListener(HandleDamageTaken);
 
         if (GetComponent<EnemyUIAutoSetup>() == null)
             gameObject.AddComponent<EnemyUIAutoSetup>();
     }
-
-    /// <summary>
-    /// Extracts the IEnemyAttackStrategy from the assigned MonoBehaviour slot.
-    /// Validates in Editor via OnValidate; validates at runtime here.
-    /// </summary>
     private void ResolveAttackStrategy()
     {
         if (attackStrategyComponent == null)
@@ -71,41 +66,31 @@ public class Enemy : MonoBehaviour
             Debug.LogError($"[{name}] Assigned strategy '{attackStrategyComponent.GetType().Name}' does not implement IEnemyAttackStrategy.", this);
         }
     }
-
-    /// <summary>
-    /// Applies stats from the assigned EnemyData asset.
-    /// Call at runtime if you swap data assets (e.g., difficulty scaling).
-    /// </summary>
-    public void ApplyDataStats()
+    public void ApplySettings()
     {
-        if (data == null)
-        {
-            Debug.LogError($"[{name}] No EnemyData assigned! Create an EnemyData asset (Assets > Create > Enemies > Enemy Data) and assign it.", this);
-            return;
-        }
-
-        Health.maxHealth = data.maxHealth;
-        Health.currentHealth = data.maxHealth;
-        Agent.speed = data.speed;
+        Health.maxHealth = settings.maxHealth;
+        Health.currentHealth = settings.maxHealth;
+        Agent.speed = settings.speed;
 
         float executeDuration = attackStrategy?.ExecutingDuration ?? 0f;
-        attackSM.Initialize(
-            data.windupDuration,
+        attackStateMachine.Initialize(
+            attackStrategy?.ApproachDuration ?? 0f,
+            settings.windupDuration,
             executeDuration,
-            data.attackCooldown,
-            data.attackRange,    // <-- attack trigger distance (Approaching→Windup)
-            data.alertRange,     // <-- leash base distance
-            data.chaseLeashMultiplier
+            settings.attackCooldown,
+            settings.attackRange,
+            settings.alertRange,
+            settings.chaseLeashMultiplier
         );
     }
 
     private void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
-        if (playerObj != null)
+        var playerObject = FindFirstObjectByType<PlayerFSM>();
+        if (playerObject != null)
         {
-            PlayerTransform = playerObj.transform;
-            PlayerHealth = playerObj.GetComponent<Health>();
+            PlayerTransform = playerObject.transform;
+            PlayerHealth = playerObject.GetComponent<Health>();
         }
 
         if (gameObject.layer == 0)
@@ -119,14 +104,13 @@ public class Enemy : MonoBehaviour
 
     private void Update()
     {
-        // Recover player reference if lost (scene loading, respawn, etc.)
         if (PlayerTransform == null || !PlayerTransform.gameObject.activeInHierarchy)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            if (playerObject != null)
             {
-                PlayerTransform = playerObj.transform;
-                PlayerHealth = playerObj.GetComponent<Health>();
+                PlayerTransform = playerObject.transform;
+                PlayerHealth = playerObject.GetComponent<Health>();
             }
         }
 
@@ -142,8 +126,11 @@ public class Enemy : MonoBehaviour
         {
             case EnemyState.Patrol:
                 PatrolBehavior();
-                if (distanceToPlayer <= data.alertRange)
+                if (distanceToPlayer <= settings.alertRange)
+                {
+                    isAware = true;
                     ChangeState(EnemyState.Alert);
+                }
                 break;
 
             case EnemyState.Alert:
@@ -156,16 +143,24 @@ public class Enemy : MonoBehaviour
                 break;
 
             case EnemyState.Attack:
-                if (attackStrategy == null) return; // Graceful degradation if strategy missing
+                if (attackStrategy == null) return;
 
-                bool stillEngaged = attackSM.Tick(distanceToPlayer);
+                EnemyAttackStateMachine.State previousAttackState = attackStateMachine.CurrentState;
+                bool stillEngaged = attackStateMachine.Tick(
+                    distanceToPlayer,
+                    attackStrategy.IsExecutionComplete,
+                    attackStrategy.BeginsWindupAtAnyDistance,
+                    settings.awarenessIsPermanent && isAware);
                 if (!stillEngaged)
                 {
                     ChangeState(EnemyState.Idle);
                     break;
                 }
 
-                switch (attackSM.CurrentState)
+                if (attackStateMachine.CurrentState != previousAttackState)
+                    NotifyAttackStateExit(previousAttackState);
+
+                switch (attackStateMachine.CurrentState)
                 {
                     case EnemyAttackStateMachine.State.Approaching:
                         attackStrategy.OnApproachTarget(this, distanceToPlayer);
@@ -184,8 +179,13 @@ public class Enemy : MonoBehaviour
 
             case EnemyState.Idle:
                 stateTimer -= Time.deltaTime;
-                if (distanceToPlayer <= data.alertRange)
+                if (settings.awarenessIsPermanent && isAware)
+                    ChangeState(EnemyState.Attack);
+                else if (distanceToPlayer <= settings.alertRange)
+                {
+                    isAware = true;
                     ChangeState(EnemyState.Alert);
+                }
                 else if (stateTimer <= 0)
                     ChangeState(EnemyState.Patrol);
                 break;
@@ -194,18 +194,22 @@ public class Enemy : MonoBehaviour
 
     public void ChangeState(EnemyState newState)
     {
+        if (currentState == EnemyState.Attack)
+            NotifyAttackStateExit(attackStateMachine.CurrentState);
+
+        VisualFeedback.ClearTelegraph();
         currentState = newState;
 
         if (newState == EnemyState.Alert)
         {
             Agent.ResetPath();
-            stateTimer = data.alertDuration;
+            stateTimer = settings.alertDuration;
             FlashColor(Color.yellow, 0.5f);
         }
         else if (newState == EnemyState.Idle)
         {
             Agent.ResetPath();
-            stateTimer = data.idleDuration;
+            stateTimer = settings.idleDuration;
         }
         else if (newState == EnemyState.Patrol)
         {
@@ -213,13 +217,20 @@ public class Enemy : MonoBehaviour
         }
         else if (newState == EnemyState.Attack)
         {
-            attackSM.Reset();
+            attackStateMachine.Reset();
         }
+    }
+
+    private void NotifyAttackStateExit(EnemyAttackStateMachine.State state)
+    {
+        VisualFeedback.ClearTelegraph();
+        if (attackStrategy is IEnemyAttackStateExitHandler handler)
+            handler.OnAttackStateExit(this, state);
     }
 
     private void PatrolBehavior()
     {
-        Agent.speed = data.speed * data.patrolSpeedMultiplier;
+        Agent.speed = settings.PatrolSpeed;
 
         if (!Agent.pathPending && Agent.remainingDistance < 0.5f)
             ChangeState(EnemyState.Idle);
@@ -227,18 +238,14 @@ public class Enemy : MonoBehaviour
 
     private void GetNewPatrolTarget()
     {
-        Vector3 randomDirection = Random.insideUnitSphere * data.roamRadius;
+        Vector3 randomDirection = Random.insideUnitSphere * settings.roamRadius;
         randomDirection += transform.position;
 
-        if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, data.roamRadius, 1))
+        if (NavMesh.SamplePosition(randomDirection, out NavMeshHit hit, settings.roamRadius, 1))
         {
-            patrolTarget = hit.position;
-            Agent.SetDestination(patrolTarget);
-            isMovingToPatrolPoint = true;
+            Agent.SetDestination(hit.position);
         }
     }
-
-    // --- Public utilities used by strategies ---
 
     public void MoveTowards(Vector3 target, float moveSpeed)
     {
@@ -260,17 +267,7 @@ public class Enemy : MonoBehaviour
 
     public void FlashColor(Color color, float duration = 0.1f)
     {
-        if (MeshRenderer != null)
-        {
-            MeshRenderer.material.color = color;
-            CancelInvoke(nameof(ResetColor));
-            Invoke(nameof(ResetColor), duration);
-        }
-    }
-
-    private void ResetColor()
-    {
-        if (MeshRenderer != null) MeshRenderer.material.color = OriginalColor;
+        VisualFeedback.SetTelegraph(color, duration);
     }
 
     private void HandleDeath()
@@ -279,16 +276,31 @@ public class Enemy : MonoBehaviour
         Destroy(gameObject, 0.1f);
     }
 
+    private void HandleDamageTaken(float damageAmount)
+    {
+        if (!settings.awarenessIsPermanent)
+            return;
+
+        isAware = true;
+
+        if (currentState != EnemyState.Attack)
+            ChangeState(EnemyState.Attack);
+    }
+
+    private void OnDestroy()
+    {
+        if (Health == null)
+            return;
+
+        Health.OnDeath.RemoveListener(HandleDeath);
+        Health.OnDamageTaken.RemoveListener(HandleDamageTaken);
+    }
+
     private void OnValidate()
     {
-        if (data != null && Agent != null)
-            Agent.speed = data.speed;
-
-        // Warn in Inspector if assigned component doesn't implement the interface
+        settings ??= new EnemySettings();
         if (attackStrategyComponent != null && !(attackStrategyComponent is IEnemyAttackStrategy))
             Debug.LogWarning($"[{name}] Assigned strategy '{attackStrategyComponent.GetType().Name}' does not implement IEnemyAttackStrategy.", this);
 
-        // [SerializeField] MonoBehaviour slot: the field must be on the same GameObject
-        // — Unity will only serialize MonoBehaviour refs to components on the prefab.
     }
 }

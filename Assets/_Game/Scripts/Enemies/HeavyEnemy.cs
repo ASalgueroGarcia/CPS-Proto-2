@@ -1,3 +1,4 @@
+// LEGACY (review): Old heavy enemy controller. Current Heavy prefab uses Enemy with MeleeAttack.
 using UnityEngine;
 
 public class HeavyEnemy : EnemyBase
