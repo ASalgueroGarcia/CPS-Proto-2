@@ -11,6 +11,7 @@ public class ShopManager : MonoBehaviour
     [Header("SHOP SETTINGS")]
     [SerializeField] private Button[] powerUpsButtons = new Button[3]; // Buttons of the powerUps -> add more in the array.
     [SerializeField] private Button exitButton; // If the player do not want to buy any item.
+    [SerializeField] private Button returnMapButton;
     [SerializeField] private GameObject shopPanel;
 
     [Header("UI ELEMENTS PER ITEM")]
@@ -28,6 +29,8 @@ public class ShopManager : MonoBehaviour
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
     private UIManager _uiManager;
+    public bool IsShopOpen = false;
+
 
     private void Start()
     {
@@ -36,6 +39,10 @@ public class ShopManager : MonoBehaviour
         _canvasG = shopPanel.GetComponent<CanvasGroup>();
         _uiManager = FindFirstObjectByType<UIManager>();
 
+        if(returnMapButton != null)
+        {
+            returnMapButton.gameObject.SetActive(false);
+        }
         if (_canvasG == null)
         {
             _canvasG = shopPanel.AddComponent<CanvasGroup>();
@@ -57,13 +64,25 @@ public class ShopManager : MonoBehaviour
     {
         StopAllCoroutines();
         shopPanel.SetActive(true);
+        IsShopOpen = true;
+        returnMapButton.gameObject.SetActive(true);
+    
+        //to check if the player has the item already ---
+        List<PowerUpData> availablePowerUps = new List<PowerUpData>();
+        foreach(PowerUpData p in powerUpsA)
+        {
+            if (!_playerStatsManager.InventoryItems.Contains(p))
+            {
+                availablePowerUps.Add(p);
+            }
+        }
 
         // Select 3 random items in the list.
         List<int> iRandom = new List<int>();
 
-        while(iRandom.Count < powerUpsA.Count && iRandom.Count < 3)
+        while(iRandom.Count < availablePowerUps.Count && iRandom.Count < 3)
         {
-            int indexR = UnityEngine.Random.Range(0, powerUpsA.Count);  
+            int indexR = UnityEngine.Random.Range(0, availablePowerUps.Count);  
             if(!iRandom.Contains(indexR)){
                 iRandom.Add(indexR);
             }
@@ -71,7 +90,7 @@ public class ShopManager : MonoBehaviour
 
         for(int i = 0; i < iRandom.Count; i++)
         {
-            _currentPowerUps[i] = powerUpsA[iRandom[i]];
+            _currentPowerUps[i] = availablePowerUps[iRandom[i]];
             
             itemNameTexts[i].text = _currentPowerUps[i].powerUpName;
             itemDescriptionTexts[i].text = _currentPowerUps[i].powerUpDescription;
@@ -86,6 +105,8 @@ public class ShopManager : MonoBehaviour
     {
         StopAllCoroutines();
         shopPanel.SetActive(false);
+        returnMapButton.gameObject.SetActive(false);
+        IsShopOpen = false;
         Time.timeScale = 1f;
     }
 
@@ -98,6 +119,5 @@ public class ShopManager : MonoBehaviour
             _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
         }
         HideShopLogic();
-        _uiManager.ShowEoLCanvas();
     }
 }

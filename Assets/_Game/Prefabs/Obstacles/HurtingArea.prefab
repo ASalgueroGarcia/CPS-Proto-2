@@ -129,11 +129,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1de7edfa2753bd745b72575d652e6960, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorSpikes
-  TrapRadius: 5
-  damageToEnemy: 20
-  damageToPlayer: 200
   triggerTime: 2
-  inactiveTime: 2
+  inactiveTime: 1
   damage: 15
   spikesRenderer: {fileID: 3954625547737461541}
   spikeClip: {fileID: 8300000, guid: ad3d88f6780dc644dbabaa314e68ba1c, type: 3}
@@ -147,7 +144,7 @@ NavMeshObstacle:
   m_Enabled: 1
   serializedVersion: 3
   m_Shape: 1
-  m_Extents: {x: 5, y: 0.00001, z: 5}
+  m_Extents: {x: 5, y: 0.015, z: 5}
   m_MoveThreshold: 0.1
   m_Carve: 0
   m_CarveOnlyStationary: 1
@@ -172,7 +169,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 10, y: 2.220446e-16, z: 10}
+  m_Size: {x: 11, y: 0.6, z: 11}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &-6161076234276303015
 Rigidbody:

@@ -48,10 +48,9 @@ public class FallingTrap : MonoBehaviour
 
         // Colls in the zone.
         Collider tz = GetComponent<Collider>();
-        if(tz == null) return false;
-
-
-        // Check if the object collider center (other.bounds.center) is within the bounds ->
+        if(tz == null){
+            return false;
+        }
         return tz.bounds.Contains(other.bounds.center);
     }
 

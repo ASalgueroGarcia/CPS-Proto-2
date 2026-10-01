@@ -8,15 +8,17 @@ public class Breakable_Objects : MonoBehaviour
     [Header("SFX Settings")]
     [SerializeField] private AudioClip hitImpactClip;
 
-    public void TakeDamage(int amount)
+    public void TakeDamage(int dmg)
     {
         SoundManager.Instance.PlaySound(hitImpactClip);
-        
-        hp -= amount;
-        if (hp <= 0) Destroy(gameObject);
+        hp -= dmg;
+        if (hp <= 0)
+        {
+            Destroy(gameObject);   
+        }
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision c)
     {
         if (!collision.gameObject.CompareTag("Player") && !collision.gameObject.CompareTag("Enemy")) return;
         

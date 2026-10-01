@@ -9,7 +9,6 @@ public class ShopInteractable : MonoBehaviour
     [SerializeField] private string playerTag;
     [SerializeField] private GameObject EUI;
 
-    private bool aInteracted = false;
     private bool playerNear = false;
     private PlayerInputManager playerInput;
 
@@ -30,7 +29,7 @@ public class ShopInteractable : MonoBehaviour
             playerNear = true;
 
         // E -> UI.
-        if(EUI != null && !aInteracted)
+        if(EUI != null && !shopManager.IsShopOpen)
         {
             EUI.SetActive(true);
             }
@@ -49,10 +48,9 @@ public class ShopInteractable : MonoBehaviour
 
     private void Update()
     {
-        if(playerNear && Keyboard.current.eKey.wasPressedThisFrame && !aInteracted)
+        if(playerNear && Keyboard.current.eKey.wasPressedThisFrame && !shopManager.IsShopOpen)
         {
             shopManager.OpenShop();
-            aInteracted=true;
             if(EUI != null)
             {
                 EUI.SetActive(false);
