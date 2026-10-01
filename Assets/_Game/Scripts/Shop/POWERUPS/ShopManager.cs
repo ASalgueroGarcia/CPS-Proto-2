@@ -28,7 +28,6 @@ public class ShopManager : MonoBehaviour
     private readonly PowerUpData[] _currentPowerUps = new PowerUpData[3];
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
-    private UIManager _uiManager;
     public bool IsShopOpen = false;
 
 
@@ -37,7 +36,6 @@ public class ShopManager : MonoBehaviour
         // 1. Find the playerStatsManager.
         _playerStatsManager = PlayerStatsManager.Instance;
         _canvasG = shopPanel.GetComponent<CanvasGroup>();
-        _uiManager = FindFirstObjectByType<UIManager>();
 
         if(returnMapButton != null)
         {
