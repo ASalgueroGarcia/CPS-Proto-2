@@ -5,26 +5,14 @@ using UnityEngine;
 [RequireComponent(typeof(ScissorsWeaponGizmos))]
 public class ScissorsWeapon : MonoBehaviour, IWeapon
 {
-    [Header("Combat Stats")]
-    public float weaponBaseDamage = 10f;
-    public float baseCritChance = 0.05f;
-    public float attackRange = 2.0f;
-    public float specialRange = 5.0f;
-    [SerializeField] private float knockBackForce = 7f;
 
-    [Header("Combo")]
-    [SerializeField] private float comboResetTime = 1.0f;
-    [Tooltip("Minimum seconds between attacks. Must be <= the combo window duration (~0.2s real time per clip); larger values make combos impossible to chain.")]
-    [SerializeField] private float attackCooldown = 0.15f;
-    [SerializeField] private float attackAnimationSpeed = 1.5f;
-    [SerializeField] private float specialAttackAnimationSpeed = 1.2f;
+#region Fields
+
+    [Header("Configuration")]
+    [SerializeField] private ScissorsWeaponData _data;
 
     [Header("Combo Steps (leave empty for defaults)")]
     [SerializeField] private ScissorsComboResult[] _comboSteps;
-
-    [Header("Special Attack")]
-    public float specialCooldown = 10f;
-    [SerializeField] private float specialKnockbackForce = 10f;
 
     [Header("Hitboxes (manual)")]
     [SerializeField] private GameObject generalAttackHitbox;
@@ -67,7 +55,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         },
     };
 
-    // State
+    // Runtime state
     private Player _player;
     private WeaponComboSystem _combo;
     private WeaponHitboxRig _rig;
@@ -86,53 +74,15 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
     private const string HeavyAttackState = "HeavyAttack";
 
-    // Accessors that delegate to the Player facade
-    private Animator Animator => _player != null ? _player.animator : null;
-    private Renderer BodyRenderer => _player != null ? _player.bodyRenderer : null;
-    private Health PlayerHealth => _player != null ? _player.playerHealth : null;
-    private LayerMask EnemyLayer => _player != null ? _player.enemyLayer : 0;
-    internal Transform PlayerTransform => _player != null ? _player.transform : transform;
-
-    // Internal accessors for ScissorsWeaponGizmos
-    internal bool ShowSpecialGizmo
-    {
-        get => showSpecialGizmo;
-        set => showSpecialGizmo = value;
-    }
-    internal float AttackRange => attackRange;
-    internal float SpecialRange => specialRange;
-    internal WeaponHitboxRig Rig => _rig;
-
-    public string Name => "Scissors";
-
-    public float BaseDamage
-    {
-        get => weaponBaseDamage;
-        set => weaponBaseDamage = value;
-    }
-
-    public float BaseCritChance
-    {
-        get => baseCritChance;
-        set => baseCritChance = value;
-    }
-
-    public bool IsComboWindowOpen => _combo != null && _combo.IsWindowOpen;
-    public float LastAttackTime => _combo != null ? _combo.LastAttackTime : 0f;
-    public int CurrentComboStep => _combo != null ? _combo.CurrentStep : 0;
-    public bool HasActiveHitbox => _rig != null && _rig.HasActiveHitbox;
-    public bool CanAttack => _combo != null && _combo.CanAttack;
-    public float AttackCooldownRemaining => _combo != null ? _combo.AttackCooldownRemaining : 0f;
-    public float SpecialTimer => _specialTimer;
-    public float AttackAnimationSpeed => attackAnimationSpeed;
-    public float SpecialAnimationSpeed => specialAttackAnimationSpeed;
+#endregion
+#region Unity Lifecycle
 
     public void Initialize(Player player)
     {
         _player = player;
         if (BodyRenderer != null) _originalColor = BodyRenderer.material.color;
 
-        _combo = new WeaponComboSystem(comboResetTime, attackCooldown, _defaultComboSteps.Length);
+        _combo = new WeaponComboSystem(_data.comboResetTime, _data.attackCooldown, _defaultComboSteps.Length);
         _rig = new WeaponHitboxRig(
             new[] { generalAttackHitbox, hitboxAttack12, hitboxAttack3 },
             HandleHit);
@@ -159,6 +109,9 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _rig?.DisableAll();
     }
 
+#endregion
+#region Combat
+
     public void OnAttackInput()
     {
         if (_wasHit)
@@ -179,8 +132,8 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         ComboStep step = _combo.AdvanceStep();
         ScissorsComboResult result = GetStep(step.Index);
 
-        _currentDamage = weaponBaseDamage * result.DamageMultiplier;
-        _currentCritChance = Mathf.Clamp01(baseCritChance + result.CritBonus);
+        _currentDamage = _data.weaponBaseDamage * result.DamageMultiplier;
+        _currentCritChance = Mathf.Clamp01(_data.baseCritChance + result.CritBonus);
         _currentKnockback = result.Knockback;
 
         PlayStepSound(result);
@@ -209,34 +162,9 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         SetPlayerColor(result.Color);
     }
 
-    private ScissorsComboResult GetStep(int index)
-    {
-        ScissorsComboResult[] source = (_comboSteps != null && _comboSteps.Length > 0)
-            ? _comboSteps
-            : _defaultComboSteps;
-        int clamped = Mathf.Clamp(index - 1, 0, source.Length - 1);
-        ScissorsComboResult step = source[clamped];
-
-        // Step 3 (finisher) uses the special attack audio clip from the weapon instance.
-        if (!step.UseRandomLightClip)
-            step.AudioClip = specialAttackClip;
-
-        return step;
-    }
-
-    private void PlayStepSound(ScissorsComboResult result)
-    {
-        if (SoundManager.Instance == null) return;
-
-        if (result.UseRandomLightClip && lightAttackClips != null && lightAttackClips.Count > 0)
-            SoundManager.Instance.PlayRandomSound(lightAttackClips);
-        else if (result.AudioClip != null)
-            SoundManager.Instance.PlaySound(result.AudioClip);
-    }
-
     public void OnHeavyAttackInput()
     {
-        _specialTimer = specialCooldown;
+        _specialTimer = _data.specialCooldown;
 
         Transform pt = PlayerTransform;
         if (pt != null)
@@ -268,11 +196,11 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         Transform pt = PlayerTransform;
         Vector3 origin = pt != null ? pt.position : transform.position;
         LayerMask layer = EnemyLayer;
-        Collider[] hitEnemies = Physics.OverlapSphere(origin, specialRange, layer);
+        Collider[] hitEnemies = Physics.OverlapSphere(origin, _data.specialRange, layer);
         foreach (Collider enemy in hitEnemies)
         {
             Health h = enemy.GetComponentInParent<Health>();
-            if (h != null) h.TakeDamage(weaponBaseDamage * 2, origin, specialKnockbackForce);
+            if (h != null) h.TakeDamage(_data.weaponBaseDamage * 2, origin, _data.specialKnockbackForce);
         }
 
         StartCoroutine(ShowSpecialAOEVisual());
@@ -284,6 +212,76 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         yield return new WaitForSeconds(0.3f);
         showSpecialGizmo = false;
     }
+
+#endregion
+#region Combo Management
+
+    private ScissorsComboResult GetStep(int index)
+    {
+        ScissorsComboResult[] source = (_comboSteps != null && _comboSteps.Length > 0)
+            ? _comboSteps
+            : _defaultComboSteps;
+        int clamped = Mathf.Clamp(index - 1, 0, source.Length - 1);
+        ScissorsComboResult step = source[clamped];
+
+        // Step 3 (finisher) uses the special attack audio clip from the weapon instance.
+        if (!step.UseRandomLightClip)
+            step.AudioClip = specialAttackClip;
+
+        return step;
+    }
+
+    private void PlayStepSound(ScissorsComboResult result)
+    {
+        if (SoundManager.Instance == null) return;
+
+        if (result.UseRandomLightClip && lightAttackClips != null && lightAttackClips.Count > 0)
+            SoundManager.Instance.PlayRandomSound(lightAttackClips);
+        else if (result.AudioClip != null)
+            SoundManager.Instance.PlaySound(result.AudioClip);
+    }
+
+    public void OnDamageReceived()
+    {
+        _wasHit = true;
+        _rig?.DisableAll();
+        ResetCombo();
+    }
+
+    public bool ShouldResetCombo()
+    {
+        return _combo != null && _combo.ShouldResetByTimeout();
+    }
+
+    public void TickTimers()
+    {
+        if (_specialTimer > 0) _specialTimer -= Time.deltaTime;
+        if (_combo != null && _combo.ShouldResetByTimeout())
+            ResetCombo();
+    }
+
+    public void TickFallback(float attackFailsafeSeconds)
+    {
+        if (_combo == null) return;
+
+        bool isAttacking = _combo.CurrentStep > 0 || _specialTimer == _data.specialCooldown;
+        if (_combo.TickFallback(attackFailsafeSeconds, isAttacking))
+        {
+            Debug.LogWarning($"[FAILSAFE] Stuck in attack for {_combo.FallbackTimer:F1}s. Forcing reset.");
+            ResetCombo();
+        }
+    }
+
+    public void ResetCombo()
+    {
+        _combo?.Reset();
+        SetPlayerColor(_originalColor);
+        Animator anim = Animator;
+        if (anim != null) anim.ResetTrigger(HeavyAttackHash);
+    }
+
+#endregion
+#region Animation Events
 
     public void OnAnimationEvent(string evt)
     {
@@ -311,7 +309,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
                 ExecuteHeavyDamage();
                 break;
             case "ReturnToIdle":
-                // Combo persists across animations; the 1s timeout in TickTimers handles reset.
                 break;
             case "ResetCombo":
                 ResetCombo();
@@ -335,49 +332,8 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _rig.Enable(hitboxIndex);
     }
 
-    public void OnDamageReceived()
-    {
-        _wasHit = true;
-        _rig?.DisableAll();
-        ResetCombo();
-    }
-
-    public bool ShouldResetCombo()
-    {
-        return _combo != null && _combo.ShouldResetByTimeout();
-    }
-
-    public void TickTimers()
-    {
-        if (_specialTimer > 0) _specialTimer -= Time.deltaTime;
-        if (_combo != null && _combo.ShouldResetByTimeout())
-            ResetCombo();
-    }
-
-    public void TickFallback(float attackFailsafeSeconds)
-    {
-        if (_combo == null) return;
-
-        bool isAttacking = _combo.CurrentStep > 0 || _specialTimer == specialCooldown;
-        if (_combo.TickFallback(attackFailsafeSeconds, isAttacking))
-        {
-            Debug.LogWarning($"[FAILSAFE] Stuck in attack for {_combo.FallbackTimer:F1}s. Forcing reset.");
-            ResetCombo();
-        }
-    }
-
-    public bool CanUseSpecial => _specialTimer <= 0f;
-
-    public float GetDamage() => weaponBaseDamage;
-    public float GetKnockBackForce() => knockBackForce;
-
-    public void ResetCombo()
-    {
-        _combo?.Reset();
-        SetPlayerColor(_originalColor);
-        Animator anim = Animator;
-        if (anim != null) anim.ResetTrigger(HeavyAttackHash);
-    }
+#endregion
+#region Hit Handling
 
     private void SetPlayerColor(Color color)
     {
@@ -416,4 +372,56 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             }
         }
     }
+
+#endregion
+#region Properties
+
+    public ScissorsWeaponData Data => _data;
+
+    public string Name => "Scissors";
+
+    public float BaseDamage
+    {
+        get => _data != null ? _data.weaponBaseDamage : 0f;
+        set { if (_data != null) _data.weaponBaseDamage = value; }
+    }
+
+    public float BaseCritChance
+    {
+        get => _data != null ? _data.baseCritChance : 0f;
+        set { if (_data != null) _data.baseCritChance = value; }
+    }
+
+    public bool IsComboWindowOpen => _combo != null && _combo.IsWindowOpen;
+    public float LastAttackTime => _combo != null ? _combo.LastAttackTime : 0f;
+    public int CurrentComboStep => _combo != null ? _combo.CurrentStep : 0;
+    public bool HasActiveHitbox => _rig != null && _rig.HasActiveHitbox;
+    public bool CanAttack => _combo != null && _combo.CanAttack;
+    public float AttackCooldownRemaining => _combo != null ? _combo.AttackCooldownRemaining : 0f;
+    public float SpecialTimer => _specialTimer;
+    public float AttackAnimationSpeed => _data != null ? _data.attackAnimationSpeed : 1.5f;
+    public float SpecialAnimationSpeed => _data != null ? _data.specialAttackAnimationSpeed : 1.2f;
+    public bool CanUseSpecial => _specialTimer <= 0f;
+
+    public float GetDamage() => _data != null ? _data.weaponBaseDamage : 0f;
+    public float GetKnockBackForce() => _data != null ? _data.knockBackForce : 0f;
+
+    // Internal accessors for ScissorsWeaponGizmos
+    internal bool ShowSpecialGizmo
+    {
+        get => showSpecialGizmo;
+        set => showSpecialGizmo = value;
+    }
+    internal float AttackRange => _data != null ? _data.attackRange : 0f;
+    internal float SpecialRange => _data != null ? _data.specialRange : 0f;
+    internal WeaponHitboxRig Rig => _rig;
+
+    // Player-facade shortcuts
+    private Animator Animator => _player != null ? _player.animator : null;
+    private Renderer BodyRenderer => _player != null ? _player.bodyRenderer : null;
+    private LayerMask EnemyLayer => _player != null ? _player.enemyLayer : 0;
+    internal Transform PlayerTransform => _player != null ? _player.transform : transform;
+
+#endregion
+
 }

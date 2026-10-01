@@ -3,20 +3,15 @@ using UnityEngine;
 /// <summary>
 /// This class handles the player's locomotion, including movement, gravity, and animation.
 /// It provides methods to update the player's position and rotation based on input and state.
-/// All references (controller, animator) are delegated to the Player facade.
+/// All references (controller, animator) and tunable stats are delegated to the Player facade / config.
 /// </summary>
 public class PlayerLocomotion : MonoBehaviour
 {
 
-#region Fields and Properties
+#region Fields
 
     [Header("References")]
     public Transform modelTransform;
-
-    [Header("Movement Stats")]
-    public float speed = 14f;
-    public float gravity = 25f;
-    [SerializeField] private float runAnimationSpeed = 1.5f;
 
     [Header("State (set by Player)")]
     public Player.PlayerState currentState;
@@ -28,12 +23,6 @@ public class PlayerLocomotion : MonoBehaviour
     private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
 
     private Player _player;
-
-    private CharacterController Controller => _player.controller;
-    private Animator Animator => _player.animator;
-
-    public Vector3 MoveDirection => _moveDirection;
-    public float VerticalVelocity => _verticalVelocity;
 
 #endregion
 #region Methods
@@ -47,6 +36,8 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void Tick()
     {
+        float gravity = _player.gravity;
+
         // Stick to ground
         if (Controller.isGrounded && _verticalVelocity < 0)
             _verticalVelocity = -2f;
@@ -84,6 +75,8 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void UpdateFromInput(Vector2 input)
     {
+        float speed = _player.speed;
+
         if (input != Vector2.zero)
         {
             _moveDirection = new Vector3(input.x, 0, input.y).normalized * speed;
@@ -102,13 +95,12 @@ public class PlayerLocomotion : MonoBehaviour
     {
         _verticalVelocity = force * 1.5f;
         Vector3 horizontalDir = new Vector3(direction.x, 0, direction.z).normalized;
-        StartCoroutine(KnockbackCoroutine(horizontalDir, force, duration, knockBackForce));
+        StartCoroutine(KnockbackCoroutine(horizontalDir, knockBackForce, duration));
     }
 
-    private System.Collections.IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration, float knockBackForce)
+    private System.Collections.IEnumerator KnockbackCoroutine(Vector3 direction, float force, float duration)
     {
         float t = 0f;
-        force = knockBackForce;
         while (t < duration)
         {
             Controller.Move(direction * force * Time.deltaTime);
@@ -127,6 +119,15 @@ public class PlayerLocomotion : MonoBehaviour
     {
         ResetToIdle();
     }
+
+#endregion
+#region Properties
+
+    public Vector3 MoveDirection => _moveDirection;
+    public float VerticalVelocity => _verticalVelocity;
+
+    private CharacterController Controller => _player.controller;
+    private Animator Animator => _player.animator;
 
 #endregion
 

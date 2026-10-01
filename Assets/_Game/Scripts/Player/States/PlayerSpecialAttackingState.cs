@@ -9,8 +9,7 @@ public class PlayerSpecialAttackingState : PlayerStateBase
         if (Modules.Locomotion != null)
             Modules.Locomotion.SetMoveDirection(Vector3.zero);
 
-        // Fallback: HeavyAttack has HasExitTime -> Run at 0.727, which fires before ReturnToIdle @ 1.0.
-        // Detect that case and transition out so the player can act again.
+        // Fallback: If the player is no longer in a heavy attack animation, switch to idle state
         Animator anim = player.animator;
         if (anim == null || anim.IsInTransition(0)) return;
 

@@ -7,11 +7,12 @@ using UnityEngine;
 public class PlayerWeaponController : MonoBehaviour
 {
 
-#region Fields and Properties
-
-    public IWeapon CurrentWeapon { get; private set; }
+#region Fields
 
     private Player _player;
+
+#endregion
+#region Methods
 
     public void Initialize(Player player)
     {
@@ -96,6 +97,11 @@ public class PlayerWeaponController : MonoBehaviour
     {
         CurrentWeapon?.ResetCombo();
     }
+
+#endregion
+#region Properties
+
+    public IWeapon CurrentWeapon { get; private set; }
 
 #endregion
 

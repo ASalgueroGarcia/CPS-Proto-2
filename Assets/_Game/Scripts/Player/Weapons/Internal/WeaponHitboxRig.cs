@@ -46,21 +46,6 @@ public class WeaponHitboxRig
         HasActiveHitbox = true;
     }
 
-    /// <summary>
-    /// Enables the first non-null hitbox found, skipping nulls.
-    /// </summary>
-    public void EnableFirstAvailable()
-    {
-        for (int i = 0; i < _hitboxes.Length; i++)
-        {
-            if (_hitboxes[i] != null)
-            {
-                Enable(i);
-                return;
-            }
-        }
-    }
-
     public void DisableAll()
     {
         for (int i = 0; i < _hitboxes.Length; i++)

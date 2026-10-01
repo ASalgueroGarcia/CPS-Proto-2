@@ -4,15 +4,12 @@ using System.Collections.Generic;
 /// <summary>
 /// This class handles the player's dash ability, including movement, invulnerability, and visual/audio effects during the dash.
 /// References to Health and Animator are delegated to the Player facade.
+/// Dash tunables (speed, duration) are read from the shared PlayerConfig ScriptableObject.
 /// </summary>
 public class PlayerDashController : MonoBehaviour
 {
 
-#region Fields and Properties
-
-    [Header("Dash Settings")]
-    public float dashSpeed = 30f;
-    public float dashDuration = 0.2f;
+#region Fields
 
     [Header("References")]
     [SerializeField] private TrailRenderer dashTrail;
@@ -28,12 +25,6 @@ public class PlayerDashController : MonoBehaviour
 
     private Player _player;
 
-    private Health PlayerHealth => _player.playerHealth;
-    private Animator Animator => _player.animator;
-
-    public Vector3 CurrentDirection => _dashDirection;
-    public float DashTimer => _dashTimer;
-
 #endregion
 #region Methods
 
@@ -46,7 +37,7 @@ public class PlayerDashController : MonoBehaviour
     public void StartDash(Vector3 moveDirection)
     {
         _dashDirection = moveDirection != Vector3.zero ? moveDirection : _player.transform.forward;
-        _dashTimer = dashDuration;
+        _dashTimer = _player.dashDuration;
         _dashDirection.y = 0;
 
         SoundManager.Instance.PlayRandomSound(dashClips);
@@ -68,7 +59,7 @@ public class PlayerDashController : MonoBehaviour
 
     public void Tick()
     {
-        _player.Locomotion.SetMoveDirection(_dashDirection * dashSpeed);
+        _player.Locomotion.SetMoveDirection(_dashDirection * _player.dashSpeed);
         _dashTimer -= Time.deltaTime;
     }
 
@@ -93,6 +84,15 @@ public class PlayerDashController : MonoBehaviour
         int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
         if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(_player.gameObject.layer, enemyLayerIndex, false);
     }
+
+#endregion
+#region Properties
+
+    public Vector3 CurrentDirection => _dashDirection;
+    public float DashTimer => _dashTimer;
+
+    private Health PlayerHealth => _player.playerHealth;
+    private Animator Animator => _player.animator;
 
 #endregion
 

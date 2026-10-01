@@ -1034,91 +1034,11 @@ PrefabInstance:
       propertyPath: specialAttackAction
       value: 
       objectReference: {fileID: 1401231}
-    m_RemovedComponents:
-    - {fileID: 2772999424941036166, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-    - {fileID: 9214518418293766735, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 1970894349322054118, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 705438714}
-    - targetCorrespondingSourceObject: {fileID: 974475659849659198, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 705438716}
-    - targetCorrespondingSourceObject: {fileID: 1349782548685538138, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 705438715}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
---- !u!1 &705438711 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1970894349322054118, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-  m_PrefabInstance: {fileID: 705438710}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &705438712 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1349782548685538138, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-  m_PrefabInstance: {fileID: 705438710}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &705438713 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 974475659849659198, guid: 935bc1ed8ba62bc4783edc57f4534f70, type: 3}
-  m_PrefabInstance: {fileID: 705438710}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &705438714
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 705438711}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f20b8cdf2aba27a438a088c2d48a7727, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ScissorsWeapon
-  weaponBaseDamage: 10
-  baseCritChance: 0.05
-  attackRange: 2
-  specialRange: 5
-  knockBackForce: 7
-  comboResetTime: 1
-  attackAnimationSpeed: 1.5
-  specialAttackAnimationSpeed: 1.2
-  _comboSteps: []
-  specialCooldown: 10
-  specialKnockbackForce: 10
-  generalAttackHitbox: {fileID: 705438713}
-  hitboxAttack12: {fileID: 705438713}
-  hitboxAttack3: {fileID: 705438712}
-  lightAttackClips:
-  - {fileID: 8300000, guid: 2f6f14e673188df4e997f476335b4e75, type: 3}
-  specialAttackClip: {fileID: 0}
-  showSpecialGizmo: 1
---- !u!114 &705438715
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 705438712}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4c8017a76c240340a988eda2635bf48, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitboxTrigger
---- !u!114 &705438716
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 705438713}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4c8017a76c240340a988eda2635bf48, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HitboxTrigger
 --- !u!1 &753531553
 GameObject:
   m_ObjectHideFlags: 0

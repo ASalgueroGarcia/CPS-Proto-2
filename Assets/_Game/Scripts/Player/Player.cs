@@ -38,8 +38,8 @@ public class Player : MonoBehaviour
         SpecialAttacking
     }
 
-#region Fields and Properties
-    
+#region Fields
+
     [Header("State Tracker")]
     public PlayerState currentState = PlayerState.Idle;
 
@@ -59,51 +59,22 @@ public class Player : MonoBehaviour
     [Header("Identification")]
     public LayerMask enemyLayer;
 
-    [Header("Movement Stats (read by facade for UI)")]
-    public float speed = 14f;
-    public float dashSpeed = 30f;
-    public float gravity = 25f;
-    [SerializeField] private float runAnimationSpeed = 1.5f;
-
-    [Header("Dash")]
-    public float dashDuration = 0.2f;
-    public float attackFailsafeSeconds = 3.0f;
+    [Header("Configuration")]
+    [SerializeField] private PlayerConfig config;
+    [SerializeField] private PlayerData data;
 
     [Header("Damage Bus")]
+#pragma warning disable CS0414 // Field assigned but never used (dummy field kept for [Header] decoration)
     [SerializeField] private bool _damageBusHeader = false;
+#pragma warning restore CS0414
     public event Action<float> OnDamageReceived;
     public event Action OnHitInterrupted;
-
-    public PlayerLocomotion Locomotion { get; private set; }
-    public PlayerDashController Dash { get; private set; }
-    public PlayerWeaponController Weapon { get; private set; }
-
-    public PlayerModules Modules => new PlayerModules(Locomotion, Dash, Weapon);
 
     private Dictionary<PlayerState, PlayerStateBase> _states;
     private PlayerStateBase _currentStateInstance;
     private PlayerState _previousState;
 
     public static bool IsPaused = false;
-
-    public float GetPlayerDamage() => Weapon != null ? Weapon.GetPlayerDamage() : 0f;
-
-    public float WeaponBaseDamage
-    {
-        get => Weapon?.CurrentWeapon?.BaseDamage ?? 0f;
-        set { if (Weapon?.CurrentWeapon != null) Weapon.CurrentWeapon.BaseDamage = value; }
-    }
-
-    public float BaseCritChance
-    {
-        get => Weapon?.CurrentWeapon?.BaseCritChance ?? 0f;
-        set { if (Weapon?.CurrentWeapon != null) Weapon.CurrentWeapon.BaseCritChance = value; }
-    }
-
-    // Time remaining for the special attack cooldown, if applicable.
-    public float SpecialTimer => Weapon?.CurrentWeapon?.SpecialTimer ?? 0f;
-    // Current combo step of the weapon, if applicable.
-    public int ComboStep => Weapon?.CurrentWeapon?.CurrentComboStep ?? 0;
 
 #endregion
 #region Unity Lifecycle
@@ -118,6 +89,22 @@ public class Player : MonoBehaviour
         Dash.Initialize(this);
         Weapon.Initialize(this);
 
+        // Push stats from PlayerData ScriptableObject into Health.
+        if (playerHealth == null) playerHealth = GetComponent<Health>();
+        if (playerHealth != null && data != null)
+        {
+            playerHealth.maxHealth = data.maxHealth;
+            playerHealth.currentHealth = data.maxHealth;
+        }
+
+        // Player handles its own knockback via PlayerLocomotion (CharacterController),
+        // so disable Health's internal knockback and route the event here instead.
+        if (playerHealth != null)
+        {
+            playerHealth.useInternalKnockback = false;
+            playerHealth.OnKnockbackReceived.AddListener(HandleHealthKnockback);
+        }
+
         InitializeStates();
     }
 
@@ -126,7 +113,7 @@ public class Player : MonoBehaviour
         if (Weapon != null) Weapon.TickWeapon();
 
         if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking) {
-            if (Weapon != null) 
+            if (Weapon != null)
                 Weapon.TickFallback(attackFailsafeSeconds);
         }
 
@@ -140,25 +127,25 @@ public class Player : MonoBehaviour
         Locomotion.Tick();
 
         // Handle invulnerability during dashing
-        if (currentState == PlayerState.Dashing && _previousState != PlayerState.Dashing) 
+        if (currentState == PlayerState.Dashing && _previousState != PlayerState.Dashing)
         {
             if (playerHealth != null)
                 playerHealth.isInvulnerable = true;
-            
+
             int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-            
-            if (enemyLayerIndex != -1) 
+
+            if (enemyLayerIndex != -1)
                 Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, true);
         }
         // Handle exiting invulnerability when leaving the dashing state
         else if (_previousState == PlayerState.Dashing && currentState != PlayerState.Dashing)
         {
-            if (playerHealth != null) 
+            if (playerHealth != null)
                 playerHealth.isInvulnerable = false;
-            
+
             int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-            
-            if (enemyLayerIndex != -1) 
+
+            if (enemyLayerIndex != -1)
                 Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
         }
 
@@ -189,10 +176,13 @@ public class Player : MonoBehaviour
         if (dashAction != null && dashAction.action != null) dashAction.action.Disable();
         if (attackAction != null && attackAction.action != null) attackAction.action.Disable();
         if (specialAttackAction != null && specialAttackAction.action != null) specialAttackAction.action.Disable();
-        
+
         // Remove events
         if (playerHealth != null)
+        {
             playerHealth.OnDamageTaken.RemoveListener(HandleHealthDamage);
+            playerHealth.OnKnockbackReceived.RemoveListener(HandleHealthKnockback);
+        }
 
         if (Locomotion != null) OnDamageReceived -= Locomotion.HandleDamageReceived;
         if (Weapon != null) OnDamageReceived -= Weapon.OnDamageReceived;
@@ -244,6 +234,12 @@ public class Player : MonoBehaviour
     public void OnPlayerHit()
     {
         OnDamageReceived?.Invoke(0f);
+    }
+
+    // Routes Health knockback events through PlayerLocomotion (CharacterController-based).
+    private void HandleHealthKnockback(Vector3 source, float force)
+    {
+        Locomotion?.ApplyKnockback(source, force * 0.1f, 0.2f, force);
     }
 
     public bool CheckDashInput()
@@ -332,6 +328,57 @@ public class Player : MonoBehaviour
         Weapon?.OnAnimationEvent("DebugPlayAttack3");
         SwitchState(PlayerState.Attacking);
     }
+
+#endregion
+#region Properties
+
+    public PlayerConfig Config => config;
+
+    public PlayerData Data => data;
+
+    public float speed
+    {
+        get => config != null ? config.speed : 0f;
+        set { if (config != null) config.speed = value; }
+    }
+
+    public float dashSpeed
+    {
+        get => config != null ? config.dashSpeed : 0f;
+        set { if (config != null) config.dashSpeed = value; }
+    }
+
+    public float gravity => config != null ? config.gravity : 0f;
+
+    public float runAnimationSpeed => config != null ? config.runAnimationSpeed : 1.5f;
+
+    public float dashDuration => config != null ? config.dashDuration : 0.2f;
+
+    public float attackFailsafeSeconds => config != null ? config.attackFailsafeSeconds : 3.0f;
+
+    public PlayerLocomotion Locomotion { get; private set; }
+    public PlayerDashController Dash { get; private set; }
+    public PlayerWeaponController Weapon { get; private set; }
+
+    public PlayerModules Modules => new PlayerModules(Locomotion, Dash, Weapon);
+
+    public float GetPlayerDamage() => Weapon != null ? Weapon.GetPlayerDamage() : 0f;
+
+    public float WeaponBaseDamage
+    {
+        get => Weapon?.CurrentWeapon?.BaseDamage ?? 0f;
+        set { if (Weapon?.CurrentWeapon != null) Weapon.CurrentWeapon.BaseDamage = value; }
+    }
+
+    public float BaseCritChance
+    {
+        get => Weapon?.CurrentWeapon?.BaseCritChance ?? 0f;
+        set { if (Weapon?.CurrentWeapon != null) Weapon.CurrentWeapon.BaseCritChance = value; }
+    }
+
+    public float SpecialTimer => Weapon?.CurrentWeapon?.SpecialTimer ?? 0f;
+
+    public int ComboStep => Weapon?.CurrentWeapon?.CurrentComboStep ?? 0;
 
 #endregion
 }

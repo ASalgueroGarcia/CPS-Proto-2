@@ -1,8 +1,13 @@
 public class PlayerAttackingState : PlayerStateBase
 {
+
+#region Constants
+
     private const string Attack01State = "Attack_01";
     private const string Attack02State = "Attack_02";
     private const string Attack03State = "Attack_03";
+
+#endregion
 
     public override void Tick()
     {
@@ -19,10 +24,7 @@ public class PlayerAttackingState : PlayerStateBase
                 Modules.Weapon.CurrentWeapon.OnAttackInput();
         }
 
-        // Fallback: the Animator Controller has HasExitTime transitions (e.g. Attack_01 -> Run at 0.5,
-        // Attack_03 -> Run at 0.4) that fire before the ReturnToIdle animation event at 1.0. When that
-        // happens the animator leaves the Attack_X state but the player state machine stays in Attacking,
-        // so the player cannot move while the walking animation plays. Poll the animator to recover.
+        // Fallback: If the player is no longer in an attack animation, switch to idle state
         UnityEngine.Animator anim = player.animator;
         if (anim == null || anim.IsInTransition(0)) return;
 
