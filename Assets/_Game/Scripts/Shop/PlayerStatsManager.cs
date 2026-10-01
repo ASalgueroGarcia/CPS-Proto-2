@@ -9,7 +9,6 @@ public class PlayerStatsManager : MonoBehaviour
     // REFS.
     private Health healthPlayer;
     private PlayerFSM playerController;
-    private WaveManager waveManager;
 
     // HEALTH.
     private float currentHealth;
@@ -103,7 +102,6 @@ public class PlayerStatsManager : MonoBehaviour
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
         
-        waveManager = FindFirstObjectByType<WaveManager>();
     }
 
     private void OnDestroy()
@@ -208,10 +206,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void MoreEnemySpawnRate(float value)
     {
-        if (waveManager != null)
-        {
-            Debug.Log("MORE ENEMIES!!");
-        }
+        Debug.Log("MORE ENEMIES!!");
     }
     
     public void ResetAllThePlayerStats()
