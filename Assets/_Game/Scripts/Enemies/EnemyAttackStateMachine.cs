@@ -1,32 +1,22 @@
 using UnityEngine;
-
-/// <summary>
-/// Lightweight state machine for the Attack phase shared by all enemies.
-/// Handles the universal cycle: Approach -> Windup -> Execute -> Cooldown.
-/// The owning EnemyBase reads CurrentState each frame and calls the matching
-/// virtual method (OnApproachTarget, OnAttackWindup, OnAttackExecute, OnAttackCooldown).
-/// </summary>
 public class EnemyAttackStateMachine
 {
     public enum State { Approaching, Windup, Executing, Cooldown }
 
     public State CurrentState { get; private set; } = State.Approaching;
-
-    /// <summary>
-    /// Normalized progress (0..1) through the current state's timer.
-    /// Useful for charging animations.
-    /// </summary>
     public float StateProgress { get; private set; }
 
     private float windupDuration;
+    private float approachDuration;
     private float executingDuration;
     private float cooldownDuration;
     private float attackRange;
     private float chaseLeashDistance;
     private float stateTimer;
 
-    public void Initialize(float windup, float execute, float cooldown, float range, float alertRange, float leashMultiplier)
+    public void Initialize(float approach, float windup, float execute, float cooldown, float range, float alertRange, float leashMultiplier)
     {
+        approachDuration = approach;
         windupDuration = windup;
         executingDuration = execute;
         cooldownDuration = cooldown;
@@ -34,46 +24,38 @@ public class EnemyAttackStateMachine
         chaseLeashDistance = alertRange * leashMultiplier;
         Reset();
     }
-
-    /// <summary>
-    /// Call every frame. Returns true if the target is still in leash range;
-    /// false means the enemy should drop to Idle (target too far).
-    /// </summary>
-    public bool Tick(float distanceToTarget)
+    public bool Tick(float distanceToTarget, bool executionComplete, bool beginsWindupAtAnyDistance, bool ignoreLeash = false)
     {
-        if (distanceToTarget > chaseLeashDistance)
+        if (!ignoreLeash && distanceToTarget > chaseLeashDistance)
             return false;
 
-        stateTimer -= Time.deltaTime;
+        if (CurrentState == State.Executing && executionComplete)
+            stateTimer = 0f;
+        else
+            stateTimer -= Time.deltaTime;
         float totalDuration = GetStateDuration(CurrentState);
-        StateProgress = totalDuration > 0 ? 1f - (stateTimer / totalDuration) : 1f;
-
-        // Auto-transition when timer expires
+        StateProgress = totalDuration > 0 ? Mathf.Clamp01(1f - (stateTimer / totalDuration)) : 1f;
         if (stateTimer <= 0)
         {
             switch (CurrentState)
             {
                 case State.Approaching:
-                    if (distanceToTarget <= attackRange)
+                    if (beginsWindupAtAnyDistance || distanceToTarget <= attackRange)
                     {
-                        CurrentState = State.Windup;
-                        stateTimer = windupDuration;
+                        ChangeState(State.Windup);
                     }
                     break;
 
                 case State.Windup:
-                    CurrentState = State.Executing;
-                    stateTimer = executingDuration;
+                    ChangeState(State.Executing);
                     break;
 
                 case State.Executing:
-                    CurrentState = State.Cooldown;
-                    stateTimer = cooldownDuration;
+                    ChangeState(State.Cooldown);
                     break;
 
                 case State.Cooldown:
-                    CurrentState = State.Approaching;
-                    stateTimer = 0f;
+                    ChangeState(State.Approaching);
                     break;
             }
         }
@@ -85,6 +67,7 @@ public class EnemyAttackStateMachine
     {
         return state switch
         {
+            State.Approaching => approachDuration,
             State.Windup => windupDuration,
             State.Executing => executingDuration,
             State.Cooldown => cooldownDuration,
@@ -92,10 +75,15 @@ public class EnemyAttackStateMachine
         };
     }
 
+    private void ChangeState(State state)
+    {
+        CurrentState = state;
+        stateTimer = GetStateDuration(state);
+        StateProgress = 0f;
+    }
+
     public void Reset()
     {
-        CurrentState = State.Approaching;
-        stateTimer = 0f;
-        StateProgress = 0f;
+        ChangeState(State.Approaching);
     }
 }

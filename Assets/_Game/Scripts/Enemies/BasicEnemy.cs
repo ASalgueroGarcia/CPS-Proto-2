@@ -1,3 +1,4 @@
+// LEGACY (review): Old basic enemy controller. Card Soldier now uses Enemy with CardChargeAttack.
 using UnityEngine;
 
 public class BasicEnemy : EnemyBase

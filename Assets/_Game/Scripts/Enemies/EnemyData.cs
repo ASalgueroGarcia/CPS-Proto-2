@@ -1,6 +1,5 @@
+// LEGACY (review): Retained to read old data assets. Current prefabs store tuning in EnemySettings.
 using UnityEngine;
-
-[CreateAssetMenu(fileName = "NewEnemyData", menuName = "Enemies/Enemy Data")]
 public class EnemyData : ScriptableObject
 {
     [Header("Core Stats")]
@@ -19,6 +18,9 @@ public class EnemyData : ScriptableObject
 
     [Tooltip("Seconds the enemy spends in Alert state before attacking.")]
     public float alertDuration = 1f;
+
+    [Tooltip("When enabled, the enemy remains aware after detecting the player or taking damage.")]
+    public bool awarenessIsPermanent;
 
     [Header("Patrol")]
     [Tooltip("How far the enemy roams from its spawn point.")]
