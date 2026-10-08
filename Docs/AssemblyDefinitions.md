@@ -4,8 +4,9 @@ v2 · 2026-10-08 · **implemented** · v1 (2026-10-01) was the proposal, agreed 
 
 ## What it is
 
-Every folder under `Assets/_Game/Scripts` compiles into its own assembly,
-`Spectracle.<Folder>`, defined by the `.asmdef` file in that folder. A folder can
+Every feature folder under `Assets/_Game/Scripts` compiles into its own assembly,
+`Spectracle.<Folder>`, defined by the `.asmdef` file in that folder. Its subfolders
+(`Player/Weapons`, `Shop/POWERUPS`...) are part of the same assembly. A folder can
 only use the folders its `.asmdef` lists. Using anything else is a compile
 error, not something we hope review catches.
 
@@ -42,9 +43,19 @@ game, as RepoLayout already said, and now the compiler holds us to it.
 
 **A new script** in an existing folder: nothing to do, it joins that folder's assembly.
 
-**A new folder** under `Scripts/`: copy an `.asmdef` from a sibling folder, rename
-the file and the `name` inside it to `Spectracle.<Folder>`, and list what it uses.
-Without one, its scripts fall into `Assembly-CSharp` and nothing in `_Game` can see them.
+**A new subfolder** inside a feature (`Player/Modules`): nothing to do, no `.asmdef`.
+
+**A new feature folder** directly under `Scripts/`: copy an `.asmdef` from a sibling
+folder, rename the file and the `name` inside it to `Spectracle.<Folder>`, and list
+what it uses. Without one, its scripts fall into `Assembly-CSharp` and nothing in
+`_Game` can see them.
+
+**Editor tools** (custom inspectors, migration tools, anything with `using UnityEditor`)
+go in `Scripts/Editor/`, the one folder under `Scripts/` with no `.asmdef`. Unity
+compiles it into the editor-only assembly, which can already see every `Spectracle.*`
+assembly. **Not** in a feature's own `Editor/` subfolder: inside a folder with an
+`.asmdef`, `Editor/` is just a folder, so its code goes into the game assembly. The
+editor still compiles, and then the build fails on `UnityEditor`.
 
 **"The type or namespace X could not be found"** after you call another folder:
 1. Check the graph. If the folder you are in sits *above* the one you need,
@@ -55,10 +66,18 @@ Without one, its scripts fall into `Assembly-CSharp` and nothing in `_Game` can 
    call around instead:
    - **The lower folder announces, the higher one listens.** `WaveManager` used to
      call `UIManager` to show the end-of-level canvas. It now raises
-     `WaveManager.OnRoomCompleted`, and `UIManager` subscribes.
+     `WaveManager.OnRoomCompleted`, and `UIManager` subscribes. A `static` event
+     outlives the scene, so **subscribe in `OnEnable` and unsubscribe in `OnDisable`**.
+     A destroyed listener left on the list throws, and the listeners after it never run.
    - **An interface in Core.** The player's scissors used to look for
      `Breakable_Objects`, in Obstacles. They now look for `IBreakable` (Core),
      which `Breakable_Objects` implements.
+   - **Whoever uses a number reads it; nobody pushes it.** The shop's
+     "more enemies" / "more loot" items shouldn't call `WaveManager` (Waves is above
+     Shop). Shop keeps the bonus in `PlayerStatsManager`, and `WaveManager` reads
+     `PlayerStatsManager.Instance` when it spawns; Waves using Shop is allowed.
+     Stunning enemies from a scissor hit goes through Core (`Health` or a Core
+     interface), because Player can't see `Enemy`.
 
 References are written by name (`"Spectracle.Core"`), not GUID, so a diff reads as
 "Shop now uses Waves". Keep it that way: if the Inspector shows *Use GUIDs* ticked,
@@ -92,8 +111,13 @@ so no game assembly depends on Visual Scripting.
   asset. Buttons keep working either way: Unity finds the method on the target
   object, not by the assembly name.
 - **Enemies -> UI** is the one arrow pointing the wrong way: `Enemy` adds
-  `EnemyUIAutoSetup` to itself. It isn't a circle, but it means UI can never
-  use Enemies. If UI needs to know about enemies, move that setup into UI first.
+  `EnemyUIAutoSetup` to itself (`Enemy.cs`, two lines). It isn't a circle today,
+  but through UI it makes Enemies sit on top of almost everything, so **Waves,
+  UI, Map, Shop and Pickups can't use `Enemy`**. A spawner that needs `Enemy`, a
+  boss health bar or a stun item would hit that wall. The fix is planned for right
+  after the player refactor (#53) lands, because #53 edits the same lines: put
+  `EnemyUIAutoSetup` on the three enemy prefabs, delete the two lines, and drop
+  UI from `Spectracle.Enemies.asmdef`. Enemies then sits just above Player.
 - **Player is the bottom of the gameplay stack.** It uses only Core. Anything
   that reacts to the player (enemies, traps, pickups, shop, HUD) uses Player,
   never the other way round. That is what keeps the player safe to refactor.
