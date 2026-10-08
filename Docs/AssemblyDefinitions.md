@@ -1,84 +1,99 @@
-# Assembly definitions: what they'd buy us
+# Assembly definitions
 
-v1 · 2026-10-01 · **proposal, not scheduled** · needs a team decision
+v2 · 2026-10-08 · **implemented** · v1 (2026-10-01) was the proposal, agreed by the team
 
-## The problem
+## What it is
 
-We keep working in each other's areas by accident, and nothing in the project
-stops us. Three PRs were closed unmerged this month for exactly that reason. The
-fix we've been using is a convention — "don't touch the player, Mario is on it" —
-and conventions only hold while everyone remembers them.
+Every folder under `Assets/_Game/Scripts` compiles into its own assembly,
+`Spectracle.<Folder>`, defined by the `.asmdef` file in that folder. A folder can
+only use the folders its `.asmdef` lists. Using anything else is a compile
+error, not something we hope review catches.
 
-Right now every script compiles into one blob (`Assembly-CSharp`). Shop code can
-call the player, the player can call the UI, and nothing anywhere objects until a
-human notices in review.
+Unity also recompiles only the assembly you touched and the ones that use it,
+not all of `_Game`.
 
-## What changes
+## The graph
 
-An assembly definition per system (Player, Enemies, Waves, Map, Shop, UI, Core)
-turns those boundaries into compile errors. After it:
+Read it top to bottom: a folder may only use folders **below** it, and only the
+ones it lists. Nothing ever points up.
 
-- Calling into someone else's system fails to build unless you add a reference.
-- Adding that reference is one line in an `.asmdef`, and it shows up in the diff
-  where it can be discussed instead of discovered three weeks later.
-- Unity only recompiles the assembly you touched, not all 61 scripts.
-- PlayMode tests become possible at all — they need a test assembly, and a test
-  assembly can't reference the one big blob we have today.
+| Assembly | Uses | Packages |
+|---|---|---|
+| `Spectracle.Enemies` | UI, Player, Core | |
+| `Spectracle.UI` | Map, Waves, Shop, Player, Core | Input System, TextMesh Pro, UGUI |
+| `Spectracle.Map` | Waves, Core | UGUI |
+| `Spectracle.Waves` | Pickups, Core | |
+| `Spectracle.Pickups` | Shop, Core | |
+| `Spectracle.Shop` | Player, Core | Input System, TextMesh Pro, UGUI |
+| `Spectracle.Obstacles` | Player, Core | |
+| `Spectracle.Player` | Core | Input System |
+| `Spectracle.Core` | - | UGUI |
+| `Spectracle.Environment` | - | |
+| `Spectracle.Tests.Editor` | Waves, Core | NUnit, Test Runner, AI Navigation |
 
-The boundary stops being a thing we remember and becomes a thing the compiler
-enforces.
+Every reference in that table is used: removing any one of them breaks the build.
 
-## What's in the way
+`_Sandbox`, `ThirdParty` and the TextMesh Pro examples are not in any of these.
+They stay in Unity's default `Assembly-CSharp`, which can use all of the above,
+while nothing in `_Game` can use them. So deleting a sandbox can never break the
+game, as RepoLayout already said, and now the compiler holds us to it.
 
-Assemblies can't reference each other in a circle. `_Game/Scripts` had **seven**
-such circles between its ten folders when this was written.
+## Day to day
 
-**This PR removes one of them**, to show what the work actually looks like.
-`ShopManager` held a `UIManager` field that was assigned and never read, and
-`PlayerStatsManager` held a `WaveManager` field whose only use was gating a
-placeholder `Debug.Log`. Four lines of dead code were holding the Shop-to-UI and
-Shop-to-Waves edges open. Deleting them closes the `Shop <-> UI` circle outright
-and breaks the longer `Waves -> UI -> Shop -> Waves` chain. Six left.
+**A new script** in an existing folder: nothing to do, it joins that folder's assembly.
 
-**Three of the six come from two files in the wrong folder:** `Projectile.cs`
-(enemy-facing, sitting in `Core/`) and `CombatDummy.cs` (a debug stub). PR #45
-already deletes `CombatDummy`. Move `Projectile` to `Enemies/` and those three go
-with it.
+**A new folder** under `Scripts/`: copy an `.asmdef` from a sibling folder, rename
+the file and the `name` inside it to `Spectracle.<Folder>`, and list what it uses.
+Without one, its scripts fall into `Assembly-CSharp` and nothing in `_Game` can see them.
 
-**That leaves three, all already on the cleanup list:**
+**"The type or namespace X could not be found"** after you call another folder:
+1. Check the graph. If the folder you are in sits *above* the one you need,
+   add the reference: select your folder's `.asmdef`, add the other assembly under
+   *Assembly Definition References*, Apply. Or add one line to the `references`
+   list in the file. The line shows up in your PR, so it gets talked about.
+2. If it sits *below* you, adding it makes a circle and Unity refuses. Turn the
+   call around instead:
+   - **The lower folder announces, the higher one listens.** `WaveManager` used to
+     call `UIManager` to show the end-of-level canvas. It now raises
+     `WaveManager.OnRoomCompleted`, and `UIManager` subscribes.
+   - **An interface in Core.** The player's scissors used to look for
+     `Breakable_Objects`, in Obstacles. They now look for `IBreakable` (Core),
+     which `Breakable_Objects` implements.
 
-| Circle | What causes it |
+References are written by name (`"Spectracle.Core"`), not GUID, so a diff reads as
+"Shop now uses Waves". Keep it that way: if the Inspector shows *Use GUIDs* ticked,
+untick it before you add the reference.
+
+**Tests:** `Assets/Tests/Editor` is `Spectracle.Tests.Editor`. To test a new area,
+add its assembly to that `.asmdef`.
+
+## What changed to get here
+
+Assemblies can't use each other in a circle, and v1 counted seven circles. This
+is everything that had to change for none to be left:
+
+| Circle | Fix |
 |---|---|
-| Enemies <-> Player | `Enemy` searches the scene for `PlayerFSM` |
-| Obstacles <-> Player | traps and breakables reach for `PlayerFSM` |
-| Map <-> Waves | `SceneController` and `WaveManager` call each other directly |
+| Shop <-> UI, and Waves -> UI -> Shop -> Waves | Deleted a `UIManager` field in `ShopManager` and a `WaveManager` field in `PlayerStatsManager`, both dead (v1) |
+| Core <-> Player, Core <-> UI | `CombatDummy` deleted in #45; `Projectile` moved from `Core/` to `Enemies/`, since only enemies fire it |
+| Player <-> Obstacles | Scissors hit `IBreakable` instead of `Breakable_Objects` |
+| Map -> Waves -> UI -> Map | `WaveManager.OnRoomCompleted` instead of calling `UIManager` |
+| Enemies <-> Player | Already gone: the player no longer looks for `Enemy` |
 
-Each is either *"something searches for the player"* or *"something calls another
-manager directly"*. Both are on the cleanup list already, and the enemy one is
-written — the dependency-injection change in the #40 chain replaces that search
-with a reference handed over at spawn time.
+Three `using Unity.VisualScripting;` lines that imported nothing were also deleted,
+so no game assembly depends on Visual Scripting.
 
-So this isn't new work. It's the work we agreed to, plus a mechanism that stops
-it coming back.
+## Things to know
 
-## Cost, and when
-
-Three of the four circles are in the map, shop and player areas, so this is not
-something one person can do alone — it needs whoever owns each area.
-
-It also rewrites every file path, which makes any long-lived branch painful to
-merge. That makes **now the wrong moment**: #45, #46 and #47 are open against
-`dev`, and the #40 chain still hasn't reached `main`.
-
-Suggested order:
-
-1. Land #45 and #46, and get the #40 chain reconciled with `main`/`dev`
-2. Mario's player refactor lands
-3. Then assembly definitions, in a quiet window, split by area so each owner
-   takes their own
-4. PlayMode tests and CI on top
-
-## The ask
-
-Agreement in principle now, scheduled for the window after the player refactor —
-not a decision to do it this sprint.
+- **Scene and prefab diffs.** The next time someone saves a scene or prefab,
+  lines like `m_EditorClassIdentifier: Assembly-CSharp::Enemy` become
+  `Spectracle.Enemies::Enemy`, and button events' `Assembly-CSharp` becomes the
+  new assembly name. That is Unity catching up, not a change. Commit it with the
+  asset. Buttons keep working either way: Unity finds the method on the target
+  object, not by the assembly name.
+- **Enemies -> UI** is the one arrow pointing the wrong way: `Enemy` adds
+  `EnemyUIAutoSetup` to itself. It isn't a circle, but it means UI can never
+  use Enemies. If UI needs to know about enemies, move that setup into UI first.
+- **Player is the bottom of the gameplay stack.** It uses only Core. Anything
+  that reacts to the player (enemies, traps, pickups, shop, HUD) uses Player,
+  never the other way round. That is what keeps the player safe to refactor.
