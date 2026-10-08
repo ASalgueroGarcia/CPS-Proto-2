@@ -51,9 +51,9 @@ what it uses. Without one, its scripts fall into `Assembly-CSharp` and nothing i
 `_Game` can see them.
 
 **Editor tools** (custom inspectors, migration tools, anything with `using UnityEditor`)
-go in `Scripts/Editor/`, the one folder under `Scripts/` with no `.asmdef`. Unity
-compiles it into the editor-only assembly, which can already see every `Spectracle.*`
-assembly. **Not** in a feature's own `Editor/` subfolder: inside a folder with an
+go in `Scripts/Editor/`. It doesn't exist yet: whoever writes the first editor tool
+creates it, **without** an `.asmdef`. Unity then compiles it into the editor-only
+assembly, which can already see every `Spectracle.*` assembly. **Not** in a feature's own `Editor/` subfolder: inside a folder with an
 `.asmdef`, `Editor/` is just a folder, so its code goes into the game assembly. The
 editor still compiles, and then the build fails on `UnityEditor`.
 
@@ -68,7 +68,8 @@ editor still compiles, and then the build fails on `UnityEditor`.
      call `UIManager` to show the end-of-level canvas. It now raises
      `WaveManager.OnRoomCompleted`, and `UIManager` subscribes. A `static` event
      outlives the scene, so **subscribe in `OnEnable` and unsubscribe in `OnDisable`**.
-     A destroyed listener left on the list throws, and the listeners after it never run.
+     A destroyed listener left on the list still gets called. As soon as it touches its
+     own GameObject it throws, and the listeners after it never run.
    - **An interface in Core.** The player's scissors used to look for
      `Breakable_Objects`, in Obstacles. They now look for `IBreakable` (Core),
      which `Breakable_Objects` implements.
