@@ -46,6 +46,12 @@ public class WaveManager : MonoBehaviour
     private bool hasInitialized = false;
 
     /// <summary>
+    /// Raised once the room is cleared and every reward has been picked up (right away if
+    /// none spawned). UIManager listens and shows the end-of-level canvas.
+    /// </summary>
+    public static event System.Action OnRoomCompleted;
+
+    /// <summary>
     /// Sets the difficulty tier for this room. Called by SceneController immediately
     /// after the room prefab is instantiated, which is before Start() runs.
     /// Setting it any later has no effect - the first wave has already been spawned.
@@ -248,11 +254,10 @@ public class WaveManager : MonoBehaviour
             }
         }
 
-        // If no pickups were spawned, show EoLCanvas immediately
+        // If no pickups were spawned, the room is complete right away
         if (activePickups.Count == 0)
         {
-            if (UIManager.Instance != null)
-                UIManager.Instance.ShowEoLCanvas();
+            OnRoomCompleted?.Invoke();
         }
     }
 
@@ -285,8 +290,7 @@ public class WaveManager : MonoBehaviour
         activePickups.Remove(pickup);
         if (activePickups.Count == 0)
         {
-            if (UIManager.Instance != null)
-                UIManager.Instance.ShowEoLCanvas();
+            OnRoomCompleted?.Invoke();
         }
     }
 
