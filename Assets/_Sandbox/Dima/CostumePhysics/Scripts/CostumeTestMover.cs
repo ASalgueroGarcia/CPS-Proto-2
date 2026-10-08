@@ -23,6 +23,12 @@ public class CostumeTestMover : MonoBehaviour
     [Header("References")]
     [SerializeField] private Animator animator;
 
+    // Raised after the instant move home, so secondary-motion rigs can reset instead of whipping.
+    public event System.Action Teleported;
+
+    // Name of the course step running now, for recording per-step measurements.
+    public string CurrentStep { get; private set; }
+
     private Vector3 homePosition;
     private Quaternion homeRotation;
 
@@ -42,25 +48,28 @@ public class CostumeTestMover : MonoBehaviour
     {
         while (true)
         {
-            yield return Hold(idleTime);                   // settle at rest
-            yield return Move(walkSpeed, walkTime);        // start from rest
-            yield return Hold(stopTime);                   // sudden stop
-            transform.Rotate(0f, 180f, 0f);                // instant turn, like PlayerFSM's facing snap
-            yield return Move(walkSpeed, walkTime);
-            yield return Move(dashSpeed, dashDuration);    // dash straight out of a walk
-            yield return Hold(stopTime);
+            yield return Hold("Idle", idleTime);                  // settle at rest
+            yield return Move("Walk", walkSpeed, walkTime);       // start from rest
+            yield return Hold("Stop", stopTime);                  // sudden stop
+            transform.Rotate(0f, 180f, 0f);                       // instant turn, like PlayerFSM's facing snap
+            yield return Move("WalkBack", walkSpeed, walkTime);
+            yield return Move("Dash", dashSpeed, dashDuration);   // dash straight out of a walk
+            yield return Hold("DashStop", stopTime);
             transform.SetPositionAndRotation(homePosition, homeRotation); // teleport, like a room change
+            Teleported?.Invoke();
         }
     }
 
-    private IEnumerator Hold(float duration)
+    private IEnumerator Hold(string step, float duration)
     {
+        CurrentStep = step;
         SetMoving(false);
         yield return new WaitForSeconds(duration);
     }
 
-    private IEnumerator Move(float speed, float duration)
+    private IEnumerator Move(string step, float speed, float duration)
     {
+        CurrentStep = step;
         SetMoving(true);
         for (float t = 0f; t < duration; t += Time.deltaTime)
         {
