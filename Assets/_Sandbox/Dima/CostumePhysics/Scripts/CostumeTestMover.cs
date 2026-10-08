@@ -31,6 +31,7 @@ public class CostumeTestMover : MonoBehaviour
 
     private Vector3 homePosition;
     private Quaternion homeRotation;
+    private Coroutine course;
 
     private void Awake()
     {
@@ -41,7 +42,14 @@ public class CostumeTestMover : MonoBehaviour
 
     private void OnEnable()
     {
-        StartCoroutine(RunCourse());
+        course = StartCoroutine(RunCourse());
+    }
+
+    // Disabling a MonoBehaviour does not stop its coroutines; without this a re-enable runs two courses.
+    private void OnDisable()
+    {
+        if (course != null) StopCoroutine(course);
+        course = null;
     }
 
     private IEnumerator RunCourse()
@@ -73,7 +81,8 @@ public class CostumeTestMover : MonoBehaviour
         SetMoving(true);
         for (float t = 0f; t < duration; t += Time.deltaTime)
         {
-            transform.position += transform.forward * (speed * speedScale * Time.deltaTime);
+            float delta = Mathf.Min(Time.deltaTime, duration - t); // last frame stops exactly at the duration
+            transform.position += transform.forward * (speed * speedScale * delta);
             yield return null;
         }
     }

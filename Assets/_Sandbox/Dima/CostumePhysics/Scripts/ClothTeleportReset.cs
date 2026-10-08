@@ -16,11 +16,11 @@ public class ClothTeleportReset : MonoBehaviour
 
     private void OnEnable()
     {
-        mover.Teleported += cloth.ClearTransformMotion;
+        if (cloth != null) mover.Teleported += cloth.ClearTransformMotion;
     }
 
     private void OnDisable()
     {
-        mover.Teleported -= cloth.ClearTransformMotion;
+        if (cloth != null) mover.Teleported -= cloth.ClearTransformMotion;
     }
 }
