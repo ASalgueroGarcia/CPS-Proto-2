@@ -1020,13 +1020,13 @@ PrefabInstance:
       addedObject: {fileID: 569048061}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 569048064}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 569048066}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
       insertIndex: -1
       addedObject: {fileID: 569048065}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 569048067}
   m_SourcePrefab: {fileID: 100100000, guid: c941211711703934e9439963e2539f70, type: 3}
 --- !u!1 &569048060 stripped
 GameObject:
@@ -1080,18 +1080,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c941211711703934e9439963e2539f70, type: 3}
   m_PrefabInstance: {fileID: 569048059}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &569048064
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 569048060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 753a0039eed18454ba94c7b49f074a46, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JiggleLiveTuning
 --- !u!114 &569048065
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1828,6 +1816,18 @@ MonoBehaviour:
         height: 0.008570168
         capsuleAxis: 1
   animatedParameters: 0
+--- !u!114 &569048067
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 569048060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e84b3ed8712d2ab49a677d8ac2a7a977, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JiggleTeleportReset
 --- !u!4 &570618792 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3150378757821604700, guid: c941211711703934e9439963e2539f70, type: 3}
@@ -5581,10 +5581,10 @@ PrefabInstance:
       addedObject: {fileID: 1901623554}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1901623553}
+      addedObject: {fileID: 1901623552}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c941211711703934e9439963e2539f70, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1901623552}
+      addedObject: {fileID: 1901623557}
   m_SourcePrefab: {fileID: 100100000, guid: c941211711703934e9439963e2539f70, type: 3}
 --- !u!1 &1901623501 stripped
 GameObject:
@@ -5848,18 +5848,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76756b27b9570ef41bf8b7c4a77c47b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClothTeleportReset
---- !u!114 &1901623553
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1901623501}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 753a0039eed18454ba94c7b49f074a46, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JiggleLiveTuning
 --- !u!114 &1901623554
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6365,6 +6353,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1901623557
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1901623501}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e84b3ed8712d2ab49a677d8ac2a7a977, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JiggleTeleportReset
 --- !u!1 &1915260460
 GameObject:
   m_ObjectHideFlags: 0
