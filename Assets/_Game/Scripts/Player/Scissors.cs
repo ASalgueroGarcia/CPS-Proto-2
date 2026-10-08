@@ -9,7 +9,7 @@ public class Scissors : MonoBehaviour
 
     // List to keep track of enemies hit during the current rotation
     private List<Health> hitEnemies = new List<Health>();
-    private List<Breakable_Objects> hitBreakables = new List<Breakable_Objects>();
+    private List<IBreakable> hitBreakables = new List<IBreakable>();
 
     public void Initialize(float dmg, float crit, float knockback = 0f)
     {
@@ -54,7 +54,7 @@ public class Scissors : MonoBehaviour
         }
         else if (other.CompareTag("Breakeable"))
         {
-            Breakable_Objects breakable = other.GetComponent<Breakable_Objects>();
+            IBreakable breakable = other.GetComponent<IBreakable>();
             if (breakable != null && !hitBreakables.Contains(breakable))
             {
                 breakable.TakeDamage(1);
