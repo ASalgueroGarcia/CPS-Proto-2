@@ -3,7 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
-using Unity.VisualScripting;
 using TMPro;
 
 public class ShopManager : MonoBehaviour
