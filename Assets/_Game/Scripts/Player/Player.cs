@@ -230,7 +230,7 @@ public class Player : MonoBehaviour
     // Routes Health knockback events through PlayerLocomotion (CharacterController-based).
     private void HandleHealthKnockback(Vector3 source, float force)
     {
-        Locomotion?.ApplyKnockback(source, force * 0.1f, 0.2f, force);
+        Locomotion?.ApplyKnockback(transform.position - source, force * 0.1f, 0.2f, force); // source is a position, not a direction
     }
 
     public bool CheckDashInput()
