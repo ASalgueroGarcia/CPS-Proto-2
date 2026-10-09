@@ -72,7 +72,6 @@ public class Player : MonoBehaviour
 
     private Dictionary<PlayerState, PlayerStateBase> _states;
     private PlayerStateBase _currentStateInstance;
-    private PlayerState _previousState;
 
     public static bool IsPaused = false;
 
@@ -81,6 +80,10 @@ public class Player : MonoBehaviour
 
     private void Awake()
     {
+        // Work on runtime copies so shop upgrades don't mutate the shared assets.
+        if (config != null) config = Instantiate(config);
+        if (data != null) data = Instantiate(data);
+
         Locomotion = gameObject.GetOrAddComponent<PlayerLocomotion>();
         Dash = gameObject.GetOrAddComponent<PlayerDashController>();
         Weapon = gameObject.GetOrAddComponent<PlayerWeaponController>();
@@ -98,11 +101,11 @@ public class Player : MonoBehaviour
         }
 
         // Player handles its own knockback via PlayerLocomotion (CharacterController),
-        // so disable Health's internal knockback and route the event here instead.
+        // so disable Health's internal knockback. The listener is (un)subscribed in
+        // OnEnable/OnDisable to keep the subscription lifecycle symmetric.
         if (playerHealth != null)
         {
             playerHealth.useInternalKnockback = false;
-            playerHealth.OnKnockbackReceived.AddListener(HandleHealthKnockback);
         }
 
         InitializeStates();
@@ -113,43 +116,17 @@ public class Player : MonoBehaviour
         if (Weapon != null) Weapon.TickWeapon();
 
         if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking) {
-            if (Weapon != null)
-                Weapon.TickFallback(attackFailsafeSeconds);
-        }
-
-        if (Weapon != null && Weapon.ShouldResetCombo()) {
-            Weapon.CurrentWeapon?.ResetCombo();
+            if (Weapon != null && Time.time - Weapon.GetPlayerLastAttackTime() > attackFailsafeSeconds)
+            {
+                Debug.LogWarning($"[FAILSAFE] Stuck in attack for >{attackFailsafeSeconds:F1}s. Forcing reset.");
+                Weapon.ResetCombo();
+                SwitchState(PlayerState.Idle);
+            }
         }
 
         _currentStateInstance?.Tick();
 
-        Locomotion.currentState = currentState;
         Locomotion.Tick();
-
-        // Handle invulnerability during dashing
-        if (currentState == PlayerState.Dashing && _previousState != PlayerState.Dashing)
-        {
-            if (playerHealth != null)
-                playerHealth.isInvulnerable = true;
-
-            int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-
-            if (enemyLayerIndex != -1)
-                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, true);
-        }
-        // Handle exiting invulnerability when leaving the dashing state
-        else if (_previousState == PlayerState.Dashing && currentState != PlayerState.Dashing)
-        {
-            if (playerHealth != null)
-                playerHealth.isInvulnerable = false;
-
-            int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
-
-            if (enemyLayerIndex != -1)
-                Physics.IgnoreLayerCollision(gameObject.layer, enemyLayerIndex, false);
-        }
-
-        _previousState = currentState; // Update the previous state for the next frame
     }
 
     private void OnEnable()
@@ -163,11 +140,14 @@ public class Player : MonoBehaviour
 
         // Events
         if (playerHealth != null)
+        {
             playerHealth.OnDamageTaken.AddListener(HandleHealthDamage);
+            playerHealth.OnKnockbackReceived.AddListener(HandleHealthKnockback);
+        }
 
         if (Locomotion != null) OnDamageReceived += Locomotion.HandleDamageReceived;
         if (Weapon != null) OnDamageReceived += Weapon.OnDamageReceived;
-        OnDamageReceived += _ => OnHitInterrupted?.Invoke();
+        OnDamageReceived += HandleHitInterrupted;
     }
 
     private void OnDisable()
@@ -186,6 +166,15 @@ public class Player : MonoBehaviour
 
         if (Locomotion != null) OnDamageReceived -= Locomotion.HandleDamageReceived;
         if (Weapon != null) OnDamageReceived -= Weapon.OnDamageReceived;
+        OnDamageReceived -= HandleHitInterrupted;
+    }
+
+    private void OnDestroy()
+    {
+        // Destroy runtime copies of the ScriptableObject assets to avoid leaking them
+        // across Play mode sessions in the Editor.
+        if (config != null) Destroy(config);
+        if (data != null) Destroy(data);
     }
 
 #endregion
@@ -215,7 +204,6 @@ public class Player : MonoBehaviour
     {
         if (currentState == newState) return;
 
-        _previousState = currentState;
         _currentStateInstance?.Exit();
         currentState = newState;
         _currentStateInstance = _states[newState];
@@ -230,6 +218,9 @@ public class Player : MonoBehaviour
     {
         OnDamageReceived?.Invoke(dmg);
     }
+
+    // Named handler so we can unsubscribe symmetrically in OnDisable.
+    private void HandleHitInterrupted(float dmg) => OnHitInterrupted?.Invoke();
 
     public void OnPlayerHit()
     {
@@ -247,9 +238,8 @@ public class Player : MonoBehaviour
         if (dashAction == null || dashAction.action == null) return false;
         if (!dashAction.action.WasPressedThisFrame()) return false;
 
-        Vector2 input = moveAction.action.ReadValue<Vector2>();
-        Vector3 dir = new Vector3(input.x, 0, input.y);
-        Dash.StartDash(dir);
+        Vector2 input = moveAction != null && moveAction.action != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
+        Dash.StartDash(new Vector3(input.x, 0, input.y).normalized);
         SwitchState(PlayerState.Dashing);
         return true;
     }
@@ -310,12 +300,12 @@ public class Player : MonoBehaviour
     {
         Weapon?.OnAnimationEvent(evt);
 
-        if (evt == "ReturnToIdle")
+        if (evt == "ReturnToIdle"
+            && (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
+            && Time.time - Weapon.GetPlayerLastAttackTime() > 0.15f)
         {
-            if (Time.time - Weapon.GetPlayerLastAttackTime() > 0.15f)
-            {
-                SwitchState(PlayerState.Idle);
-            }
+            Weapon.ResetCombo();
+            SwitchState(PlayerState.Idle);
         }
     }
 

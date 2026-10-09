@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.AI;
 using System.IO;
-using Core.Utils;
 
 /// <summary>
 /// One-click migration tool.
@@ -140,26 +139,30 @@ public static class EnemyMigrationTool
             }
 
             // 3. Ensure NavMeshAgent is present
-            bool navAdded = !root.TryGetComponent<NavMeshAgent>(out _);
-            var agent = root.GetOrAddComponent<NavMeshAgent>();
-            agent.radius          = 0.5f;
-            agent.height          = 2f;
-            agent.speed           = data.speed;
-            agent.angularSpeed    = 180f;
-            agent.acceleration    = 8f;
-            agent.stoppingDistance = 0f;
-            agent.autoBraking     = true;
-            if (navAdded)
+            if (root.GetComponent<NavMeshAgent>() == null)
+            {
+                var agent = root.AddComponent<NavMeshAgent>();
+                agent.radius          = 0.5f;
+                agent.height          = 2f;
+                agent.speed           = data.speed;
+                agent.angularSpeed    = 180f;
+                agent.acceleration    = 8f;
+                agent.stoppingDistance = 0f;
+                agent.autoBraking     = true;
                 Debug.Log($"[EnemyMigration] Added NavMeshAgent to '{prefabName}'.");
+            }
 
             // 4. Ensure Health is present (should already be there, but just in case)
-            root.GetOrAddComponent<Health>();
+            if (root.GetComponent<Health>() == null)
+                root.AddComponent<Health>();
 
             // 5. Add the strategy component (if not already present)
-            bool strategyAdded = !root.TryGetComponent<TStrategy>(out _);
-            TStrategy strategy = root.GetOrAddComponent<TStrategy>();
-            if (strategyAdded)
+            TStrategy strategy = root.GetComponent<TStrategy>();
+            if (strategy == null)
+            {
+                strategy = root.AddComponent<TStrategy>();
                 Debug.Log($"[EnemyMigration] Added {typeof(TStrategy).Name} to '{prefabName}'.");
+            }
 
             // 6. Configure RangedAttack defaults if applicable
             if (strategy is RangedAttack ranged)
@@ -170,10 +173,12 @@ public static class EnemyMigrationTool
             }
 
             // 7. Add the Enemy orchestrator (if not already present)
-            bool enemyAdded = !root.TryGetComponent<Enemy>(out _);
-            Enemy enemy = root.GetOrAddComponent<Enemy>();
-            if (enemyAdded)
+            Enemy enemy = root.GetComponent<Enemy>();
+            if (enemy == null)
+            {
+                enemy = root.AddComponent<Enemy>();
                 Debug.Log($"[EnemyMigration] Added Enemy orchestrator to '{prefabName}'.");
+            }
 
             // 8. Wire references (using SerializedObject so Unity serialises them)
             SerializedObject so = new SerializedObject(enemy);

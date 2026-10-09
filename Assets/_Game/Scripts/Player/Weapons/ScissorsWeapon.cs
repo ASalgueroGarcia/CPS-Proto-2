@@ -62,20 +62,24 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private List<Health> _hitEnemies = new List<Health>();
     private List<Breakable_Objects> _hitBreakables = new List<Breakable_Objects>();
     private float _specialTimer = 0f;
+    private float _lastHeavyTime = 0f;
     private bool _wasHit = false;
     private float _currentDamage;
     private float _currentCritChance;
     private float _currentKnockback;
     private Color _originalColor;
 
-    private static readonly int Attack1Hash = Animator.StringToHash("Attack1");
-    private static readonly int Attack2Hash = Animator.StringToHash("Attack2");
-    private static readonly int Attack3Hash = Animator.StringToHash("Attack3");
     private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
     private const string HeavyAttackState = "HeavyAttack";
 
 #endregion
 #region Unity Lifecycle
+
+    private void Awake()
+    {
+        // Work on a runtime copy so shop upgrades don't mutate the shared asset.
+        if (_data != null) _data = Instantiate(_data);
+    }
 
     public void Initialize(Player player)
     {
@@ -90,11 +94,25 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _rig.SubscribeAll();
     }
 
+    // Re-subscribe the hitbox rig after a disable/enable cycle so hits land
+    // again if the weapon is pooled or the GameObject is toggled.
+    private void OnEnable()
+    {
+        if (_rig != null) _rig.SubscribeAll();
+    }
+
     public void OnDisable()
     {
         _rig?.UnsubscribeAll();
         _hitEnemies.Clear();
         _hitBreakables.Clear();
+    }
+
+    private void OnDestroy()
+    {
+        // Destroy the runtime copy of the ScriptableObject asset to avoid leaking it
+        // across Play mode sessions in the Editor.
+        if (_data != null) Destroy(_data);
     }
 
     public void OnEquip()
@@ -120,15 +138,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             _wasHit = false;
         }
 
-        Animator anim = Animator;
-        if (anim != null)
-        {
-            anim.ResetTrigger(Attack1Hash);
-            anim.ResetTrigger(Attack2Hash);
-            anim.ResetTrigger(Attack3Hash);
-            anim.ResetTrigger(HeavyAttackHash);
-        }
-
         ComboStep step = _combo.AdvanceStep();
         ScissorsComboResult result = GetStep(step.Index);
 
@@ -138,23 +147,12 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
 
         PlayStepSound(result);
 
+        Animator anim = Animator;
         if (anim != null)
         {
-            // Set the trigger so the Animator Controller's transition fires from any source state.
-            int triggerHash = step.Index switch
-            {
-                2 => Attack2Hash,
-                3 => Attack3Hash,
-                _ => Attack1Hash,
-            };
-            anim.SetTrigger(triggerHash);
             anim.CrossFadeInFixedTime(result.AnimState, 0.05f);
             Debug.Log($"[COMBO] Playing {result.AnimState} (Step {step.Index})");
         }
-
-        int hitboxIndex = result.HitboxIndex;
-        if (_rig.GetHitbox(hitboxIndex) == null) hitboxIndex = GeneralHitboxIndex;
-        _rig.Enable(hitboxIndex);
 
         _hitEnemies.Clear();
         _hitBreakables.Clear();
@@ -165,14 +163,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     public void OnHeavyAttackInput()
     {
         _specialTimer = _data.specialCooldown;
-
-        Transform pt = PlayerTransform;
-        if (pt != null)
-        {
-            Vector3 pos = pt.position;
-            pos.y = 0;
-            pt.position = pos;
-        }
+        _lastHeavyTime = Time.time;
 
         Renderer br = BodyRenderer;
         if (br != null) br.material.color = Color.cyan;
@@ -180,9 +171,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         Animator anim = Animator;
         if (anim != null)
         {
-            anim.ResetTrigger(Attack1Hash);
-            anim.ResetTrigger(Attack2Hash);
-            anim.ResetTrigger(Attack3Hash);
             anim.ResetTrigger(HeavyAttackHash);
             anim.SetTrigger(HeavyAttackHash);
             anim.CrossFadeInFixedTime(HeavyAttackState, 0.05f);
@@ -260,18 +248,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             ResetCombo();
     }
 
-    public void TickFallback(float attackFailsafeSeconds)
-    {
-        if (_combo == null) return;
-
-        bool isAttacking = _combo.CurrentStep > 0 || _specialTimer == _data.specialCooldown;
-        if (_combo.TickFallback(attackFailsafeSeconds, isAttacking))
-        {
-            Debug.LogWarning($"[FAILSAFE] Stuck in attack for {_combo.FallbackTimer:F1}s. Forcing reset.");
-            ResetCombo();
-        }
-    }
-
     public void ResetCombo()
     {
         _combo?.Reset();
@@ -316,7 +292,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             case "DebugPlayAttack3":
                 while (_combo != null && _combo.CurrentStep < 3) _combo.AdvanceStep();
                 Animator anim = Animator;
-                if (anim != null) anim.SetTrigger(Attack3Hash);
+                if (anim != null) anim.CrossFadeInFixedTime("Attack_03", 0.05f);
                 break;
         }
     }
@@ -327,7 +303,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
 
         Debug.Log($"Hitbox ENABLED via Animation Event. Combo Step: {_combo.CurrentStep}");
 
-        int hitboxIndex = (_combo.CurrentStep == 3) ? Hitbox3Index : Hitbox12Index;
+        int hitboxIndex = GetStep(_combo.CurrentStep).HitboxIndex;
         if (_rig.GetHitbox(hitboxIndex) == null) hitboxIndex = GeneralHitboxIndex;
         _rig.Enable(hitboxIndex);
     }
@@ -393,7 +369,9 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     }
 
     public bool IsComboWindowOpen => _combo != null && _combo.IsWindowOpen;
-    public float LastAttackTime => _combo != null ? _combo.LastAttackTime : 0f;
+    public float LastAttackTime => Mathf.Max(
+        _combo != null ? _combo.LastAttackTime : 0f,
+        _lastHeavyTime);
     public int CurrentComboStep => _combo != null ? _combo.CurrentStep : 0;
     public bool HasActiveHitbox => _rig != null && _rig.HasActiveHitbox;
     public bool CanAttack => _combo != null && _combo.CanAttack;

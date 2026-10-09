@@ -22,7 +22,6 @@ public interface IWeapon
     float AttackCooldownRemaining { get; }
 
     void TickTimers();
-    void TickFallback(float failsafeSeconds);
     void ResetCombo();
 
     void Initialize(Player player);

@@ -27,7 +27,6 @@ public class WeaponComboSystem
     private int _step = 0;
     private bool _windowOpen = false;
     private float _lastAttackTime = 0f;
-    private float _fallbackTimer = 0f;
     private readonly float _resetTime;
     private readonly float _attackCooldown;
     private readonly int _maxSteps;
@@ -35,7 +34,6 @@ public class WeaponComboSystem
     public int CurrentStep => _step;
     public bool IsWindowOpen => _windowOpen;
     public float LastAttackTime => _lastAttackTime;
-    public float FallbackTimer => _fallbackTimer;
     public float TimeSinceLastStep => _step > 0 ? Time.time - _lastAttackTime : Mathf.Infinity;
     public int MaxSteps => _maxSteps;
     public float AttackCooldown => _attackCooldown;
@@ -66,7 +64,6 @@ public class WeaponComboSystem
         _step = (_step % _maxSteps) + 1;
         _lastAttackTime = Time.time;
         _windowOpen = false;
-        _fallbackTimer = 0f;
         return new ComboStep(_step);
     }
 
@@ -89,33 +86,12 @@ public class WeaponComboSystem
     }
 
     /// <summary>
-    /// Accumulates fallback time. Returns true if the failsafe threshold (<paramref name="failsafeSeconds"/>) has been exceeded.
-    /// </summary>
-    public bool TickFallback(float failsafeSeconds, bool isAttacking)
-    {
-        if (isAttacking)
-        {
-            _fallbackTimer += Time.deltaTime;
-            
-            if (_fallbackTimer > failsafeSeconds)
-                return true;
-        }
-        else
-        {
-            _fallbackTimer = 0f;
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Resets the combo system to its initial state.
     /// </summary>
     public void Reset()
     {
         _step = 0;
         _windowOpen = false;
-        _fallbackTimer = 0f;
     }
 
 #endregion

@@ -1,5 +1,4 @@
 using UnityEngine;
-using Core.Utils;
 
 public class BasicEnemy : EnemyBase
 {
@@ -26,19 +25,23 @@ public class BasicEnemy : EnemyBase
         alertRange = 10f;
         base.Awake();
         
-        dashTrail = gameObject.GetOrAddComponent<TrailRenderer>();
-        dashTrail.time = 0.4f;
-        dashTrail.startWidth = 1.2f;
-        dashTrail.endWidth = 0.1f;
-        dashTrail.material = new Material(Shader.Find("Sprites/Default"));
-
-        Gradient gradient = new Gradient();
-        gradient.SetKeys(
-            new GradientColorKey[] { new GradientColorKey(Color.red, 0.0f), new GradientColorKey(new Color(1f, 0.5f, 0f), 1.0f) },
-            new GradientAlphaKey[] { new GradientAlphaKey(0.8f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
-        );
-        dashTrail.colorGradient = gradient;
-        dashTrail.emitting = false;
+        dashTrail = GetComponent<TrailRenderer>();
+        if (dashTrail == null)
+        {
+            dashTrail = gameObject.AddComponent<TrailRenderer>();
+            dashTrail.time = 0.4f;
+            dashTrail.startWidth = 1.2f;
+            dashTrail.endWidth = 0.1f;
+            dashTrail.material = new Material(Shader.Find("Sprites/Default"));
+            
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(Color.red, 0.0f), new GradientColorKey(new Color(1f, 0.5f, 0f), 1.0f) },
+                new GradientAlphaKey[] { new GradientAlphaKey(0.8f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
+            );
+            dashTrail.colorGradient = gradient;
+            dashTrail.emitting = false;
+        }
     }
 
     public override void ChangeState(EnemyState newState)

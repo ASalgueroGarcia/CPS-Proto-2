@@ -1,5 +1,4 @@
 using UnityEngine;
-using Core.Utils;
 
 /// <summary>
 /// Strategy: dash at high speed toward the player during windup/execution, dealing damage on contact.
@@ -32,7 +31,10 @@ public class DashAttack : MonoBehaviour, IEnemyAttackStrategy
 
     private void SetupDashTrail()
     {
-        dashTrail = gameObject.GetOrAddComponent<TrailRenderer>();
+        dashTrail = GetComponent<TrailRenderer>();
+        if (dashTrail != null) return;
+
+        dashTrail = gameObject.AddComponent<TrailRenderer>();
         dashTrail.time = 0.4f;
         dashTrail.startWidth = 1.2f;
         dashTrail.endWidth = 0.1f;

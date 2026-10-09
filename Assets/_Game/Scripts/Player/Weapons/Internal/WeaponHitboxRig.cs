@@ -56,12 +56,17 @@ public class WeaponHitboxRig
         HasActiveHitbox = false;
     }
 
+    // Idempotent: removes any prior subscription before re-adding.
+    // Safe to call multiple times (e.g. from OnEnable after a pooled disable/enable).
     public void SubscribeAll()
     {
         for (int i = 0; i < _triggers.Length; i++)
         {
             if (_triggers[i] != null && _onHit != null)
+            {
+                _triggers[i].OnHit -= _onHit;
                 _triggers[i].OnHit += _onHit;
+            }
         }
     }
 

@@ -13,9 +13,6 @@ public class PlayerLocomotion : MonoBehaviour
     [Header("References")]
     public Transform modelTransform;
 
-    [Header("State (set by Player)")]
-    public Player.PlayerState currentState;
-
     private Vector3 _moveDirection = Vector3.zero;
     private float _verticalVelocity = 0f;
     private Quaternion _originalRotation;
@@ -37,16 +34,17 @@ public class PlayerLocomotion : MonoBehaviour
     public void Tick()
     {
         float gravity = _player.gravity;
+        Player.PlayerState state = _player.currentState;
 
         // Stick to ground
         if (Controller.isGrounded && _verticalVelocity < 0)
             _verticalVelocity = -2f;
 
         // Apply gravity and move the player
-        if (currentState != Player.PlayerState.Attacking && currentState != Player.PlayerState.SpecialAttacking)
+        if (state != Player.PlayerState.Attacking && state != Player.PlayerState.SpecialAttacking)
         {
             // Only apply gravity if the player is not dashing
-            if (currentState != Player.PlayerState.Dashing)
+            if (state != Player.PlayerState.Dashing)
                 _verticalVelocity -= gravity * Time.deltaTime;
             else
                 _verticalVelocity = 0;

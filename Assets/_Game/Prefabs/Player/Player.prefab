@@ -147,6 +147,7 @@ GameObject:
   - component: {fileID: 1500000000000000000}
   - component: {fileID: 2094165966615472359}
   - component: {fileID: 6235866373182003459}
+  - component: {fileID: 2000000000000000001}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -811,3 +812,21 @@ SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: -8017449571587430431, guid: 84db6eecaca7c8e4d81cd4ec5a8ced7f, type: 3}
   m_PrefabInstance: {fileID: 8029285051819117020}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2000000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1970894349322054118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad78e255973b9ca4587b425876a31bb2, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDashController
+  dashTrail: {fileID: 6235866373182003459}
+  audioSource: {fileID: 0}
+  dashClips:
+  - {fileID: 8300000, guid: 5f64b99294fc60e4fa76c13c6d982543, type: 3}
+  - {fileID: 8300000, guid: 2a288a98942cd8b49913f460917f3e84, type: 3}
+  - {fileID: 8300000, guid: d9fdaab828bf17e4f8c7e6cafcc5d8ab, type: 3}

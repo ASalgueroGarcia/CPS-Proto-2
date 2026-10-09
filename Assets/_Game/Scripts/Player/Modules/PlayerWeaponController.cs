@@ -88,11 +88,6 @@ public class PlayerWeaponController : MonoBehaviour
         CurrentWeapon?.TickTimers();
     }
 
-    public void TickFallback(float failsafeSeconds)
-    {
-        CurrentWeapon?.TickFallback(failsafeSeconds);
-    }
-
     public void ResetCombo()
     {
         CurrentWeapon?.ResetCombo();

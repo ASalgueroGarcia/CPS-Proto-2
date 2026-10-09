@@ -17,4 +17,7 @@ public class PlayerSpecialAttackingState : PlayerStateBase
         if (!info.IsName(HeavyAttackState))
             player.SwitchState(Player.PlayerState.Idle);
     }
+
+    // Defense in depth: kill any residual hitbox on exit.
+    public override void Exit() => Modules.Weapon.OnAnimationEvent("DisableHitbox");
 }

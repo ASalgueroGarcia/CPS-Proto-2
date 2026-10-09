@@ -40,7 +40,8 @@ public class PlayerDashController : MonoBehaviour
         _dashTimer = _player.dashDuration;
         _dashDirection.y = 0;
 
-        SoundManager.Instance.PlayRandomSound(dashClips);
+        if (SoundManager.Instance != null && dashClips != null && dashClips.Count > 0)
+            SoundManager.Instance.PlayRandomSound(dashClips);
 
         if (dashTrail != null)
         {
