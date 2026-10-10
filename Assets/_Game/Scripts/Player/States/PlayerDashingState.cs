@@ -5,12 +5,10 @@ public class PlayerDashingState : PlayerStateBase
         Modules.Dash.Tick();
 
         if (Modules.Dash.IsDashFinished()) {
-            Modules.Dash.EndDash();
             player.SwitchState(Player.PlayerState.Idle);
         }
     }
 
-    // Safety net: if the state is exited before the dash naturally ends
-    // (e.g. via SwitchState from another path), make sure EndDash still runs.
+    // Single cleanup point: runs when the dash finishes and when it is cut short.
     public override void Exit() => Modules.Dash.EndDash();
 }
