@@ -41,7 +41,7 @@ public class ActPoster : MonoBehaviour
 
     private void Update()
     {
-        bool canOpen = _playerNear && actSelectScreen != null && !ActSelectScreen.IsOpen && !PlayerFSM.IsPaused;
+        bool canOpen = _playerNear && actSelectScreen != null && !ActSelectScreen.IsOpen && !Player.IsPaused;
         SetPrompt(canOpen);
 
         if (canOpen && InteractPressed())
