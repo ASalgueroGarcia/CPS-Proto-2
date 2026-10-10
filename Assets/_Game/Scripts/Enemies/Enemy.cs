@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using Core.Utils;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(NavMeshAgent))]
@@ -49,8 +50,7 @@ public class Enemy : MonoBehaviour
 
         Health.OnDeath.AddListener(HandleDeath);
 
-        if (GetComponent<EnemyUIAutoSetup>() == null)
-            gameObject.AddComponent<EnemyUIAutoSetup>();
+        gameObject.GetOrAddComponent<EnemyUIAutoSetup>();
     }
 
     /// <summary>
@@ -101,7 +101,7 @@ public class Enemy : MonoBehaviour
 
     private void Start()
     {
-        var playerObj = FindFirstObjectByType<PlayerFSM>();
+        var playerObj = FindFirstObjectByType<Player>();
         if (playerObj != null)
         {
             PlayerTransform = playerObj.transform;

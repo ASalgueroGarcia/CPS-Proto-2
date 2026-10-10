@@ -38,7 +38,7 @@ public class ActSelectScreen : MonoBehaviour
         IsOpen = true;
         _openedFrame = Time.frameCount;
         _cursor = ActProgress.IsUnlocked(ActProgress.SelectedAct) ? ActProgress.SelectedAct : 0;
-        PlayerFSM.IsPaused = true;
+        Player.IsPaused = true;
         overlay.SetActive(true);
         Refresh();
     }
@@ -46,7 +46,7 @@ public class ActSelectScreen : MonoBehaviour
     public void Close()
     {
         IsOpen = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
         overlay.SetActive(false);
     }
 
@@ -56,7 +56,7 @@ public class ActSelectScreen : MonoBehaviour
         if (!IsOpen || Time.frameCount == _openedFrame) return;
 
         // The pause menu's Resume clears this flag while the poster is still up.
-        PlayerFSM.IsPaused = true;
+        Player.IsPaused = true;
 
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;

@@ -68,7 +68,7 @@ public class ExplodingTrap : MonoBehaviour
             if (hits[i].CompareTag("Player"))
             {
                 hits[i].GetComponent<Health>()?.TakeDamage(damageToPlayer);
-                var playerController = hits[i].GetComponent<PlayerFSM>();
+                var playerController = hits[i].GetComponent<Player>();
                 if (playerController != null)
                 {
                     playerController.ApplyKnockback(dir.normalized, knockbackEffect, 0.2f);

@@ -4,37 +4,41 @@ using UnityEngine.Events;
 
 public class Health : MonoBehaviour
 {
+
+#region Fields
+
     [Header("Health Settings")]
     [SerializeField] private float _maxHealth = 100f;
     [SerializeField] private float _currentHealth = 100f;
 
-    public float maxHealth { get => _maxHealth; set => SetMaxHealth(value); }
-    public float currentHealth { get => _currentHealth; set => SetHealth(value); }
-    
     [Header("Events")]
     public UnityEvent<float, float> OnHealthChanged; // (current, max)
     public UnityEvent<float> OnDamageTaken;
     public UnityEvent OnDeath;
+    public UnityEvent<Vector3, float> OnKnockbackReceived; // (source, force)
 
     [Header("Settings")]
-    public bool autoResetOnDeath = false;
     public bool isInvulnerable = false;
+    public bool useInternalKnockback = true;
 
     [Header("Visual Feedback")]
     [SerializeField] private Renderer targetRenderer;
     private Color originalColor;
     private Coroutine flashCoroutine;
 
-    [Header("Fall Settings")]
+    [Header("Fall Detection")]
     [SerializeField] private bool checkFall = true;
     [SerializeField] private float fallThreshold = -5f;
     [SerializeField] private float checkInterval = 0.5f;
 
-    [Header("SFX")] 
+    [Header("SFX")]
     [SerializeField] private AudioClip hitImpactClip;
     [SerializeField] private AudioClip deathClip;
 
     private bool isDying = false;
+
+#endregion
+#region Unity Lifecycle
 
     private void Start()
     {
@@ -50,6 +54,9 @@ public class Health : MonoBehaviour
         }
     }
 
+#endregion
+#region Fall Detection
+
     private void CheckFall()
     {
         if (isDying) return;
@@ -60,32 +67,57 @@ public class Health : MonoBehaviour
         }
     }
 
+#endregion
+#region Health
+
     public void TakeDamage(float amount, Vector3 knockbackSource = default, float knockbackForce = 0f)
     {
         if (isInvulnerable || isDying) return;
 
         SetHealth(_currentHealth - amount);
-        
+
         OnDamageTaken?.Invoke(amount);
-        
+
         // Trigger Orange Hit Flash
         TriggerHitFlash(new Color(1f, 0.5f, 0f)); // Orange
 
-        // Apply Knockback if force is provided
+        // Apply Knockback: internally or delegated to an external receiver (Player).
         if (knockbackForce > 0 && knockbackSource != default)
         {
-            ApplyKnockback(knockbackSource, knockbackForce);
+            if (useInternalKnockback)
+                ApplyKnockback(knockbackSource, knockbackForce);
+            else
+                OnKnockbackReceived?.Invoke(knockbackSource, knockbackForce);
         }
-
-        // Debug.Log($"{gameObject.name} took {amount} damage. HP: {_currentHealth}/{_maxHealth}");
 
         if (_currentHealth <= 0)
         {
             Die();
         }
-        
+
         if (SoundManager.Instance != null && hitImpactClip != null) SoundManager.Instance.PlaySound(hitImpactClip);
     }
+
+    public void SetHealth(float amount)
+    {
+        _currentHealth = Mathf.Clamp(amount, 0, _maxHealth);
+        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
+    }
+
+    public void SetMaxHealth(float amount)
+    {
+        _maxHealth = amount;
+        _currentHealth = Mathf.Clamp(_currentHealth, 0, _maxHealth);
+        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
+    }
+
+    public void ResetHealth()
+    {
+        SetHealth(_maxHealth);
+    }
+
+#endregion
+#region Visual Feedback
 
     private void TriggerHitFlash(Color flashColor)
     {
@@ -101,6 +133,9 @@ public class Health : MonoBehaviour
         targetRenderer.material.color = originalColor;
         flashCoroutine = null;
     }
+
+#endregion
+#region Knockback
 
     private void ApplyKnockback(Vector3 source, float force)
     {
@@ -131,18 +166,8 @@ public class Health : MonoBehaviour
         }
     }
 
-    public void SetHealth(float amount)
-    {
-        _currentHealth = Mathf.Clamp(amount, 0, _maxHealth);
-        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
-    }
-
-    public void SetMaxHealth(float amount)
-    {
-        _maxHealth = amount;
-        _currentHealth = Mathf.Clamp(_currentHealth, 0, _maxHealth);
-        OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
-    }
+#endregion
+#region Death
 
     private void Die()
     {
@@ -153,20 +178,26 @@ public class Health : MonoBehaviour
 
         OnDeath?.Invoke();
         Debug.Log($"{gameObject.name} has DIED!");
-        
+
         SoundManager.Instance.PlaySound(deathClip);
-        
+
         Destroy(gameObject, 0.1f);
     }
 
-    public void ResetHealth()
+#endregion
+#region Properties
+
+    public float maxHealth
     {
-        SetHealth(_maxHealth);
+        get => _maxHealth;
+        set => SetMaxHealth(value);
     }
 
-    public void ResetAllHealthsInScene()
+    public float currentHealth
     {
-        Health[] allHealths = Object.FindObjectsByType<Health>(FindObjectsSortMode.None);
-        foreach (Health h in allHealths) h.ResetHealth();
+        get => _currentHealth;
+        set => SetHealth(value);
     }
+
+#endregion
 }
