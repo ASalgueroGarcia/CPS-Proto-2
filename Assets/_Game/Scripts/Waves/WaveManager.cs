@@ -26,7 +26,9 @@ public class WaveManager : MonoBehaviour
 
     [Header("Room Setup")]
     public RoomType currentRoomType = RoomType.Medium;
-    public RoomConfig config;
+    public RoomConfigData config;
+    [Tooltip("Library asset holding one RoomConfigData per tier (Data/Rooms).")]
+    [SerializeField] private RoomConfigLibrary roomConfigLibrary;
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
@@ -82,7 +84,14 @@ public class WaveManager : MonoBehaviour
         if (roomCleared) return; // Safety check: don't spawn waves if room is already cleared
 
         currentWaveIndex++;
-        config = RoomConfigs.Get(currentRoomType);
+        if (roomConfigLibrary == null)
+        {
+            Debug.LogError("[WaveManager] No RoomConfigLibrary assigned - assign Data/Rooms/RoomConfigLibrary.asset on the WaveManager.", this);
+            return;
+        }
+
+        config = roomConfigLibrary.Get(currentRoomType);
+        if (config == null) return;
         
         int budget = config.budget;
         List<EnemyType> pool = config.enemyPool;
@@ -170,7 +179,8 @@ public class WaveManager : MonoBehaviour
 
     private void CheckWaveCompletion()
     {
-        RoomConfig currentConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData currentConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (currentConfig == null) return;
         
         if (currentWaveIndex < currentConfig.maxWaves)
         {
@@ -196,7 +206,8 @@ public class WaveManager : MonoBehaviour
 
     private void SpawnRewards()
     {
-        RoomConfig roomConfig = RoomConfigs.Get(currentRoomType);
+        RoomConfigData roomConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
+        if (roomConfig == null) return;
         
         // Use transform.position as the base center
         Vector3 centerPos = transform.position;
@@ -302,35 +313,5 @@ public class WaveManager : MonoBehaviour
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube(transform.position, new Vector3(spawnAreaSize.x, 0, spawnAreaSize.y));
-    }
-}
-
-public class RoomConfig
-{
-    public int budget;
-    public float baseWaveChance;
-    public int maxWaves;
-    public List<EnemyType> enemyPool;
-    public int expectedCurrency;
-    public float healthDropChance;
-}
-
-public static class RoomConfigs
-{
-    private static Dictionary<RoomType, RoomConfig> configs = new Dictionary<RoomType, RoomConfig>
-    {
-        { RoomType.Entrance, new RoomConfig { budget = 4, baseWaveChance = 0f, maxWaves = 1, enemyPool = new List<EnemyType>{EnemyType.Slimo}, expectedCurrency = 1, healthDropChance = 0f }},
-        { RoomType.Medium, new RoomConfig { budget = 6, baseWaveChance = 0.15f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged}, expectedCurrency = 2, healthDropChance = 0.1f }},    
-        { RoomType.MediumHard, new RoomConfig { budget = 9, baseWaveChance = 0.30f, maxWaves = 2, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 2, healthDropChance = 0.2f }},
-        { RoomType.Hard, new RoomConfig { budget = 12, baseWaveChance = 0.45f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 3, healthDropChance = 0.3f }},
-        { RoomType.MiniBoss, new RoomConfig { budget = 16, baseWaveChance = 0.60f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 4, healthDropChance = 0.6f }},
-        { RoomType.Boss, new RoomConfig { budget = 12, baseWaveChance = 1.0f, maxWaves = 3, enemyPool = new List<EnemyType>{EnemyType.Slimo, EnemyType.Ranged, EnemyType.Heavy}, expectedCurrency = 6, healthDropChance = 1.0f }},
-        { RoomType.Shop, new RoomConfig { budget = 0, baseWaveChance = 0, maxWaves = 0, enemyPool = new List<EnemyType>(), expectedCurrency = 0, healthDropChance = 0 }},
-        { RoomType.Treasure, new RoomConfig { budget = 0, baseWaveChance = 0, maxWaves = 0, enemyPool = new List<EnemyType>(), expectedCurrency = 0, healthDropChance = 1.0f }}
-    };
-
-    public static RoomConfig Get(RoomType type)
-    {
-        return configs[type];
     }
 }

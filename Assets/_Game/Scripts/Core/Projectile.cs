@@ -1,4 +1,5 @@
 using UnityEngine;
+using Core.Utils;
 
 public class Projectile : MonoBehaviour
 {
@@ -15,8 +16,7 @@ public class Projectile : MonoBehaviour
     public void Setup(Vector3 targetPos, float dmg, float angle)
     {
         damage = dmg;
-        rb = GetComponent<Rigidbody>();
-        if (rb == null) rb = gameObject.AddComponent<Rigidbody>();
+        rb = gameObject.GetOrAddComponent<Rigidbody>();
 
         rb.isKinematic = false;
         rb.useGravity = true;
@@ -70,7 +70,7 @@ public class Projectile : MonoBehaviour
         {
             Explode();
         }
-        else if (other.CompareTag("Player") || other.GetComponent<PlayerFSM>() != null)
+        else if (other.CompareTag("Player") || other.GetComponent<Player>() != null)
         {
             Health playerHealth = other.GetComponent<Health>();
             if (playerHealth != null) playerHealth.TakeDamage(damage);

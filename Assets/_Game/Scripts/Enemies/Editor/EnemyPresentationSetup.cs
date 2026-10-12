@@ -24,7 +24,7 @@ public static class EnemyPresentationSetup
         {
             string path = AssetDatabase.GUIDToAssetPath(guid);
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-            if (prefab.GetComponent<Enemy>() == null && prefab.GetComponent<EnemyBase>() == null)
+            if (prefab.GetComponent<Enemy>() == null)
                 continue;
 
             using (var scope = new PrefabUtility.EditPrefabContentsScope(path))
