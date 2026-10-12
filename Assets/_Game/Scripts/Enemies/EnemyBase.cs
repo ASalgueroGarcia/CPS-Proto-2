@@ -1,8 +1,10 @@
+// LEGACY (review): Shared base for the old enemy controllers. Current prefabs use Enemy and attack components.
 using UnityEngine;
 using UnityEngine.AI;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(EnemyVisualFeedback))]
 public abstract class EnemyBase : MonoBehaviour
 {
     public enum EnemyState { Patrol, Alert, Attack, Idle }
@@ -25,10 +27,9 @@ public abstract class EnemyBase : MonoBehaviour
     protected Health playerHealth;
     protected MeshRenderer meshRenderer;
     protected Color originalColor;
+    private EnemyVisualFeedback visualFeedback;
     
     protected float stateTimer = 0f;
-
-    // Patrol variables
     public float roamRadius = 10f;
     protected Vector3 patrolTarget;
     protected bool isMovingToPatrolPoint = false;
@@ -38,7 +39,9 @@ public abstract class EnemyBase : MonoBehaviour
         health = GetComponent<Health>();
         agent = GetComponent<NavMeshAgent>();
         meshRenderer = GetComponentInChildren<MeshRenderer>();
-        if (meshRenderer != null) originalColor = meshRenderer.material.color;
+        visualFeedback = GetComponent<EnemyVisualFeedback>();
+        visualFeedback.Initialize(meshRenderer);
+        originalColor = visualFeedback.BaseColor;
         
         health.maxHealth = maxHealth;
         health.currentHealth = maxHealth;
@@ -46,8 +49,6 @@ public abstract class EnemyBase : MonoBehaviour
         agent.speed = speed;
 
         health.OnDeath.AddListener(HandleDeath);
-
-        // Ensure UI is setup
         if (GetComponent<EnemyUIAutoSetup>() == null)
         {
             gameObject.AddComponent<EnemyUIAutoSetup>();
@@ -111,7 +112,6 @@ public abstract class EnemyBase : MonoBehaviour
 
             case EnemyState.Alert:
                 stateTimer -= Time.deltaTime;
-                // Alert visual indicator: flash yellow
                 if (Mathf.FloorToInt(stateTimer * 10) % 2 == 0) FlashColor(Color.yellow, 0.1f);
                 
                 if (stateTimer <= 0)
@@ -140,18 +140,18 @@ public abstract class EnemyBase : MonoBehaviour
 
     public virtual void ChangeState(EnemyState newState)
     {
+        visualFeedback.ClearTelegraph();
         currentState = newState;
         
         if (newState == EnemyState.Alert)
         {
-            agent.ResetPath(); // Stop moving
+            agent.ResetPath();
             stateTimer = alertDuration;
-            // Visual indication of alert
             FlashColor(Color.yellow, 0.5f);
         }
         else if (newState == EnemyState.Idle)
         {
-            agent.ResetPath(); // Stop moving
+            agent.ResetPath();
             stateTimer = idleDuration;
         }
         else if (newState == EnemyState.Patrol)
@@ -162,9 +162,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void PatrolBehavior()
     {
-        agent.speed = speed * 0.5f; // Move slower while patrolling
-
-        // If the enemy reached its destination, go into Idle state to pause
+        agent.speed = speed * 0.5f;
         if (!agent.pathPending && agent.remainingDistance < 0.5f) 
         {
             ChangeState(EnemyState.Idle);
@@ -176,8 +174,6 @@ public abstract class EnemyBase : MonoBehaviour
         Vector3 randomDirection = Random.insideUnitSphere * roamRadius;
         randomDirection += transform.position;
         NavMeshHit hit;
-        
-        // Find the closest valid point on the NavMesh
         if (NavMesh.SamplePosition(randomDirection, out hit, roamRadius, 1)) 
         {
             patrolTarget = hit.position;
@@ -209,16 +205,6 @@ public abstract class EnemyBase : MonoBehaviour
 
     public void FlashColor(Color color, float duration = 0.1f)
     {
-        if (meshRenderer != null)
-        {
-            meshRenderer.material.color = color;
-            CancelInvoke("ResetColor");
-            Invoke("ResetColor", duration);
-        }
-    }
-
-    private void ResetColor()
-    {
-        if (meshRenderer != null) meshRenderer.material.color = originalColor;
+        visualFeedback.SetTelegraph(color, duration);
     }
 }
