@@ -12,7 +12,7 @@ public class Health : MonoBehaviour
     [SerializeField] private float _currentHealth = 100f;
 
     [Header("Events")]
-    public UnityEvent<float, float> OnHealthChanged; // (current, max)
+    public UnityEvent<float, float> OnHealthChanged;
     public UnityEvent<float> OnDamageTaken;
     public UnityEvent OnDeath;
     public UnityEvent<Vector3, float> OnKnockbackReceived; // (source, force)
@@ -25,6 +25,7 @@ public class Health : MonoBehaviour
     [SerializeField] private Renderer targetRenderer;
     private Color originalColor;
     private Coroutine flashCoroutine;
+    private EnemyVisualFeedback enemyVisualFeedback;
 
     [Header("Fall Detection")]
     [SerializeField] private bool checkFall = true;
@@ -43,7 +44,9 @@ public class Health : MonoBehaviour
     private void Start()
     {
         if (targetRenderer == null) targetRenderer = GetComponentInChildren<Renderer>();
-        if (targetRenderer != null) originalColor = targetRenderer.material.color;
+        enemyVisualFeedback = GetComponent<EnemyVisualFeedback>();
+        if (enemyVisualFeedback == null && targetRenderer != null)
+            originalColor = targetRenderer.material.color;
 
         _currentHealth = _maxHealth;
         OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
@@ -77,9 +80,8 @@ public class Health : MonoBehaviour
         SetHealth(_currentHealth - amount);
 
         OnDamageTaken?.Invoke(amount);
-
         // Trigger Orange Hit Flash
-        TriggerHitFlash(new Color(1f, 0.5f, 0f)); // Orange
+        TriggerHitFlash(new Color(1f, 0.5f, 0f));
 
         // Apply Knockback: internally or delegated to an external receiver (Player).
         if (knockbackForce > 0 && knockbackSource != default)
@@ -121,6 +123,13 @@ public class Health : MonoBehaviour
 
     private void TriggerHitFlash(Color flashColor)
     {
+        if (enemyVisualFeedback == null) enemyVisualFeedback = GetComponent<EnemyVisualFeedback>();
+        if (enemyVisualFeedback != null)
+        {
+            enemyVisualFeedback.ShowHitFlash();
+            return;
+        }
+
         if (targetRenderer == null) return;
         if (flashCoroutine != null) StopCoroutine(flashCoroutine);
         flashCoroutine = StartCoroutine(FlashCoroutine(flashColor));
@@ -143,12 +152,11 @@ public class Health : MonoBehaviour
         if (rb != null)
         {
             Vector3 direction = (transform.position - source).normalized;
-            direction.y = 0; // Keep it horizontal
+            direction.y = 0;
             rb.AddForce(direction * force, ForceMode.Impulse);
         }
         else
         {
-            // If using CharacterController or basic Transform
             Vector3 direction = (transform.position - source).normalized;
             StartCoroutine(SimpleKnockbackCoroutine(direction, force * 0.1f));
         }

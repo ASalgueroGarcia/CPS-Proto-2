@@ -1,9 +1,4 @@
 using UnityEngine;
-
-/// <summary>
-/// Strategy: maintain distance from the player, aim during windup, then fire a projectile.
-/// Good for enemies that prefer not to engage in melee.
-/// </summary>
 public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 {
     [Header("Ranged Settings")]
@@ -26,24 +21,23 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
     [Header("Audio")]
     [SerializeField] private AudioClip shootSound;
 
-    // IEnemyAttackStrategy contract ---------------------------------------------------------------
-
-    public float ExecutingDuration => 0f; // Instant fire
+    public float ApproachDuration => 0f;
+    public float ExecutingDuration => 0f;
+    public bool IsExecutionComplete => false;
+    public bool BeginsWindupAtAnyDistance => false;
 
     public void OnApproachTarget(Enemy owner, float distanceToPlayer)
     {
-        // Keep ideal distance: too close → flee, too far → chase, in zone → stay
         if (distanceToPlayer < idealDistance - distanceDeadzone)
         {
-            owner.MoveAwayFrom(owner.PlayerTransform.position, owner.data.speed);
+            owner.MoveAwayFrom(owner.PlayerTransform.position, owner.Settings.speed);
         }
         else if (distanceToPlayer > idealDistance + distanceDeadzone)
         {
-            owner.MoveTowards(owner.PlayerTransform.position, owner.data.speed);
+            owner.MoveTowards(owner.PlayerTransform.position, owner.Settings.speed);
         }
         else
         {
-            // In the sweet spot — stop moving, face the player
             owner.Agent.ResetPath();
             FacePlayer(owner);
         }
@@ -51,10 +45,7 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     public void OnWindup(Enemy owner)
     {
-        // Face the player while aiming
         FacePlayer(owner);
-
-        // Visual telegraph: flash red to warn
         owner.FlashColor(Color.red, 0.15f);
     }
 
@@ -67,14 +58,11 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     public void OnCooldown(Enemy owner, float distanceToPlayer)
     {
-        // Maintain distance while on cooldown
         if (distanceToPlayer < idealDistance - 5f)
         {
-            owner.MoveAwayFrom(owner.PlayerTransform.position, owner.data.speed);
+            owner.MoveAwayFrom(owner.PlayerTransform.position, owner.Settings.speed);
         }
     }
-
-    // --- Internal helpers ------------------------------------------------------------------------
 
     private void FacePlayer(Enemy owner)
     {
@@ -86,29 +74,28 @@ public class RangedAttack : MonoBehaviour, IEnemyAttackStrategy
 
     private void Shoot(Enemy owner)
     {
-        Vector3 spawnPos = GetSpawnPosition(owner);
-        GameObject projObj;
+        Vector3 spawnPosition = GetSpawnPosition(owner);
+        GameObject projectileObject;
 
         if (projectilePrefab != null)
         {
-            projObj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity, owner.transform.parent);
+            projectileObject = Instantiate(projectilePrefab, spawnPosition, Quaternion.identity, owner.transform.parent);
         }
         else
         {
-            // Fallback: create a primitive sphere if prefab is missing
-            projObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            projObj.transform.SetParent(owner.transform.parent);
-            projObj.transform.position = spawnPos;
-            projObj.transform.localScale = Vector3.one * 0.5f;
-            projObj.GetComponent<SphereCollider>().isTrigger = true;
-            projObj.AddComponent<Projectile>();
+            projectileObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projectileObject.transform.SetParent(owner.transform.parent);
+            projectileObject.transform.position = spawnPosition;
+            projectileObject.transform.localScale = Vector3.one * 0.5f;
+            projectileObject.GetComponent<SphereCollider>().isTrigger = true;
+            projectileObject.AddComponent<Projectile>();
         }
 
-        Projectile proj = projObj.GetComponent<Projectile>();
-        if (proj != null)
+        Projectile projectile = projectileObject.GetComponent<Projectile>();
+        if (projectile != null)
         {
-            Vector3 targetPos = owner.PlayerTransform.position + Vector3.up * 1f;
-            proj.Setup(targetPos, owner.data.damage, launchAngle);
+            Vector3 targetPosition = owner.PlayerTransform.position + Vector3.up * 1f;
+            projectile.Setup(targetPosition, owner.Settings.damage, launchAngle);
         }
 
         if (shootSound != null && SoundManager.Instance != null)

@@ -109,7 +109,9 @@ public class WaveManager : MonoBehaviour
         while (currentSpent < budget)
         {
             EnemyType type = pool[Random.Range(0, pool.Count)];
-            EnemyPrefabConfig prefabConfig = enemyConfigs.Find(c => c.type == type);
+            // TEMPORARY: 50/50 random spawn between White Rabbit and Flower for EnemyType.Ranged. Revert to standard spawn assignment once all enemies are confirmed working as intended.
+            List<EnemyPrefabConfig> matchingConfigs = enemyConfigs.FindAll(c => c.type == type);
+            EnemyPrefabConfig prefabConfig = matchingConfigs.Count > 0 ? matchingConfigs[Random.Range(0, matchingConfigs.Count)] : null;
 
             if (prefabConfig == null) break;
 
