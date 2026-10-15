@@ -58,12 +58,14 @@ public class UIManager : MonoBehaviour
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
+        WaveManager.OnRoomCompleted += ShowEoLCanvas;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
+        WaveManager.OnRoomCompleted -= ShowEoLCanvas;
     }
 
     private void OnSceneUnloaded(Scene scene)

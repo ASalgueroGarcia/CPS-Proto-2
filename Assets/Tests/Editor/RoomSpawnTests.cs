@@ -13,10 +13,10 @@ using UnityEngine.AI;
 /// computed on the map and never reached WaveManager, so every room spawned the Medium
 /// default. Asserting asset values alone would not have caught that; only running a room does.
 ///
-/// These drive InitializeRoom() directly instead of waiting on Start(), because PlayMode
-/// tests need a test assembly and an asmdef-based assembly cannot reference the predefined
-/// Assembly-CSharp the game code lives in. Everything downstream of that call - the budget
-/// loop, the ground raycast, the NavMesh sample, the Instantiate - is the shipping code.
+/// These are EditMode tests, so nothing calls Start(): they drive InitializeRoom() directly.
+/// (Written before the game code had its own assemblies; a PlayMode test assembly could now
+/// reference Spectracle.Waves and let Start() run.) Everything downstream of that call - the
+/// budget loop, the ground raycast, the NavMesh sample, the Instantiate - is the shipping code.
 ///
 /// The room is built from scratch rather than loaded from a Layout prefab: the prefabs carry
 /// no NavMeshSurface, their NavMesh is baked per scene. A flat plane baked at runtime gives

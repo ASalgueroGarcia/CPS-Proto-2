@@ -60,7 +60,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private WeaponComboSystem _combo;
     private WeaponHitboxRig _rig;
     private List<Health> _hitEnemies = new List<Health>();
-    private List<Breakable_Objects> _hitBreakables = new List<Breakable_Objects>();
+    private List<IBreakable> _hitBreakables = new List<IBreakable>();
     private float _specialTimer = 0f;
     private float _lastHeavyTime = 0f;
     private bool _wasHit = false;
@@ -340,7 +340,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         }
         else if (other.CompareTag("Breakeable"))
         {
-            Breakable_Objects breakable = other.GetComponent<Breakable_Objects>();
+            IBreakable breakable = other.GetComponent<IBreakable>();
             if (breakable != null && !_hitBreakables.Contains(breakable))
             {
                 breakable.TakeDamage(1);
