@@ -27,6 +27,9 @@ public class ConfirmDialogCanvasView : MonoBehaviour, IConfirmDialog
         // buttons behind it (Left from KEEP landed on the slot's own DELETE).
         yesButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = noButton, selectOnRight = noButton };
         noButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = yesButton, selectOnRight = yesButton };
+
+        // Esc / B answers like KEEP: backing out never deletes anything.
+        CancelRelay.AddTo(panel, () => Answer(false));
         panel.SetActive(false);
     }
 

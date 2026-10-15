@@ -284,6 +284,10 @@ public class UIManager : MonoBehaviour
 
     private void OnPausePressed(InputAction.CallbackContext context)
     {
+        // The title screen has nothing to pause - there Esc is the menus' "back" (Cancel). A lobby in
+        // the same scene has a player, so pausing keeps working there.
+        if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
+
         if (_isPaused){
             Resume();
         }

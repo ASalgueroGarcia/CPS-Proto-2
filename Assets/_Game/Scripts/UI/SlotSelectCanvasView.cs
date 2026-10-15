@@ -27,6 +27,8 @@ public class SlotSelectCanvasView : MonoBehaviour, ISlotSelectView
         {
             cards[slot].Bind(slot, chosen => SlotChosen?.Invoke(chosen), deleted => DeleteRequested?.Invoke(deleted));
         }
+
+        CancelRelay.AddTo(panel, Back);
     }
 
     /// <summary>Back button OnClick target.</summary>

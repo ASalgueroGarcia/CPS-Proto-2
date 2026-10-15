@@ -40,6 +40,7 @@ public class SettingsCanvasView : MonoBehaviour, ISettingsView
         sfxSlider.onValueChanged.AddListener(value => SfxVolumeChanged?.Invoke(value));
         resolutionDropdown.onValueChanged.AddListener(index => ResolutionChanged?.Invoke(index));
         displayModeDropdown.onValueChanged.AddListener(index => DisplayModeChanged?.Invoke(index));
+        CancelRelay.AddTo(panel, Back);
     }
 
     /// <summary>Back button OnClick target.</summary>
