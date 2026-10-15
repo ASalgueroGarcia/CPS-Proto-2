@@ -122,5 +122,7 @@ so no game assembly depends on Visual Scripting.
   use them back, which is why the enemy health bar (`WorldSpaceHealthBar`) lives in
   Enemies. If something else ever needs it, move it down to Core, not back to UI.
 - **Player is the bottom of the gameplay stack.** It uses only Core. Anything
-  that reacts to the player (enemies, traps, pickups, shop, HUD) uses Player,
-  never the other way round. That is what keeps the player safe to refactor.
+  that reacts to the player (enemies, traps, shop, HUD) uses Player, never the
+  other way round. That is what keeps the player safe to refactor. Pickups don't
+  use Player at all: they reach the player only through the Shop's
+  `PlayerStatsManager`.
