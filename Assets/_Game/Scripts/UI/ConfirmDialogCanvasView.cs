@@ -22,6 +22,11 @@ public class ConfirmDialogCanvasView : MonoBehaviour, IConfirmDialog
     {
         yesButton.onClick.AddListener(() => Answer(true));
         noButton.onClick.AddListener(() => Answer(false));
+
+        // Keep keyboard / gamepad focus inside the dialog: automatic navigation would wander to the
+        // buttons behind it (Left from KEEP landed on the slot's own DELETE).
+        yesButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = noButton, selectOnRight = noButton };
+        noButton.navigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnLeft = yesButton, selectOnRight = yesButton };
         panel.SetActive(false);
     }
 
