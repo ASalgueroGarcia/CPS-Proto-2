@@ -20,7 +20,7 @@ ones it lists. Nothing ever points up.
 
 | Assembly | Uses | Packages |
 |---|---|---|
-| `Spectracle.UI` | Map, Waves, Shop, Player, Core | Input System, TextMesh Pro, UGUI |
+| `Spectracle.UI` | Menus, Map, Waves, Shop, Player, Core | Input System, TextMesh Pro, UGUI |
 | `Spectracle.Map` | Waves, Core | UGUI |
 | `Spectracle.Waves` | Pickups, Core | |
 | `Spectracle.Pickups` | Shop, Core | |

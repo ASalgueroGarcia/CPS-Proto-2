@@ -1,71 +1,50 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// First screen of the game (GDD > Menus: Art and main functions > Main Menu).
-/// Play starts a new run, Settings opens the settings panel, Exit closes the game.
+/// First screen of the game (GDD > Menus: Art and main functions > Main Menu): Resume,
+/// Settings, Exit. The Canvas version of IMainMenuView - the buttons only report the click and
+/// MainMenuPresenter decides what happens, so an in-world menu can replace this one later.
 /// </summary>
-public class MainMenu : MonoBehaviour
+public class MainMenu : MonoBehaviour, IMainMenuView
 {
     [Header("Panels")]
     [SerializeField] private GameObject menuPanel;
-    [SerializeField] private GameObject settingsPanel;
 
     [Header("Default Selection (keyboard / gamepad)")]
     [SerializeField] private Button playButton;
-    [SerializeField] private Button settingsBackButton;
 
-    private void Start()
+    public event Action ResumeRequested;
+    public event Action SettingsRequested;
+    public event Action ExitRequested;
+
+    // Button OnClick targets. The names predate the save system; the prefab is wired to them.
+    public void Play() => ResumeRequested?.Invoke();
+
+    public void OpenSettings() => SettingsRequested?.Invoke();
+
+    public void Exit() => ExitRequested?.Invoke();
+
+    public void Show(Action onShown = null)
     {
-        CloseSettings();
-    }
-
-    /// <summary>
-    /// Starts a new run. There is no save system yet, so this is always a fresh run.
-    /// </summary>
-    public void Play()
-    {
-        if (UIManager.Instance == null)
-        {
-            Debug.LogError("[MainMenu] UIManager instance is null! Cannot start the game.", this);
-            return;
-        }
-
-        UIManager.Instance.StartGame();
-    }
-
-    /// <summary>
-    /// Placeholder until the Settings Menu (volume sliders, controls) is built.
-    /// </summary>
-    public void OpenSettings()
-    {
-        menuPanel.SetActive(false);
-        settingsPanel.SetActive(true);
-        Select(settingsBackButton);
-    }
-
-    public void CloseSettings()
-    {
-        settingsPanel.SetActive(false);
         menuPanel.SetActive(true);
         Select(playButton);
+        onShown?.Invoke();
     }
 
-    public void Exit()
+    public void Hide(Action onHidden = null)
     {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
+        menuPanel.SetActive(false);
+        onHidden?.Invoke();
     }
 
-    private static void Select(Button button)
+    private static void Select(Selectable selectable)
     {
-        if (button != null && EventSystem.current != null)
+        if (selectable != null && EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(button.gameObject);
+            EventSystem.current.SetSelectedGameObject(selectable.gameObject);
         }
     }
 }
