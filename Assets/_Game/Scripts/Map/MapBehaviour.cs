@@ -295,6 +295,16 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
+        // The final fight is won: the run ends here and is saved as a victory
+        // (GDD > Save System), then the player goes back to the hub.
+        if (_completedNode.IsEndingNode())
+        {
+            _completedNode = null;
+            Services.Run?.EndRun(RunOutcome.Victory);
+            Services.Flow?.EnterHub();
+            return;
+        }
+
         // Lock all buttons first
         for (var i = 0; i < maxLayers; i++)
         {
