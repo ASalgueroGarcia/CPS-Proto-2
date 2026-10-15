@@ -52,11 +52,13 @@ public static class Services
 
         Install(save, settings, new RunSession(save));
 
-        // Reopen the last slot only if it still exists: selecting a missing slot would create it.
+        // Reopen the last slot only if it exists and reads cleanly: selecting a missing slot would create
+        // it, and selecting a damaged one would repair it before the player ever saw "DAMAGED SAVE".
         int lastSlot = settings.Data.lastSlot;
-        if (SaveService.IsValidSlot(lastSlot) && save.Peek(lastSlot).Exists)
+        if (SaveService.IsValidSlot(lastSlot))
         {
-            save.SelectSlot(lastSlot);
+            SlotSummary last = save.Peek(lastSlot);
+            if (last.Exists && !last.Unreadable) save.SelectSlot(lastSlot);
         }
     }
 

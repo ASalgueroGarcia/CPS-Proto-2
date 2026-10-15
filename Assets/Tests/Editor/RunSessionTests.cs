@@ -34,16 +34,42 @@ public class RunSessionTests
     [Test]
     public void BeginRun_SavesBeforeTheRun_WithoutCountingTheTakeYet()
     {
-        long before = Disk().lastSavedUtcTicks;
+        int saves = 0;
+        _save.Saved += _ => saves++;
 
         _run.BeginRun(0);
 
+        Assert.AreEqual(1, saves, "Every run starts with a save.");
         Assert.IsTrue(_run.IsActive);
         Assert.AreEqual(0, _run.Act);
         Assert.AreEqual(0, _run.Scene);
         Assert.AreEqual(1, _run.CurrentTake, "The map shows Take 1 during the first attempt.");
-        Assert.Greater(Disk().lastSavedUtcTicks, before - 1);
         Assert.AreEqual(0, Disk().takes[0]);
+    }
+
+    [Test]
+    public void FirstRun_MarksFirstLaunchDone()
+    {
+        Assert.IsFalse(Disk().firstLaunchDone, "A new slot hasn't had its first-time setup yet.");
+
+        _run.BeginRun(0);
+
+        Assert.IsTrue(Disk().firstLaunchDone);
+    }
+
+    [Test]
+    public void SwitchingSlotMidRun_NeverWritesTheRunIntoTheOtherSlot()
+    {
+        _run.BeginRun(0);
+        _run.AddTickets(5);
+        _save.SelectSlot(1);
+
+        Assert.IsFalse(_run.EndRun(RunOutcome.Death));
+
+        Assert.IsFalse(_run.IsActive);
+        Assert.AreEqual(0, _save.Data.takes[0], "slot 2 untouched");
+        Assert.AreEqual(0, _save.Data.tickets);
+        Assert.AreEqual(0, Disk().takes[0], "slot 1 untouched (quit rules: take +0)");
     }
 
     [Test]

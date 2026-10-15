@@ -16,6 +16,7 @@ public class SaveService
 
     private readonly JsonFileStore _store;
     private readonly bool[] _readOnly = new bool[SlotCount];
+    private readonly bool[] _readOnlyWarned = new bool[SlotCount];
 
     /// <summary>Raised after a slot file was written.</summary>
     public event Action<int> Saved;
@@ -68,6 +69,7 @@ public class SaveService
             case FileState.Missing: return SlotSummary.Empty(slot);
             case FileState.Ok: return SlotSummary.From(slot, data);
             case FileState.NewerVersion: return SlotSummary.From(slot, data, true);
+            case FileState.IoError: return SlotSummary.Unavailable(slot);
             default: return SlotSummary.Damaged(slot);
         }
     }
@@ -130,6 +132,12 @@ public class SaveService
         int slot = ActiveSlot;
         if (_readOnly[slot])
         {
+            if (!_readOnlyWarned[slot])
+            {
+                _readOnlyWarned[slot] = true;
+                Debug.LogWarning($"[SaveService] Save slot {slot} is read-only this session - progress is not being saved.");
+            }
+
             SaveFailed?.Invoke(slot, "The slot is read-only this session (newer save or unreadable file).");
             return false;
         }
@@ -167,8 +175,13 @@ public class SaveService
         Data.tickets -= ticketCost;
         Data.bossTickets -= bossTicketCost;
         Data.ownedUpgradeIds.Add(upgradeId);
-        Save();
-        return true;
+        if (Save()) return true;
+
+        // Not on disk means not bought: the next launch would hand the item back for free.
+        Data.tickets += ticketCost;
+        Data.bossTickets += bossTicketCost;
+        Data.ownedUpgradeIds.Remove(upgradeId);
+        return false;
     }
 
     public void MarkFirstLaunchDone()
@@ -184,6 +197,7 @@ public class SaveService
         string main = FileNameOf(slot);
         string backup = main + JsonFileStore.BackupSuffix;
         _readOnly[slot] = false;
+        _readOnlyWarned[slot] = false;
         needsWrite = false;
 
         FileState mainState = ReadFile(main, out SaveData data);

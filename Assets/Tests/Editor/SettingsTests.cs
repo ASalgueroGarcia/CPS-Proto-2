@@ -111,6 +111,21 @@ public class SettingsTests
     }
 
     [Test]
+    public void FileFromANewerBuild_IsNeverOverwritten()
+    {
+        string newer = "{\"version\":99,\"masterVolume\":0.3,\"futureOption\":true}";
+        _folder.Write(SettingsService.FileName, newer);
+        var settings = new SettingsService(_folder.Store);
+        settings.Load();
+
+        settings.SetMasterVolume(0.9f);
+
+        Assert.AreEqual(0.9f, settings.Data.masterVolume, "Still applied for this session.");
+        Assert.IsFalse(settings.Save());
+        Assert.AreEqual(newer, _folder.ReadText(SettingsService.FileName));
+    }
+
+    [Test]
     public void ResolutionList_MatchesTheSettingsMenuSpec()
     {
         Assert.AreEqual(8, DisplaySettings.Resolutions.Length);

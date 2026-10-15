@@ -54,6 +54,12 @@ public class SettingsService
         {
             Debug.LogWarning($"[SettingsService] {FileName} was unreadable - using default settings.");
         }
+        else if (result == SaveParseResult.NewerVersion)
+        {
+            // Written by a newer build: use what we understand, but don't overwrite the rest.
+            Debug.LogWarning($"[SettingsService] {FileName} comes from a newer build - it won't be overwritten.");
+            _readOnly = true;
+        }
     }
 
     public void SetMasterVolume(float value) => SetVolume(ref Data.masterVolume, value);

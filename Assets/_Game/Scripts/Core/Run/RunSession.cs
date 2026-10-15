@@ -17,6 +17,7 @@ public class RunSession
     public const int BossTicketsPerVictory = 1;
 
     private readonly SaveService _save;
+    private int _slot = -1;
     private int _pendingTickets;
     private int _pendingBossTickets;
 
@@ -70,10 +71,14 @@ public class RunSession
 
         Act = act;
         Scene = ProgressRules.SceneToPlay(data, act);
+        _slot = _save.ActiveSlot;
         _pendingTickets = 0;
         _pendingBossTickets = 0;
         IsActive = true;
         _save.RunInProgress = true;
+
+        // The first run marks the slot's first-time setup as done; a lobby intro can read the flag before it.
+        data.firstLaunchDone = true;
         _save.Save();
     }
 
@@ -96,8 +101,10 @@ public class RunSession
     public bool EndRun(RunOutcome outcome)
     {
         if (!IsActive) return false;
-        if (!_save.HasActiveSlot)
+        if (_save.ActiveSlot != _slot)
         {
+            // Never write one slot's run into another one.
+            Debug.LogWarning($"[RunSession] The save slot changed during the run (slot {_slot} -> {_save.ActiveSlot}) - the run is dropped.");
             Finish();
             return false;
         }

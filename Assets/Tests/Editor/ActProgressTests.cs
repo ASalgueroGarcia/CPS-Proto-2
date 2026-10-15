@@ -48,6 +48,30 @@ public class ActProgressTests
     }
 
     [Test]
+    public void PickingAnUnfinishedAct_LastsUntilItIsFinished()
+    {
+        _save.SelectSlot(0);
+        ActProgress.SelectAct(0);
+
+        _save.Data.scenesCleared[0] = 3;
+
+        Assert.AreEqual(1, ActProgress.SelectedAct, "After the third clear the next run moves on to Act II.");
+    }
+
+    [Test]
+    public void APick_BelongsToItsSlot()
+    {
+        _save.SelectSlot(0);
+        _save.Data.scenesCleared[0] = 3;
+        _save.Save();
+        ActProgress.SelectAct(1);
+
+        _save.SelectSlot(1);
+
+        Assert.AreEqual(0, ActProgress.SelectedAct, "Slot 2 knows nothing about slot 1's pick.");
+    }
+
+    [Test]
     public void SelectingALockedAct_IsIgnored_ButAFinishedOneCanBePickedAgain()
     {
         _save.SelectSlot(0);

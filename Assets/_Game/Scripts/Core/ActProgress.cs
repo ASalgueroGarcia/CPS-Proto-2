@@ -12,12 +12,19 @@ public static class ActProgress
     public const int ScenesPerAct = ProgressRules.ScenesPerAct;
 
     private static int _selectedAct = -1;
+    private static int _selectedSlot = -1;
+    private static bool _selectedWhileFinished;
 
     private static SaveData Data => Services.Save?.Data;
 
-    /// <summary>Act chosen on the poster, 0-based. Until the player picks one, the act they're working on.</summary>
-    public static int SelectedAct =>
-        _selectedAct >= 0 && IsUnlocked(_selectedAct) ? _selectedAct : ProgressRules.DefaultAct(Data);
+    private static int ActiveSlot => Services.Save != null ? Services.Save.ActiveSlot : -1;
+
+    /// <summary>
+    /// Act chosen on the poster, 0-based. Until the player picks one, the act they're working on.
+    /// A pick belongs to its slot, and picking an unfinished act lasts until that act is finished:
+    /// then the next run moves on to the act it unlocked. Picking a finished act (PLAY AGAIN) sticks.
+    /// </summary>
+    public static int SelectedAct => HasValidPick() ? _selectedAct : ProgressRules.DefaultAct(Data);
 
     public static int GetScenesCleared(int act) => ProgressRules.GetScenesCleared(Data, act);
 
@@ -38,6 +45,8 @@ public static class ActProgress
         }
 
         _selectedAct = act;
+        _selectedSlot = ActiveSlot;
+        _selectedWhileFinished = IsFinished(act);
     }
 
     // Statics survive entering Play Mode when domain reload is off - start every session clean.
@@ -45,5 +54,13 @@ public static class ActProgress
     public static void ResetAll()
     {
         _selectedAct = -1;
+        _selectedSlot = -1;
+        _selectedWhileFinished = false;
+    }
+
+    private static bool HasValidPick()
+    {
+        if (_selectedAct < 0 || _selectedSlot != ActiveSlot || !IsUnlocked(_selectedAct)) return false;
+        return _selectedWhileFinished || !IsFinished(_selectedAct);
     }
 }

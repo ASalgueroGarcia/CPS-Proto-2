@@ -227,12 +227,36 @@ public class SaveServiceTests
     }
 
     [Test]
-    public void FirstLaunch_IsMarkedAndSaved()
+    public void Purchase_ThatCannotBeSaved_IsRolledBack()
     {
         _save.SelectSlot(0);
+        _save.Data.tickets = 10;
+        _save.Save();
 
-        _save.MarkFirstLaunchDone();
+        using (new FileStream(_folder.FilePath(Slot(0)), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            LogAssert.Expect(LogType.Error, new Regex(@"\[SaveService\] Saving slot 0 failed"));
+            Assert.IsFalse(_save.TryPurchaseUpgrade("needle", 6, 0));
+        }
 
-        Assert.IsTrue(ReadFromDisk(0).firstLaunchDone);
+        Assert.AreEqual(10, _save.Data.tickets, "Not on disk means not bought.");
+        Assert.IsFalse(_save.OwnsUpgrade("needle"));
+    }
+
+    [Test]
+    public void LockedSlot_ShowsAsUnavailable_NotDamaged()
+    {
+        _save.SelectSlot(0);
+        _save.SelectSlot(1);
+
+        using (new FileStream(_folder.FilePath(Slot(0)), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            SlotSummary card = _save.Peek(0);
+
+            Assert.IsTrue(card.Exists);
+            Assert.IsTrue(card.Locked);
+        }
+
+        Assert.IsFalse(_save.Peek(0).Locked, "Readable again once the other program lets go.");
     }
 }
