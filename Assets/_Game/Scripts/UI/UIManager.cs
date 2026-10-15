@@ -402,6 +402,7 @@ public class UIManager : MonoBehaviour
         if (_playerStats != null) _playerStats.ResetAllThePlayerStats();
         
         RefreshHUDVisibility();
+        Services.Run?.BeginRun(ActProgress.SelectedAct);
         SceneManager.LoadScene("_MapScene");
     }
 
@@ -453,6 +454,7 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        Services.Run?.EndRun(RunOutcome.Death);
         gameObject.SetActive(true); 
         if (deathCanvas != null) deathCanvas.gameObject.SetActive(true);
         StartCoroutine(StartGameWithDelay(2f));
