@@ -35,6 +35,9 @@ public class UIManagerGameFlow : IGameFlow
 
     public void EnterMainMenu()
     {
+        // Leaving a run for the title abandons it (GDD > Save System: quitting mid-run saves nothing).
+        Services.Run?.AbandonRun();
+
         if (UIManager.Instance != null)
         {
             UIManager.Instance.Resume();
