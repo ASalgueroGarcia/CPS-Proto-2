@@ -5,5 +5,4 @@ Owner: Dima (ask before adding). New file: if two features need it, it belongs h
 
 Save system (GDD > Gameplay > Save System): `Save/` (3 slots, JSON files in persistentDataPath),
 `Settings/` (settings.json, applied to the mixer and screen), `Run/` (what a run start / death / victory
-does to the save). Reach them through `Services`. `Menus/` holds the menu logic and the view interfaces:
-views implement `IMainMenuView` etc., so a Canvas menu can be swapped for an in-world (diegetic) one.
+does to the save). Reach them through `Services`. The menus that use them live in `Scripts/Menus`.
