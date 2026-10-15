@@ -133,7 +133,8 @@ public class ActSelectScreen : MonoBehaviour
     {
         for (int act = 0; act < cards.Length; act++)
         {
-            cards[act].Show(StateOf(act), ActProgress.GetScenesCleared(act), ActProgress.ScenesPerAct);
+            cards[act].Show(StateOf(act), ActProgress.GetScenesCleared(act), ActProgress.ScenesPerAct,
+                ActProgress.GetSceneToPlay(act));
         }
     }
 
