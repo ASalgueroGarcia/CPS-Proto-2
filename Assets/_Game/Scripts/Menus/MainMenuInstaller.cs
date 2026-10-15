@@ -36,13 +36,14 @@ public class MainMenuInstaller : MonoBehaviour
 
         var slotPresenter = new SlotSelectPresenter(slots, confirm, Services.Save, Services.Flow);
         var settingsPresenter = new SettingsPresenter(settings, Services.Settings);
+        var mainPresenter = new MainMenuPresenter(menu, slotPresenter, settingsPresenter, Services.Flow);
         _presenters.Add(slotPresenter);
         _presenters.Add(settingsPresenter);
-        _presenters.Add(new MainMenuPresenter(menu, slotPresenter, settingsPresenter, Services.Flow));
+        _presenters.Add(mainPresenter);
 
         slots.Hide();
         settings.Hide();
-        menu.Show();
+        mainPresenter.Open();
     }
 
     private void OnDestroy()

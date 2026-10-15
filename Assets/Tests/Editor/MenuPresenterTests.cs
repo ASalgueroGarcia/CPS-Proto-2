@@ -5,7 +5,8 @@ using UnityEngine;
 
 /// <summary>
 /// The menu logic driven through fake views - the same seam a diegetic (in-world) view will
-/// plug into. If these pass with fakes, any view implementing the interfaces gets the same flow.
+/// plug into. The fakes can hold their show / hide "animations" open, like an in-world menu
+/// would, to prove the presenters wait for them and ignore input meanwhile.
 /// </summary>
 public class MenuPresenterTests
 {
@@ -38,7 +39,7 @@ public class MenuPresenterTests
         _slots = new SlotSelectPresenter(_slotView, _confirm, _save, _flow);
         _settingsPresenter = new SettingsPresenter(_settingsView, _settings);
         _main = new MainMenuPresenter(_menuView, _slots, _settingsPresenter, _flow);
-        _menuView.Show();
+        _main.Open();
     }
 
     [TearDown]
@@ -74,7 +75,7 @@ public class MenuPresenterTests
         _slotView.SlotChosen?.Invoke(2);
 
         Assert.AreEqual(2, _save.ActiveSlot);
-        Assert.IsTrue(_save.Data.firstLaunchDone);
+        Assert.IsFalse(_save.Data.firstLaunchDone, "Set by the first run, so a lobby intro can still see it.");
         Assert.AreEqual(1, _flow.HubEntered);
         Assert.IsFalse(_slotView.Visible);
     }
@@ -95,15 +96,16 @@ public class MenuPresenterTests
         _save.SelectSlot(0);
         _menuView.ResumeRequested?.Invoke();
 
-        _confirm.Answer = false;
         _slotView.DeleteRequested?.Invoke(0);
         Assert.IsNotNull(_confirm.LastMessage);
+        _confirm.Answer(false);
         Assert.IsTrue(_save.Peek(0).Exists);
 
-        _confirm.Answer = true;
         _slotView.DeleteRequested?.Invoke(0);
+        _confirm.Answer(true);
         Assert.IsFalse(_save.Peek(0).Exists);
-        Assert.IsFalse(_slotView.Slots[0].Exists, "The cards are refreshed after deleting.");
+        Assert.IsFalse(_slotView.Slots[0].Exists, "The cards are redrawn after deleting.");
+        Assert.AreEqual(1, _slotView.ShowCount, "Redrawing doesn't replay the show animation.");
     }
 
     [Test]
@@ -114,6 +116,54 @@ public class MenuPresenterTests
         _slotView.DeleteRequested?.Invoke(1);
 
         Assert.IsNull(_confirm.LastMessage);
+    }
+
+    [Test]
+    public void WhileTheDeleteQuestionIsOpen_TheSlotsTakeNoInput()
+    {
+        _save.SelectSlot(0);
+        _menuView.ResumeRequested?.Invoke();
+        _slotView.DeleteRequested?.Invoke(0);
+
+        _slotView.SlotChosen?.Invoke(1);
+        _slotView.DeleteRequested?.Invoke(0);
+        _slotView.BackRequested?.Invoke();
+
+        Assert.AreEqual(0, _flow.HubEntered, "no game started behind the dialog");
+        Assert.AreEqual(1, _confirm.Questions, "no second question replacing the first");
+        Assert.IsTrue(_slotView.Visible, "still on the slot screen");
+
+        _confirm.Answer(false);
+        _slotView.SlotChosen?.Invoke(1);
+        Assert.AreEqual(1, _flow.HubEntered, "input comes back once the question is answered");
+    }
+
+    [Test]
+    public void TransitionsWaitForTheViews_AndIgnoreInputMeanwhile()
+    {
+        _menuView.Deferred = true;
+        _slotView.Deferred = true;
+
+        _menuView.ResumeRequested?.Invoke();
+        _menuView.ResumeRequested?.Invoke();
+        _menuView.SettingsRequested?.Invoke();
+        Assert.IsFalse(_slotView.Visible, "the slots wait for the title to finish hiding");
+
+        _menuView.Complete();
+        Assert.AreEqual(1, _slotView.ShowCount, "the slots start showing once the title is gone");
+        Assert.AreEqual(0, _settingsView.ShowCount, "the second press was ignored");
+
+        _slotView.SlotChosen?.Invoke(0);
+        Assert.AreEqual(-1, _save.ActiveSlot, "no input until the slots finished showing");
+
+        _slotView.Complete();
+        Assert.IsTrue(_slotView.Visible);
+        _slotView.SlotChosen?.Invoke(0);
+        _slotView.SlotChosen?.Invoke(1);
+        _slotView.Complete();
+
+        Assert.AreEqual(0, _save.ActiveSlot, "a double press picks one slot");
+        Assert.AreEqual(1, _flow.HubEntered, "and starts one game, after the slots hid");
     }
 
     [Test]
@@ -148,6 +198,20 @@ public class MenuPresenterTests
     }
 
     [Test]
+    public void Windowed_WithoutAResolution_TakesTheOneTheMenuShows()
+    {
+        _menuView.SettingsRequested?.Invoke();
+        Assert.AreEqual(0, _settings.Data.resolutionWidth, "native until the player picks one");
+
+        _settingsView.DisplayModeChanged?.Invoke(2);
+
+        Vector2Int shown = DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex];
+        Assert.AreEqual(FullScreenMode.Windowed, _settings.Data.FullscreenMode);
+        Assert.AreEqual(shown.x, _settings.Data.resolutionWidth, "a window never opens at desktop size");
+        Assert.AreEqual(shown.y, _settings.Data.resolutionHeight);
+    }
+
+    [Test]
     public void Exit_QuitsTheGame()
     {
         _menuView.ExitRequested?.Invoke();
@@ -169,29 +233,59 @@ public class MenuPresenterTests
         Assert.AreEqual(0, _flow.HubEntered);
     }
 
-    private class FakeMainMenuView : IMainMenuView
+    // Show / Hide finish at once, or - with Deferred - only when the test calls Complete(),
+    // like an in-world view whose animation is still playing.
+    private abstract class FakeView : IMenuView
+    {
+        private readonly Queue<Action> _pending = new Queue<Action>();
+
+        public bool Deferred { get; set; }
+        public bool Visible { get; private set; }
+        public int ShowCount { get; private set; }
+
+        public void Show(Action onShown = null)
+        {
+            ShowCount++;
+            Run(() => Visible = true, onShown);
+        }
+
+        public void Hide(Action onHidden = null) => Run(() => Visible = false, onHidden);
+
+        public void Complete()
+        {
+            while (_pending.Count > 0) _pending.Dequeue()();
+        }
+
+        private void Run(Action change, Action done)
+        {
+            if (Deferred)
+            {
+                _pending.Enqueue(() => { change(); done?.Invoke(); });
+                return;
+            }
+
+            change();
+            done?.Invoke();
+        }
+    }
+
+    private class FakeMainMenuView : FakeView, IMainMenuView
     {
         public Action ResumeRequested;
         public Action SettingsRequested;
         public Action ExitRequested;
 
-        public bool Visible { get; private set; }
-
         event Action IMainMenuView.ResumeRequested { add => ResumeRequested += value; remove => ResumeRequested -= value; }
         event Action IMainMenuView.SettingsRequested { add => SettingsRequested += value; remove => SettingsRequested -= value; }
         event Action IMainMenuView.ExitRequested { add => ExitRequested += value; remove => ExitRequested -= value; }
-
-        public void Show() => Visible = true;
-        public void Hide() => Visible = false;
     }
 
-    private class FakeSlotView : ISlotSelectView
+    private class FakeSlotView : FakeView, ISlotSelectView
     {
         public Action<int> SlotChosen;
         public Action<int> DeleteRequested;
         public Action BackRequested;
 
-        public bool Visible { get; private set; }
         public IReadOnlyList<SlotSummary> Slots { get; private set; }
         public int Preselected { get; private set; } = -1;
 
@@ -199,17 +293,14 @@ public class MenuPresenterTests
         event Action<int> ISlotSelectView.DeleteRequested { add => DeleteRequested += value; remove => DeleteRequested -= value; }
         event Action ISlotSelectView.BackRequested { add => BackRequested += value; remove => BackRequested -= value; }
 
-        public void Show(IReadOnlyList<SlotSummary> slots, int preselectedSlot)
+        public void SetSlots(IReadOnlyList<SlotSummary> slots, int preselectedSlot)
         {
             Slots = slots;
             Preselected = preselectedSlot;
-            Visible = true;
         }
-
-        public void Hide() => Visible = false;
     }
 
-    private class FakeSettingsView : ISettingsView
+    private class FakeSettingsView : FakeView, ISettingsView
     {
         public Action<float> MasterVolumeChanged;
         public Action<float> MusicVolumeChanged;
@@ -218,7 +309,6 @@ public class MenuPresenterTests
         public Action<int> DisplayModeChanged;
         public Action BackRequested;
 
-        public bool Visible { get; private set; }
         public SettingsViewState State { get; private set; }
 
         event Action<float> ISettingsView.MasterVolumeChanged { add => MasterVolumeChanged += value; remove => MasterVolumeChanged -= value; }
@@ -228,24 +318,29 @@ public class MenuPresenterTests
         event Action<int> ISettingsView.DisplayModeChanged { add => DisplayModeChanged += value; remove => DisplayModeChanged -= value; }
         event Action ISettingsView.BackRequested { add => BackRequested += value; remove => BackRequested -= value; }
 
-        public void Show(SettingsViewState state)
-        {
-            State = state;
-            Visible = true;
-        }
-
-        public void Hide() => Visible = false;
+        public void SetState(SettingsViewState state) => State = state;
     }
 
+    // Holds the question open until the test answers, like a real dialog waiting for the player.
     private class FakeConfirm : IConfirmDialog
     {
-        public bool Answer { get; set; }
+        private Action<bool> _onAnswer;
+
         public string LastMessage { get; private set; }
+        public int Questions { get; private set; }
 
         public void Ask(string message, Action<bool> onAnswer)
         {
+            Questions++;
             LastMessage = message;
-            onAnswer(Answer);
+            _onAnswer = onAnswer;
+        }
+
+        public void Answer(bool confirmed)
+        {
+            Action<bool> callback = _onAnswer;
+            _onAnswer = null;
+            callback?.Invoke(confirmed);
         }
     }
 

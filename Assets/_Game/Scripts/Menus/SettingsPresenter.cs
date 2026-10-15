@@ -13,6 +13,7 @@ public class SettingsPresenter : IDisposable
     private readonly ISettingsView _view;
     private readonly SettingsService _settings;
     private Action _onBack;
+    private bool _busy = true;
 
     public SettingsPresenter(ISettingsView view, SettingsService settings)
     {
@@ -41,7 +42,9 @@ public class SettingsPresenter : IDisposable
     public void Open(Action onBack)
     {
         _onBack = onBack;
-        _view.Show(BuildState());
+        _busy = true;
+        _view.SetState(BuildState());
+        _view.Show(() => _busy = false);
     }
 
     private SettingsViewState BuildState()
@@ -78,14 +81,22 @@ public class SettingsPresenter : IDisposable
     {
         if (index < 0 || index >= DisplaySettings.Modes.Length) return;
 
-        _settings.SetFullscreenMode(DisplaySettings.Modes[index]);
+        // A window at "native" size would be as big as the desktop: take the resolution the menu shows.
+        FullScreenMode mode = DisplaySettings.Modes[index];
+        if (mode == FullScreenMode.Windowed && _settings.Data.resolutionWidth == 0)
+        {
+            OnResolutionChanged(CurrentResolutionIndex(_settings.Data));
+        }
+
+        _settings.SetFullscreenMode(mode);
     }
 
     private void OnBack()
     {
+        if (_busy) return;
+        _busy = true;
         _settings.Save();
-        _view.Hide();
-        _onBack?.Invoke();
+        _view.Hide(() => _onBack?.Invoke());
     }
 
     private static string[] BuildResolutionOptions()

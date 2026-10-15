@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Save slot screen logic: shows the three slots, plays the chosen one (an empty slot starts
-/// a new game at starting values) and deletes one after a confirmation.
+/// a new game at starting values) and deletes one after a confirmation. Input is ignored while
+/// the view animates or the delete question is open, so a double press can't start two games.
 /// </summary>
 public class SlotSelectPresenter : IDisposable
 {
@@ -12,6 +13,7 @@ public class SlotSelectPresenter : IDisposable
     private readonly SaveService _save;
     private readonly IGameFlow _flow;
     private Action _onBack;
+    private bool _busy = true;
 
     public SlotSelectPresenter(ISlotSelectView view, IConfirmDialog confirm, SaveService save, IGameFlow flow)
     {
@@ -32,11 +34,13 @@ public class SlotSelectPresenter : IDisposable
         _view.BackRequested -= OnBack;
     }
 
-    /// <summary>Shows the slots; <paramref name="onBack"/> runs when the player backs out.</summary>
+    /// <summary>Shows the slots; <paramref name="onBack"/> runs once the player has backed out.</summary>
     public void Open(Action onBack)
     {
         _onBack = onBack;
+        _busy = true;
         Refresh();
+        _view.Show(() => _busy = false);
     }
 
     private void Refresh()
@@ -47,40 +51,44 @@ public class SlotSelectPresenter : IDisposable
             slots[slot] = _save.Peek(slot);
         }
 
-        _view.Show(slots, _save.HasActiveSlot ? _save.ActiveSlot : 0);
+        _view.SetSlots(slots, _save.HasActiveSlot ? _save.ActiveSlot : 0);
     }
 
     private void OnSlotChosen(int slot)
     {
-        if (!SaveService.IsValidSlot(slot)) return;
+        if (_busy || !SaveService.IsValidSlot(slot)) return;
         if (_flow == null)
         {
             Debug.LogError("[SlotSelectPresenter] No IGameFlow registered - can't enter the game.");
             return;
         }
 
+        _busy = true;
         _save.SelectSlot(slot);
-        _save.MarkFirstLaunchDone();
-        _view.Hide();
-        _flow.EnterHub();
+        _view.Hide(_flow.EnterHub);
     }
 
     private void OnDeleteRequested(int slot)
     {
-        if (!_save.Peek(slot).Exists) return;
+        if (_busy || !_save.Peek(slot).Exists) return;
 
+        _busy = true;
         _confirm.Ask($"Delete save {slot + 1}? This can't be undone.", confirmed =>
         {
-            if (!confirmed) return;
+            if (confirmed)
+            {
+                _save.DeleteSlot(slot);
+                Refresh();
+            }
 
-            _save.DeleteSlot(slot);
-            Refresh();
+            _busy = false;
         });
     }
 
     private void OnBack()
     {
-        _view.Hide();
-        _onBack?.Invoke();
+        if (_busy) return;
+        _busy = true;
+        _view.Hide(() => _onBack?.Invoke());
     }
 }

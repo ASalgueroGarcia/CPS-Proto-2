@@ -184,14 +184,6 @@ public class SaveService
         return false;
     }
 
-    public void MarkFirstLaunchDone()
-    {
-        if (!HasActiveSlot || Data.firstLaunchDone) return;
-
-        Data.firstLaunchDone = true;
-        Save();
-    }
-
     private SaveData LoadSlot(int slot, out bool needsWrite)
     {
         string main = FileNameOf(slot);
