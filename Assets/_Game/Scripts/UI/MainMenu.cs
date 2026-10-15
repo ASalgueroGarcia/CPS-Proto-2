@@ -30,6 +30,7 @@ public class MainMenu : MonoBehaviour, IMainMenuView
     public void Show(Action onShown = null)
     {
         menuPanel.SetActive(true);
+        MenuInputGuard.Hold(this);
         Select(playButton);
         onShown?.Invoke();
     }

@@ -38,6 +38,7 @@ public class ConfirmDialogCanvasView : MonoBehaviour, IConfirmDialog
         _onAnswer = onAnswer;
         message.text = question;
         panel.SetActive(true);
+        MenuInputGuard.Hold(this);
 
         if (EventSystem.current != null)
         {
@@ -49,6 +50,7 @@ public class ConfirmDialogCanvasView : MonoBehaviour, IConfirmDialog
     private void Answer(bool confirmed)
     {
         panel.SetActive(false);
+        MenuInputGuard.Hold(this);
         if (EventSystem.current != null && _previousSelection != null && _previousSelection.activeInHierarchy)
         {
             EventSystem.current.SetSelectedGameObject(_previousSelection);

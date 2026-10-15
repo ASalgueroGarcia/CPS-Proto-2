@@ -59,6 +59,7 @@ public class SettingsCanvasView : MonoBehaviour, ISettingsView
     public void Show(Action onShown = null)
     {
         panel.SetActive(true);
+        MenuInputGuard.Hold(this);
         if (firstSelected != null && EventSystem.current != null)
         {
             EventSystem.current.SetSelectedGameObject(firstSelected.gameObject);

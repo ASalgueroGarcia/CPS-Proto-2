@@ -54,6 +54,7 @@ public class SlotSelectCanvasView : MonoBehaviour, ISlotSelectView
     public void Show(Action onShown = null)
     {
         panel.SetActive(true);
+        MenuInputGuard.Hold(this);
         SelectPreselected();
         onShown?.Invoke();
     }
