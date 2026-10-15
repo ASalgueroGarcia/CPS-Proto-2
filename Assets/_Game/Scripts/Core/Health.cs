@@ -25,7 +25,7 @@ public class Health : MonoBehaviour
     [SerializeField] private Renderer targetRenderer;
     private Color originalColor;
     private Coroutine flashCoroutine;
-    private EnemyVisualFeedback enemyVisualFeedback;
+    private IHitFlash hitFlash;
 
     [Header("Fall Detection")]
     [SerializeField] private bool checkFall = true;
@@ -44,8 +44,8 @@ public class Health : MonoBehaviour
     private void Start()
     {
         if (targetRenderer == null) targetRenderer = GetComponentInChildren<Renderer>();
-        enemyVisualFeedback = GetComponent<EnemyVisualFeedback>();
-        if (enemyVisualFeedback == null && targetRenderer != null)
+        hitFlash = GetComponent<IHitFlash>();
+        if (hitFlash == null && targetRenderer != null)
             originalColor = targetRenderer.material.color;
 
         _currentHealth = _maxHealth;
@@ -123,10 +123,10 @@ public class Health : MonoBehaviour
 
     private void TriggerHitFlash(Color flashColor)
     {
-        if (enemyVisualFeedback == null) enemyVisualFeedback = GetComponent<EnemyVisualFeedback>();
-        if (enemyVisualFeedback != null)
+        if (hitFlash == null) hitFlash = GetComponent<IHitFlash>();
+        if (hitFlash != null)
         {
-            enemyVisualFeedback.ShowHitFlash();
+            hitFlash.ShowHitFlash();
             return;
         }
 
