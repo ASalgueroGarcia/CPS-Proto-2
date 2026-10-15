@@ -20,12 +20,12 @@ ones it lists. Nothing ever points up.
 
 | Assembly | Uses | Packages |
 |---|---|---|
-| `Spectracle.Enemies` | UI, Player, Core | |
 | `Spectracle.UI` | Map, Waves, Shop, Player, Core | Input System, TextMesh Pro, UGUI |
 | `Spectracle.Map` | Waves, Core | UGUI |
 | `Spectracle.Waves` | Pickups, Core | |
 | `Spectracle.Pickups` | Shop, Core | |
 | `Spectracle.Shop` | Player, Core | Input System, TextMesh Pro, UGUI |
+| `Spectracle.Enemies` | Player, Core | UGUI |
 | `Spectracle.Obstacles` | Player, Core | |
 | `Spectracle.Player` | Core | Input System |
 | `Spectracle.Core` | - | UGUI |
@@ -51,8 +51,8 @@ what it uses. Without one, its scripts fall into `Assembly-CSharp` and nothing i
 `_Game` can see them.
 
 **Editor tools** (custom inspectors, migration tools, anything with `using UnityEditor`)
-go in `Scripts/Editor/`. It doesn't exist yet: whoever writes the first editor tool
-creates it, **without** an `.asmdef`. Unity then compiles it into the editor-only
+go in `Scripts/Editor/` (it has no `.asmdef`, keep it that way; the enemy inspector
+and presentation setup tools live there). Unity compiles it into the editor-only
 assembly, which can already see every `Spectracle.*` assembly. **Not** in a feature's own `Editor/` subfolder: inside a folder with an
 `.asmdef`, `Editor/` is just a folder, so its code goes into the game assembly. The
 editor still compiles, and then the build fails on `UnityEditor`.
@@ -75,8 +75,10 @@ editor still compiles, and then the build fails on `UnityEditor`.
      which `Breakable_Objects` implements.
    - **Whoever uses a number reads it; nobody pushes it.** The shop's
      "more enemies" / "more loot" items shouldn't call `WaveManager` (Waves is above
-     Shop). Shop keeps the bonus in `PlayerStatsManager`, and `WaveManager` reads
-     `PlayerStatsManager.Instance` when it spawns; Waves using Shop is allowed.
+     Shop). When they're implemented (today both are `Debug.Log` stubs), Shop keeps
+     the bonus in `PlayerStatsManager` and `WaveManager` reads
+     `PlayerStatsManager.Instance` when it spawns. That needs `Spectracle.Shop` added
+     to the Waves `.asmdef`, which is allowed: Shop sits below Waves.
      Stunning enemies from a scissor hit goes through Core (`Health` or a Core
      interface), because Player can't see `Enemy`.
 
@@ -96,9 +98,12 @@ is everything that had to change for none to be left:
 |---|---|
 | Shop <-> UI, and Waves -> UI -> Shop -> Waves | Deleted a `UIManager` field in `ShopManager` and a `WaveManager` field in `PlayerStatsManager`, both dead (v1) |
 | Core <-> Player, Core <-> UI | `CombatDummy` deleted in #45; `Projectile` moved from `Core/` to `Enemies/`, since only enemies fire it |
-| Player <-> Obstacles | Scissors hit `IBreakable` instead of `Breakable_Objects` |
+| Player <-> Obstacles | `ScissorsWeapon` hits `IBreakable` instead of `Breakable_Objects` |
 | Map -> Waves -> UI -> Map | `WaveManager.OnRoomCompleted` instead of calling `UIManager` |
 | Enemies <-> Player | Already gone: the player no longer looks for `Enemy` |
+| Core <-> Enemies | `Health` shows the hit flash through `IHitFlash` (Core), which `EnemyVisualFeedback` implements |
+| UI <-> Enemies | `EnemyUIAutoSetup` moved from `UI/` to `Enemies/`: `Enemy` adds it, and it reads `EnemyVisualFeedback` |
+| Enemies -> UI (not a circle, but pointing up) | `WorldSpaceHealthBar` moved from `UI/` to `Enemies/`: the enemy health bar is its only user |
 
 Three `using Unity.VisualScripting;` lines that imported nothing were also deleted,
 so no game assembly depends on Visual Scripting.
@@ -111,14 +116,11 @@ so no game assembly depends on Visual Scripting.
   new assembly name. That is Unity catching up, not a change. Commit it with the
   asset. Buttons keep working either way: Unity finds the method on the target
   object, not by the assembly name.
-- **Enemies -> UI** is the one arrow pointing the wrong way: `Enemy` adds
-  `EnemyUIAutoSetup` to itself (`Enemy.cs`, two lines). It isn't a circle today,
-  but through UI it makes Enemies sit on top of almost everything, so **Waves,
-  UI, Map, Shop and Pickups can't use `Enemy`**. A spawner that needs `Enemy`, a
-  boss health bar or a stun item would hit that wall. The fix is planned for right
-  after the player refactor (#53) lands, because #53 edits the same lines: put
-  `EnemyUIAutoSetup` on the three enemy prefabs, delete the two lines, and drop
-  UI from `Spectracle.Enemies.asmdef`. Enemies then sits just above Player.
+- **Enemies sits just above Player.** It uses only Player and Core, so Waves, UI,
+  Map, Shop and Pickups can use `Enemy` (a spawner, a boss health bar, a stun
+  item): add `Spectracle.Enemies` to that folder's `.asmdef`. Enemies must never
+  use them back, which is why the enemy health bar (`WorldSpaceHealthBar`) lives in
+  Enemies. If something else ever needs it, move it down to Core, not back to UI.
 - **Player is the bottom of the gameplay stack.** It uses only Core. Anything
   that reacts to the player (enemies, traps, pickups, shop, HUD) uses Player,
   never the other way round. That is what keeps the player safe to refactor.

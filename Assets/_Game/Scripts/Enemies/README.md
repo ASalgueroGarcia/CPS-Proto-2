@@ -3,7 +3,7 @@
 Each enemy prefab owns its tuning. Select the prefab root to edit its components.
 
 - **Enemy** manages patrol, detection and the attack state machine. Its inline **EnemySettings** are grouped into Core Stats, Movement, Detection, Patrol and Attack Timing. It applies health and navigation speed at spawn.
-- **EnemyEditor** organizes these settings in the Inspector and shows calculated patrol speed. Each prefab and instance can be tuned independently.
+- **EnemyEditor** (in `Scripts/Editor/`, so it stays out of the game build) organizes these settings in the Inspector and shows calculated patrol speed. Each prefab and instance can be tuned independently.
 - **CardChargeAttack**, **WhiteRabbitAttack**, **FlowerAttack**, **MeleeAttack**, **RangedAttack** and **DashAttack** implement attack-specific behavior and expose their own tuning.
 - **Projectile** is the shot fired by RangedAttack (it moved here from Core so Core does not depend on the player).
 - **EnemyVisualFeedback** coordinates attack colours and temporary hit highlighting.
