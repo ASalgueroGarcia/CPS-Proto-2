@@ -37,6 +37,7 @@ public class UIManager : MonoBehaviour
     private PlayerStatsManager _playerStats;
     private Player _playerFsm;
     private static UIManager _instance;
+    private Coroutine _restartAfterDeath;
 
     public static UIManager Instance => _instance;
 
@@ -270,6 +271,10 @@ public class UIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        // A duplicate (the UI copy in a scene loaded again, e.g. back to the title) destroys itself in
+        // Awake: it never subscribed, and disabling the shared pause action here would kill pausing.
+        if (_instance != this) return;
+
         if (pauseAction != null)
         {
             pauseAction.action.performed -= OnPausePressed;
@@ -392,6 +397,17 @@ public class UIManager : MonoBehaviour
 
     public void StartGame()
     {
+        // A new run replaces whatever was still on screen: a restart waiting after a death (a won boss
+        // can be continued meanwhile, which would start two runs) or a pause menu opened during it.
+        if (_restartAfterDeath != null)
+        {
+            StopCoroutine(_restartAfterDeath);
+            _restartAfterDeath = null;
+        }
+
+        if (deathCanvas != null) deathCanvas.SetActive(false);
+        if (_isPaused) Resume();
+
         Time.timeScale = 1f;
         _isPaused = false;
         Player.IsPaused = false;
@@ -461,13 +477,14 @@ public class UIManager : MonoBehaviour
         Services.Run?.EndRun(RunOutcome.Death);
         gameObject.SetActive(true); 
         if (deathCanvas != null) deathCanvas.gameObject.SetActive(true);
-        StartCoroutine(StartGameWithDelay(2f));
+        if (_restartAfterDeath != null) StopCoroutine(_restartAfterDeath);
+        _restartAfterDeath = StartCoroutine(StartGameWithDelay(2f));
     }
 
     private IEnumerator StartGameWithDelay(float delay)
     {
         yield return new WaitForSecondsRealtime(delay);
-        if (deathCanvas != null) deathCanvas.SetActive(false);
+        _restartAfterDeath = null;
         StartGame();
     }
 }
