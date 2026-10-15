@@ -40,6 +40,7 @@ public class MapBehaviour : MonoBehaviour
 
     private Node _startingNode;
     private Node _completedNode;
+    private bool _roomCompleted;
     private Node _currNode;
     private Node _prevNode;
     private Node _nextNode;
@@ -48,11 +49,24 @@ public class MapBehaviour : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        WaveManager.OnRoomCompleted += OnRoomCompleted;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        WaveManager.OnRoomCompleted -= OnRoomCompleted;
+    }
+
+    // The room in progress was beaten (its rewards collected). Winning the final fight ends the run
+    // as a victory right away (GDD > Save System), so quitting on the end-of-level screen keeps it.
+    private void OnRoomCompleted()
+    {
+        _roomCompleted = true;
+        if (_completedNode != null && _completedNode.IsEndingNode())
+        {
+            Services.Run?.EndRun(RunOutcome.Victory);
+        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -295,13 +309,13 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
-        // The final fight is won: the run ends here and is saved as a victory
-        // (GDD > Save System), then the player goes back to the hub.
+        // Leaving the final fight: after a win (already saved in OnRoomCompleted) the player goes back to
+        // the hub; leaving through the pause menu before winning keeps the boss open.
         if (_completedNode.IsEndingNode())
         {
+            bool won = _roomCompleted;
             _completedNode = null;
-            Services.Run?.EndRun(RunOutcome.Victory);
-            Services.Flow?.EnterHub();
+            if (won) Services.Flow?.EnterHub();
             return;
         }
 
@@ -332,6 +346,7 @@ public class MapBehaviour : MonoBehaviour
     public void SetCurrentNode(Node node)
     {
         _completedNode = node;
+        _roomCompleted = false;
         //Debug.Log($"Current node set to: {node.gameObject.name}");
     }
 }

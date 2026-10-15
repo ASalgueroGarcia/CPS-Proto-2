@@ -17,16 +17,15 @@ public class MapBtnBehaviour : MonoBehaviour
     {
         if (SceneController.Instance)
         {
-            // Only a finished room (its end-of-level screen is up) counts as completed. The pause
-            // menu's button has no eolCanvas: leaving through it must not clear the room, or
-            // walking out of the boss room would save a victory.
-            bool roomFinished = eolCanvas != null && eolCanvas.activeSelf;
+            // This button lives on the persistent UI, but the map scene is reloaded for every new
+            // run (after a death or a victory): find the current map again once the old one is gone.
+            if (_mapBehaviour == null) _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
 
             if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
-            if (roomFinished) eolCanvas.SetActive(false);
+            if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
             
             Time.timeScale = 1f;
-            if (roomFinished) _mapBehaviour.CompletedNode();
+            _mapBehaviour.CompletedNode();
             SceneController.Instance.UnloadLevel();
         }
         else
