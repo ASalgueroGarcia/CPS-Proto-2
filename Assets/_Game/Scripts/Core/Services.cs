@@ -51,15 +51,23 @@ public static class Services
         save.ActiveSlotChanged += slot => RememberSlot(settings, slot);
 
         Install(save, settings, new RunSession(save));
+        ReopenLastSlot(save, settings.Data.lastSlot);
+    }
 
-        // Reopen the last slot only if it exists and reads cleanly: selecting a missing slot would create
-        // it, and selecting a damaged one would repair it before the player ever saw "DAMAGED SAVE".
-        int lastSlot = settings.Data.lastSlot;
-        if (SaveService.IsValidSlot(lastSlot))
-        {
-            SlotSummary last = save.Peek(lastSlot);
-            if (last.Exists && !last.Unreadable) save.SelectSlot(lastSlot);
-        }
+    /// <summary>
+    /// Makes the slot played last active again, but only if it exists and reads cleanly: selecting a
+    /// missing slot would create it, and selecting a damaged one would repair it before the player
+    /// ever saw "DAMAGED SAVE". Returns whether the slot was reopened.
+    /// </summary>
+    public static bool ReopenLastSlot(SaveService save, int lastSlot)
+    {
+        if (!SaveService.IsValidSlot(lastSlot)) return false;
+
+        SlotSummary last = save.Peek(lastSlot);
+        if (!last.Exists || last.Unreadable) return false;
+
+        save.SelectSlot(lastSlot);
+        return true;
     }
 
     private static void RememberSlot(SettingsService settings, int slot)

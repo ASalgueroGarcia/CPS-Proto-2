@@ -72,9 +72,11 @@ public class JsonFileStore
     /// <summary>Deletes the file together with its backup and any leftover temp file.</summary>
     public void Delete(string fileName)
     {
+        // The main file goes last: if a locked backup stops the delete half-way, the slot is still
+        // whole, instead of coming back from that backup one save older.
         string path = PathOf(fileName);
-        File.Delete(path);
-        File.Delete(path + BackupSuffix);
         File.Delete(path + TempSuffix);
+        File.Delete(path + BackupSuffix);
+        File.Delete(path);
     }
 }

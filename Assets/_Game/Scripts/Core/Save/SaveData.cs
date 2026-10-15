@@ -72,7 +72,8 @@ public class SaveData
         replayScene = Fit(replayScene, ProgressRules.ActCount, ProgressRules.ScenesPerAct - 1);
         takes = Fit(takes, ProgressRules.SceneCount, int.MaxValue);
         ownedUpgradeIds = Distinct(ownedUpgradeIds);
-        lastSavedUtcTicks = Math.Max(0L, lastSavedUtcTicks);
+        // Outside DateTime's range the slot card would throw while drawing the menu.
+        if (lastSavedUtcTicks < 0 || lastSavedUtcTicks > DateTime.MaxValue.Ticks) lastSavedUtcTicks = 0;
     }
 
     // Version 1 is the first format, so there is nothing to convert yet. A later format

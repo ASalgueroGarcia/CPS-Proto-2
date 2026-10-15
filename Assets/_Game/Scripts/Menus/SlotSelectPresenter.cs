@@ -63,6 +63,14 @@ public class SlotSelectPresenter : IDisposable
             return;
         }
 
+        // A file another program holds can't be read: playing it would start from nothing and save
+        // nothing. Read it again instead - if it opens now, the card updates and the next press plays.
+        if (_save.Peek(slot).Locked)
+        {
+            Refresh();
+            return;
+        }
+
         _busy = true;
         _save.SelectSlot(slot);
         _view.Hide(_flow.EnterHub);

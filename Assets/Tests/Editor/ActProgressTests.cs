@@ -61,14 +61,19 @@ public class ActProgressTests
     [Test]
     public void APick_BelongsToItsSlot()
     {
+        // Act I finished in both slots, so the pick is valid in either - only the slot tells them apart.
+        _save.SelectSlot(1);
+        _save.Data.scenesCleared[0] = 3;
+        _save.Save();
         _save.SelectSlot(0);
         _save.Data.scenesCleared[0] = 3;
         _save.Save();
-        ActProgress.SelectAct(1);
+        ActProgress.SelectAct(0);
+        Assert.AreEqual(0, ActProgress.SelectedAct, "PLAY AGAIN on Act I in slot 1.");
 
         _save.SelectSlot(1);
 
-        Assert.AreEqual(0, ActProgress.SelectedAct, "Slot 2 knows nothing about slot 1's pick.");
+        Assert.AreEqual(1, ActProgress.SelectedAct, "Slot 2 goes on with Act II - slot 1's replay isn't its pick.");
     }
 
     [Test]

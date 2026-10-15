@@ -45,7 +45,8 @@ public class SettingsData
         musicVolume = ToVolume(musicVolume);
         sfxVolume = ToVolume(sfxVolume);
 
-        if (resolutionWidth <= 0 || resolutionHeight <= 0)
+        // Only the menu's sizes or native: a hand-edited 100000 x 5 would be applied at every boot.
+        if (DisplaySettings.IndexOfResolution(resolutionWidth, resolutionHeight) < 0)
         {
             resolutionWidth = 0;
             resolutionHeight = 0;

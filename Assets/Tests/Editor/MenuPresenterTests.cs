@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -65,6 +66,28 @@ public class MenuPresenterTests
 
         Assert.IsFalse(_slotView.Visible);
         Assert.IsTrue(_menuView.Visible);
+    }
+
+    [Test]
+    public void ALockedSlot_IsReadAgain_InsteadOfPlayedFromNothing()
+    {
+        new SaveService(_folder.Store).SelectSlot(0);
+        _menuView.ResumeRequested?.Invoke();
+
+        using (new FileStream(_folder.FilePath(SaveService.FileNameOf(0)), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            _slotView.SlotChosen?.Invoke(0);
+
+            Assert.IsFalse(_save.HasActiveSlot);
+            Assert.AreEqual(0, _flow.HubEntered);
+            Assert.IsTrue(_slotView.Visible);
+            Assert.IsTrue(_slotView.Slots[0].Locked);
+        }
+
+        _slotView.SlotChosen?.Invoke(0);
+
+        Assert.AreEqual(0, _save.ActiveSlot, "Plays once the other program lets go.");
+        Assert.AreEqual(1, _flow.HubEntered);
     }
 
     [Test]
@@ -177,12 +200,12 @@ public class MenuPresenterTests
         Assert.IsFalse(_menuView.Visible);
         Assert.IsTrue(_settingsView.Visible);
         Assert.AreEqual(0.3f, _settingsView.State.MusicVolume);
-        Assert.AreEqual(3, _settingsView.State.ResolutionIndex);
-        Assert.AreEqual(DisplaySettings.Resolutions.Length, _settingsView.State.ResolutionOptions.Count);
+        Assert.AreEqual(4, _settingsView.State.ResolutionIndex, "1280 x 720, after Native and three others.");
+        Assert.AreEqual(DisplaySettings.Resolutions.Length + 1, _settingsView.State.ResolutionOptions.Count);
         Assert.AreEqual(1, _settingsView.State.DisplayModeIndex, "Borderless by default.");
 
         _settingsView.MasterVolumeChanged?.Invoke(0.4f);
-        _settingsView.ResolutionChanged?.Invoke(1);
+        _settingsView.ResolutionChanged?.Invoke(2);
         _settingsView.DisplayModeChanged?.Invoke(2);
         Assert.AreEqual(0.4f, _settings.Data.masterVolume, "Applied live, before Back.");
 
@@ -198,17 +221,36 @@ public class MenuPresenterTests
     }
 
     [Test]
-    public void Windowed_WithoutAResolution_TakesTheOneTheMenuShows()
+    public void Native_IsTheFirstEntry_SoTheMenuNeverShowsAGuess()
     {
         _menuView.SettingsRequested?.Invoke();
         Assert.AreEqual(0, _settings.Data.resolutionWidth, "native until the player picks one");
+        Assert.AreEqual(0, _settingsView.State.ResolutionIndex);
+        StringAssert.StartsWith("Native (", _settingsView.State.ResolutionOptions[0]);
+
+        _settingsView.ResolutionChanged?.Invoke(1);
+        Assert.AreEqual(2560, _settings.Data.resolutionWidth, "every listed size is a real change");
+
+        _settingsView.ResolutionChanged?.Invoke(0);
+        Assert.AreEqual(0, _settings.Data.resolutionWidth, "and Native goes back");
+    }
+
+    [Test]
+    public void Windowed_WithoutAResolution_TakesAListedSize_AndTheMenuShowsIt()
+    {
+        _menuView.SettingsRequested?.Invoke();
 
         _settingsView.DisplayModeChanged?.Invoke(2);
 
-        Vector2Int shown = DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex];
         Assert.AreEqual(FullScreenMode.Windowed, _settings.Data.FullscreenMode);
-        Assert.AreEqual(shown.x, _settings.Data.resolutionWidth, "a window never opens at desktop size");
+        Assert.AreNotEqual(0, _settings.Data.resolutionWidth, "a window never opens at desktop size");
+        Vector2Int shown = DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex - 1];
+        Assert.AreEqual(shown.x, _settings.Data.resolutionWidth);
         Assert.AreEqual(shown.y, _settings.Data.resolutionHeight);
+
+        _settingsView.ResolutionChanged?.Invoke(0);
+        Assert.AreEqual(shown.x, _settings.Data.resolutionWidth, "Native is refused while windowed...");
+        Assert.AreEqual(shown.x, DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex - 1].x, "...and the menu snaps back");
     }
 
     [Test]

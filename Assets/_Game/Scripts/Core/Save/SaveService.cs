@@ -60,8 +60,11 @@ public class SaveService
         FileState state = ReadFile(main, out SaveData data);
         if (state == FileState.Missing || state == FileState.Corrupt)
         {
+            // Same order as LoadSlot, so the card says what choosing the slot will do.
             FileState backupState = ReadFile(main + JsonFileStore.BackupSuffix, out SaveData backup);
             if (backupState == FileState.Ok) return SlotSummary.From(slot, backup);
+            if (backupState == FileState.NewerVersion) return SlotSummary.From(slot, backup, true);
+            if (backupState == FileState.IoError) return SlotSummary.Unavailable(slot);
         }
 
         switch (state)

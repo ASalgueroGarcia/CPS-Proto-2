@@ -126,6 +126,15 @@ public class SettingsTests
     }
 
     [Test]
+    public void AResolutionOffTheMenu_FallsBackToNative()
+    {
+        SettingsData data = SettingsData.Parse("{\"version\":1,\"resolutionWidth\":100000,\"resolutionHeight\":5}", out _);
+
+        Assert.AreEqual(0, data.resolutionWidth);
+        Assert.AreEqual(0, data.resolutionHeight);
+    }
+
+    [Test]
     public void ResolutionList_MatchesTheSettingsMenuSpec()
     {
         Assert.AreEqual(8, DisplaySettings.Resolutions.Length);

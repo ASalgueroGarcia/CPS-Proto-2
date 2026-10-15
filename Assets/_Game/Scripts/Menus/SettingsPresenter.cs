@@ -7,7 +7,9 @@ using UnityEngine;
 /// </summary>
 public class SettingsPresenter : IDisposable
 {
-    private static readonly string[] ResolutionOptions = BuildResolutionOptions();
+    // The first resolution entry is "Native", the default; the GDD's sizes follow it.
+    private const int NativeIndex = 0;
+
     private static readonly string[] DisplayModeOptions = BuildDisplayModeOptions();
 
     private readonly ISettingsView _view;
@@ -55,25 +57,36 @@ public class SettingsPresenter : IDisposable
             MasterVolume = data.masterVolume,
             MusicVolume = data.musicVolume,
             SfxVolume = data.sfxVolume,
-            ResolutionOptions = ResolutionOptions,
+            ResolutionOptions = BuildResolutionOptions(),
             ResolutionIndex = CurrentResolutionIndex(data),
             DisplayModeOptions = DisplayModeOptions,
             DisplayModeIndex = Mathf.Max(0, DisplaySettings.IndexOfMode(data.FullscreenMode)),
         };
     }
 
-    // "Native" (0x0) isn't one of the GDD's options - show the closest one to the screen.
-    private static int CurrentResolutionIndex(SettingsData data)
-    {
-        int index = DisplaySettings.IndexOfResolution(data.resolutionWidth, data.resolutionHeight);
-        return index >= 0 ? index : DisplaySettings.ClosestResolution(Screen.width, Screen.height);
-    }
+    // Native (0x0) isn't in the GDD's list, so it gets its own entry: the menu always shows the real
+    // setting, and every other entry is a change (a dropdown ignores picking the entry it shows).
+    private static int CurrentResolutionIndex(SettingsData data) =>
+        DisplaySettings.IndexOfResolution(data.resolutionWidth, data.resolutionHeight) + 1;
 
     private void OnResolutionChanged(int index)
     {
-        if (index < 0 || index >= DisplaySettings.Resolutions.Length) return;
+        if (index < NativeIndex || index > DisplaySettings.Resolutions.Length) return;
 
-        Vector2Int size = DisplaySettings.Resolutions[index];
+        if (index == NativeIndex)
+        {
+            // A window at native size would be as big as the desktop: a window keeps its size.
+            if (_settings.Data.FullscreenMode == FullScreenMode.Windowed)
+            {
+                _view.SetState(BuildState());
+                return;
+            }
+
+            _settings.SetResolution(0, 0);
+            return;
+        }
+
+        Vector2Int size = DisplaySettings.Resolutions[index - 1];
         _settings.SetResolution(size.x, size.y);
     }
 
@@ -81,14 +94,17 @@ public class SettingsPresenter : IDisposable
     {
         if (index < 0 || index >= DisplaySettings.Modes.Length) return;
 
-        // A window at "native" size would be as big as the desktop: take the resolution the menu shows.
+        // A window at native size would be as big as the desktop: take the listed size closest to
+        // the screen, and redraw so the resolution entry shows it.
         FullScreenMode mode = DisplaySettings.Modes[index];
         if (mode == FullScreenMode.Windowed && _settings.Data.resolutionWidth == 0)
         {
-            OnResolutionChanged(CurrentResolutionIndex(_settings.Data));
+            Vector2Int size = DisplaySettings.Resolutions[DisplaySettings.ClosestResolution(Screen.width, Screen.height)];
+            _settings.SetResolution(size.x, size.y);
         }
 
         _settings.SetFullscreenMode(mode);
+        _view.SetState(BuildState());
     }
 
     private void OnBack()
@@ -101,10 +117,12 @@ public class SettingsPresenter : IDisposable
 
     private static string[] BuildResolutionOptions()
     {
-        var options = new string[DisplaySettings.Resolutions.Length];
-        for (int i = 0; i < options.Length; i++)
+        Resolution screen = Screen.currentResolution;
+        var options = new string[DisplaySettings.Resolutions.Length + 1];
+        options[NativeIndex] = $"Native ({screen.width} x {screen.height})";
+        for (int i = 0; i < DisplaySettings.Resolutions.Length; i++)
         {
-            options[i] = DisplaySettings.ResolutionLabel(i);
+            options[i + 1] = DisplaySettings.ResolutionLabel(i);
         }
 
         return options;

@@ -259,4 +259,64 @@ public class SaveServiceTests
 
         Assert.IsFalse(_save.Peek(0).Locked, "Readable again once the other program lets go.");
     }
+
+    [Test]
+    public void ALockedBackup_StopsTheDelete_BeforeTheSaveIsTouched()
+    {
+        _save.SelectSlot(0);
+        _save.Data.tickets = 5;
+        _save.Save();
+        _save.Data.tickets = 6;
+        _save.Save();
+        _save.SelectSlot(1);
+
+        using (new FileStream(_folder.FilePath(Slot(0) + JsonFileStore.BackupSuffix), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            Assert.IsFalse(_save.DeleteSlot(0));
+        }
+
+        Assert.AreEqual(6, ReadFromDisk(0).tickets, "Still the latest save - not the backup one write older.");
+    }
+
+    [Test]
+    public void Peek_SaysWhatChoosingTheSlotWillDo_WhenOnlyANewerBackupIsLeft()
+    {
+        _folder.Write(Slot(0) + JsonFileStore.BackupSuffix, "{\"version\":" + (SaveData.CurrentVersion + 1) + ",\"tickets\":9}");
+
+        SlotSummary card = _save.Peek(0);
+        _save.SelectSlot(0);
+
+        Assert.IsTrue(card.Exists, "Not NEW GAME: choosing it opens the newer save.");
+        Assert.IsTrue(card.Unreadable);
+        Assert.IsTrue(_save.IsReadOnly);
+        Assert.AreEqual(9, _save.Data.tickets);
+    }
+
+    [Test]
+    public void ASaveTimeOutOfRange_IsDropped_InsteadOfBreakingTheMenu()
+    {
+        _folder.Write(Slot(0), "{\"version\":1,\"tickets\":4,\"lastSavedUtcTicks\":9000000000000000000}");
+
+        SlotSummary card = null;
+        Assert.DoesNotThrow(() => card = _save.Peek(0));
+
+        Assert.AreEqual(4, card.Tickets);
+        Assert.IsNull(card.LastSaved);
+    }
+
+    [Test]
+    public void ReopenLastSlot_OnlyReopensASlotThatReadsCleanly()
+    {
+        Assert.IsFalse(Services.ReopenLastSlot(_save, -1), "No slot played yet.");
+        Assert.IsFalse(Services.ReopenLastSlot(_save, 1), "A missing slot isn't created.");
+        Assert.IsFalse(_folder.Exists(Slot(1)));
+
+        _folder.Write(Slot(2), "{ broken");
+        Assert.IsFalse(Services.ReopenLastSlot(_save, 2), "A damaged slot isn't repaired behind the player's back.");
+        Assert.AreEqual("{ broken", _folder.ReadText(Slot(2)));
+
+        new SaveService(_folder.Store).SelectSlot(0);
+        Assert.IsTrue(Services.ReopenLastSlot(_save, 0));
+        Assert.AreEqual(0, _save.ActiveSlot);
+    }
 }
