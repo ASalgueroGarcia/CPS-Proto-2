@@ -5,18 +5,33 @@ public class FallingTrap : MonoBehaviour
 {
     [Header("FALLING TRAP SETTINGS")]
     [SerializeField] private GameObject trapObjectFalling;
-    [SerializeField] private GameObject warningShadow;
+    //[SerializeField] private GameObject warningShadow;
     [SerializeField] private float fallingTimeDelay = 0.8f;
+    [SerializeField] private float fallDurationTime = 0.25f;
+
     [SerializeField] private float cooldown = 6.0f;
     [SerializeField] private float damage = 30.0f; // same damage to player and enemys.
     
     private bool triggered = false;
-    private bool onCooldon = false;
+    private bool onCooldown = false;
+    private Vector3 trapStartPosition; // 4 the position of the trap before fall. 
+    private Collider tCollider;
+
+
+    private void Awake()
+    {
+        tCollider = GetComponent<Collider>();
+        trapStartPosition = trapObjectFalling.transform.position;
+        trapObjectFalling.SetActive(true);
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        if(triggered ||onCooldon)return;
-        if(other.CompareTag("Enemy") || other.CompareTag("Player"))
+        if(triggered ||onCooldown){
+            return;
+        }
+
+        if(other.CompareTag("Enemy") ||other.CompareTag("Player"))
         {
             // player or enemy detected ? -> starts the delay.
             StartCoroutine(FallingC(other));
@@ -30,41 +45,38 @@ public class FallingTrap : MonoBehaviour
         yield return new WaitForSeconds(fallingTimeDelay);
 
         // if the player is still in the zone-> damage.
-        if (IsTargetInZone(other))
-        {
-            DamageZone();
+        DamageZone();
+
+        if (trapObjectFalling != null){
+            trapObjectFalling.SetActive(true);
         }
 
-        // Cooldown before the fall.
-        onCooldon = true;
+        onCooldown = true;
+
         yield return new WaitForSeconds(cooldown);
-        onCooldon = false;
+        trapObjectFalling.SetActive(false);
+        onCooldown = false;
         triggered = false;
     }
 
-    private bool IsTargetInZone(Collider other)
-    {
-        if(other == null)return false;
-
-        // Colls in the zone.
-        Collider tz = GetComponent<Collider>();
-        if(tz == null){
-            return false;
-        }
-        return tz.bounds.Contains(other.bounds.center);
-    }
-
     private void DamageZone(){
+        
+        if(tCollider==null)return;
+        Bounds b = tCollider.bounds;
 
         // player or enemy in the box area ? -> damage.
-        Collider[] h = Physics.OverlapBox(transform.position, GetComponent<Collider>().bounds.extents, transform.rotation);
-
-        for (int k = 0; k < h.Length;k++)
+        Collider[] h = Physics.OverlapBox(b.center, b.extents, Quaternion.identity);
+        
+        for (int k = 0; k < h.Length; k++)
         {
-            if (h[k].CompareTag("Player")|| h[k].CompareTag("Enemy"))
-            {
-                h[k].GetComponent<Health>()?.TakeDamage(damage);
-            }
+            if (!h[k].CompareTag("Player") &&
+                !h[k].CompareTag("Enemy"))
+                continue;
+
+            Health health = h[k].GetComponentInParent<Health>();
+
+            if (health != null)
+                health.TakeDamage(damage);
         }
     }
 }
