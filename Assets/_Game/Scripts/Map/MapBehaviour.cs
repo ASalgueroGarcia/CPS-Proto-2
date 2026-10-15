@@ -49,18 +49,19 @@ public class MapBehaviour : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
-        WaveManager.OnRoomCompleted += OnRoomCompleted;
+        WaveManager.OnEnemiesCleared += OnEnemiesCleared;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        WaveManager.OnRoomCompleted -= OnRoomCompleted;
+        WaveManager.OnEnemiesCleared -= OnEnemiesCleared;
     }
 
-    // The room in progress was beaten (its rewards collected). Winning the final fight ends the run
-    // as a victory right away (GDD > Save System), so quitting on the end-of-level screen keeps it.
-    private void OnRoomCompleted()
+    // The last enemy of the room in progress fell. Winning the final fight ends the run as a victory
+    // right away (GDD > Save System): picking up the rewards, dying to a trap afterwards or quitting
+    // on the end-of-level screen all keep it.
+    private void OnEnemiesCleared()
     {
         _roomCompleted = true;
         if (_completedNode != null && _completedNode.IsEndingNode())
