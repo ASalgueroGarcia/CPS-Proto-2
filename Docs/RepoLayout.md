@@ -196,6 +196,7 @@ for review automatically.
 - **Antonio**: Map, Audio · Scenes · Art/Map
 - **Ivan**: Shop, UI, Obstacles (code) · Data/Items · Art/UI, Art/VFX
 - **Ana**: Rooms · Art/Environment · Obstacles (prefabs)
+- **Dima + Ivan**: Menus (menu logic; the views stay in UI)
 - **Everyone, ask first**: Settings, ThirdParty
 
 ---

@@ -28,9 +28,10 @@ ones it lists. Nothing ever points up.
 | `Spectracle.Enemies` | Player, Core | UGUI |
 | `Spectracle.Obstacles` | Player, Core | |
 | `Spectracle.Player` | Core | Input System |
+| `Spectracle.Menus` | Core | |
 | `Spectracle.Core` | - | UGUI |
 | `Spectracle.Environment` | - | |
-| `Spectracle.Tests.Editor` | Waves, Core | NUnit, Test Runner, AI Navigation |
+| `Spectracle.Tests.Editor` | Menus, Waves, Core | NUnit, Test Runner, AI Navigation |
 
 Every reference in that table is used: removing any one of them breaks the build.
 
