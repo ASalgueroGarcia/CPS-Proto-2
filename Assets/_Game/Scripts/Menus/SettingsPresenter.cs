@@ -75,13 +75,6 @@ public class SettingsPresenter : IDisposable
 
         if (index == NativeIndex)
         {
-            // A window at native size would be as big as the desktop: a window keeps its size.
-            if (_settings.Data.FullscreenMode == FullScreenMode.Windowed)
-            {
-                _view.SetState(BuildState());
-                return;
-            }
-
             _settings.SetResolution(0, 0);
             return;
         }

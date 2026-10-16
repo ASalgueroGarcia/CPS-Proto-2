@@ -243,14 +243,13 @@ public class MenuPresenterTests
         _settingsView.DisplayModeChanged?.Invoke(2);
 
         Assert.AreEqual(FullScreenMode.Windowed, _settings.Data.FullscreenMode);
-        Assert.AreNotEqual(0, _settings.Data.resolutionWidth, "a window never opens at desktop size");
+        Assert.AreNotEqual(0, _settings.Data.resolutionWidth, "switching to windowed never opens a desktop-sized window by itself");
         Vector2Int shown = DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex - 1];
         Assert.AreEqual(shown.x, _settings.Data.resolutionWidth);
         Assert.AreEqual(shown.y, _settings.Data.resolutionHeight);
 
         _settingsView.ResolutionChanged?.Invoke(0);
-        Assert.AreEqual(shown.x, _settings.Data.resolutionWidth, "Native is refused while windowed...");
-        Assert.AreEqual(shown.x, DisplaySettings.Resolutions[_settingsView.State.ResolutionIndex - 1].x, "...and the menu snaps back");
+        Assert.AreEqual(0, _settings.Data.resolutionWidth, "picking Native while windowed is the player's choice: a screen-sized window");
     }
 
     [Test]
