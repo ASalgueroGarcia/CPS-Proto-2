@@ -40,7 +40,8 @@ public class ActCard : MonoBehaviour
     [SerializeField] private Color lockedColor = new Color32(0xA3, 0x9A, 0x8E, 0xFF);
     [SerializeField] private Color quietCueColor = new Color32(0xA3, 0x9A, 0x8E, 0xFF);
 
-    public void Show(State state, int scenesCleared, int scenesTotal)
+    /// <param name="sceneToPlay">0-based scene the next run plays; a finished act replays from scene 1.</param>
+    public void Show(State state, int scenesCleared, int scenesTotal, int sceneToPlay)
     {
         bool locked = state == State.Locked;
         bool selected = state == State.Selected;
@@ -64,7 +65,7 @@ public class ActCard : MonoBehaviour
             pipFills[i].color = i < scenesCleared ? accent : paper.color;
         }
 
-        int currentScene = Mathf.Clamp(scenesCleared + 1, 1, scenesTotal);
+        int currentScene = Mathf.Clamp(sceneToPlay + 1, 1, scenesTotal);
         sceneLabel.text = $"SCENE {currentScene} OF {scenesTotal}";
         sceneLabel.color = locked ? lockedColor : inkColor;
 
