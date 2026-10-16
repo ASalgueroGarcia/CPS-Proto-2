@@ -310,7 +310,7 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
-        // Leaving the final fight: after a win (already saved in OnRoomCompleted) the player goes back to
+        // Leaving the final fight: after a win (already saved in OnEnemiesCleared) the player goes back to
         // the hub; leaving through the pause menu before winning keeps the boss open.
         if (_completedNode.IsEndingNode())
         {
