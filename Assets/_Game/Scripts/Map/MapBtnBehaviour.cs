@@ -17,6 +17,10 @@ public class MapBtnBehaviour : MonoBehaviour
     {
         if (SceneController.Instance)
         {
+            // This button lives on the persistent UI, but the map scene is reloaded for every new
+            // run (after a death or a victory): find the current map again once the old one is gone.
+            if (_mapBehaviour == null) _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+
             if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
             if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
             

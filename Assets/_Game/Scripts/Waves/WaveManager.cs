@@ -52,6 +52,12 @@ public class WaveManager : MonoBehaviour
     public static event System.Action OnRoomCompleted;
 
     /// <summary>
+    /// Raised once, the moment the room's last enemy dies - before its rewards are picked up.
+    /// The fight is won here: MapBehaviour saves a boss victory on it.
+    /// </summary>
+    public static event System.Action OnEnemiesCleared;
+
+    /// <summary>
     /// Sets the difficulty tier for this room. Called by SceneController immediately
     /// after the room prefab is instantiated, which is before Start() runs.
     /// Setting it any later has no effect - the first wave has already been spawned.
@@ -205,6 +211,7 @@ public class WaveManager : MonoBehaviour
         if (roomCleared) return;
         roomCleared = true;
         Debug.Log($"<color=green>Room Cleared!</color> Room Type: {currentRoomType}");
+        OnEnemiesCleared?.Invoke();
         
         // Cancel any pending wave spawns just in case
         CancelInvoke(nameof(SpawnWave));
@@ -287,8 +294,22 @@ public class WaveManager : MonoBehaviour
         return false;
     }
 
+    // Rewards spawn at the scene root, so they would outlive the room: an uncollected coin picked
+    // up in the next room would complete this one over there (end-of-level screen, boss "win").
+    private void OnDestroy()
+    {
+        foreach (GameObject pickup in activePickups)
+        {
+            if (pickup != null) Destroy(pickup);
+        }
+
+        activePickups.Clear();
+    }
+
     private void OnPickupCollected(GameObject pickup)
     {
+        if (this == null) return;
+
         activePickups.Remove(pickup);
         if (activePickups.Count == 0)
         {

@@ -40,6 +40,7 @@ public class MapBehaviour : MonoBehaviour
 
     private Node _startingNode;
     private Node _completedNode;
+    private bool _roomCompleted;
     private Node _currNode;
     private Node _prevNode;
     private Node _nextNode;
@@ -48,11 +49,25 @@ public class MapBehaviour : MonoBehaviour
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
+        WaveManager.OnEnemiesCleared += OnEnemiesCleared;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        WaveManager.OnEnemiesCleared -= OnEnemiesCleared;
+    }
+
+    // The last enemy of the room in progress fell. Winning the final fight ends the run as a victory
+    // right away (GDD > Save System): picking up the rewards, dying to a trap afterwards or quitting
+    // on the end-of-level screen all keep it.
+    private void OnEnemiesCleared()
+    {
+        _roomCompleted = true;
+        if (_completedNode != null && _completedNode.IsEndingNode())
+        {
+            Services.Run?.EndRun(RunOutcome.Victory);
+        }
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -295,6 +310,16 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
+        // Leaving the final fight: after a win (already saved in OnEnemiesCleared) the player goes back to
+        // the hub; leaving through the pause menu before winning keeps the boss open.
+        if (_completedNode.IsEndingNode())
+        {
+            bool won = _roomCompleted;
+            _completedNode = null;
+            if (won) Services.Flow?.EnterHub();
+            return;
+        }
+
         // Lock all buttons first
         for (var i = 0; i < maxLayers; i++)
         {
@@ -322,6 +347,7 @@ public class MapBehaviour : MonoBehaviour
     public void SetCurrentNode(Node node)
     {
         _completedNode = node;
+        _roomCompleted = false;
         //Debug.Log($"Current node set to: {node.gameObject.name}");
     }
 }
