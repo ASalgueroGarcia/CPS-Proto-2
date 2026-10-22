@@ -3,29 +3,38 @@ using UnityEngine;
 /// <summary>
 /// Which act the player picked on the poster, and how far each act has got
 /// (GDD: three acts, each played as three runs - the poster calls them "scenes").
-/// Store only: the act select screen writes the choice, the map / run code reads it.
-/// There is no save system yet, so progress lives for the session only.
+/// Progress comes from the active save slot (ProgressRules over SaveData); only the poster
+/// pick lives here, for the session. RunSession is the one place that writes progress.
 /// </summary>
 public static class ActProgress
 {
-    public const int ActCount = 3;
-    public const int ScenesPerAct = 3;
+    public const int ActCount = ProgressRules.ActCount;
+    public const int ScenesPerAct = ProgressRules.ScenesPerAct;
 
-    private static readonly int[] ScenesCleared = new int[ActCount];
+    private static int _selectedAct = -1;
+    private static int _selectedSlot = -1;
+    private static bool _selectedWhileFinished;
 
-    /// <summary>Act chosen on the poster, 0-based. Act I until the player picks one.</summary>
-    public static int SelectedAct { get; private set; }
+    private static SaveData Data => Services.Save?.Data;
 
-    public static int GetScenesCleared(int act) => IsValid(act) ? ScenesCleared[act] : 0;
+    private static int ActiveSlot => Services.Save != null ? Services.Save.ActiveSlot : -1;
 
-    public static bool IsFinished(int act) => GetScenesCleared(act) >= ScenesPerAct;
+    /// <summary>
+    /// Act chosen on the poster, 0-based. Until the player picks one, the act they're working on.
+    /// A pick belongs to its slot, and picking an unfinished act lasts until that act is finished:
+    /// then the next run moves on to the act it unlocked. Picking a finished act (PLAY AGAIN) sticks.
+    /// </summary>
+    public static int SelectedAct => HasValidPick() ? _selectedAct : ProgressRules.DefaultAct(Data);
+
+    public static int GetScenesCleared(int act) => ProgressRules.GetScenesCleared(Data, act);
+
+    public static bool IsFinished(int act) => ProgressRules.IsFinished(Data, act);
 
     /// <summary>Act I is always open; every later act opens once the one before it is finished.</summary>
-    public static bool IsUnlocked(int act)
-    {
-        if (!IsValid(act)) return false;
-        return act == 0 || IsFinished(act - 1);
-    }
+    public static bool IsUnlocked(int act) => ProgressRules.IsUnlocked(Data, act);
+
+    /// <summary>Scene (0-based) the next run of this act plays - a finished act replays from scene 1.</summary>
+    public static int GetSceneToPlay(int act) => ProgressRules.SceneToPlay(Data, act);
 
     public static void SelectAct(int act)
     {
@@ -35,25 +44,23 @@ public static class ActProgress
             return;
         }
 
-        SelectedAct = act;
-    }
-
-    /// <summary>Call when a run of the selected act is won (its Mini-Boss / Act Boss is down).</summary>
-    public static void MarkSceneCleared()
-    {
-        if (ScenesCleared[SelectedAct] < ScenesPerAct)
-        {
-            ScenesCleared[SelectedAct]++;
-        }
+        _selectedAct = act;
+        _selectedSlot = ActiveSlot;
+        _selectedWhileFinished = IsFinished(act);
     }
 
     // Statics survive entering Play Mode when domain reload is off - start every session clean.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     public static void ResetAll()
     {
-        System.Array.Clear(ScenesCleared, 0, ActCount);
-        SelectedAct = 0;
+        _selectedAct = -1;
+        _selectedSlot = -1;
+        _selectedWhileFinished = false;
     }
 
-    private static bool IsValid(int act) => act >= 0 && act < ActCount;
+    private static bool HasValidPick()
+    {
+        if (_selectedAct < 0 || _selectedSlot != ActiveSlot || !IsUnlocked(_selectedAct)) return false;
+        return _selectedWhileFinished || !IsFinished(_selectedAct);
+    }
 }
