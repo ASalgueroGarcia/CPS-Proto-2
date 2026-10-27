@@ -1,182 +1,135 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-public class Node : MonoBehaviour
+[RequireComponent(typeof(Button))]
+public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
 {
-    [Header("Node Settings")]
-    [SerializeField] private NodeTypeEnum type;
-    [Tooltip("Difficulty tier of the room behind this node. Assigned by MapBehaviour from the node's layer depth; the inspector value is only a fallback.")]
-    [SerializeField] private RoomType roomTier = RoomType.Medium;
-    [SerializeField] private GameObject lineHolder;
-    [SerializeField] private int nodeIndex;
+    private const float FillScale = 0.82f;
 
-    [Header("References")] 
-    [SerializeField] private LineBetweenObjects line;
-    [SerializeField] private bool generateType;
+    public int Row { get; private set; }
+    public int Column { get; private set; }
+    public NodeTypeEnum Type { get; private set; }
 
-    private readonly List<Node> _parentNodes = new List<Node>();
-    private readonly List<Node> _childNodes = new List<Node>();
+    private Button button;
+    private Image ring;
+    private Image fill;
+    private TMP_Text icon;
+    private TMP_Text label;
+    private Action<Node> onInspect;
 
-    private readonly float _min = 0;
-    private readonly float _max = 100;
-    private bool _isActive = false;
-    private bool _isStartingNode = false;
-    private bool _isEndingNode = false;
-
-    private LineBetweenObjects _lbo;
-    private readonly HashSet<Node> _connectedChildren = new HashSet<Node>();
-
-    private void Awake()
+    public static Color GetRoomColor(NodeTypeEnum type)
     {
-        lineHolder = GameObject.Find("LineHolder");
-        GenerateNodeType();
-    }
-
-    public void ResetNode()
-    {
-        _isActive = false;
-        _isStartingNode = false;
-        _isEndingNode = false;
-        _connectedChildren.Clear();
-        _parentNodes.Clear();
-        _childNodes.Clear();
-
-        foreach (Transform child in transform)
+        switch (type)
         {
-            if (child != null)
-                Destroy(child.gameObject);
-        }
-
-        GenerateNodeType();
-    }
-
-    private void GenerateNodeType()
-    {
-        if (!generateType) return;
-        type = Random.Range(_min, _max + 1) <= 75 ? NodeTypeEnum.Combat : NodeTypeEnum.Merchant;
-
-        //Debug.Log(this.gameObject.name + type);
-    }
-    
-    public void ToggleNode()
-    {
-        gameObject.SetActive(_isActive);
-
-        if (!_isActive || _childNodes == null) return;
-
-        foreach (var child in _childNodes)
-        {
-            if (!child._isActive || _connectedChildren.Contains(child)) continue;
-
-            var connectingLine = Instantiate(line, lineHolder.transform);
-            connectingLine.SetObjects(this.gameObject, child.gameObject);
-            _connectedChildren.Add(child);
-        }
-    }
-    
-    public void ActivateChildren(Node endingNode = null)
-    {
-        Debug.Log($"Node: {gameObject.name} has {_childNodes.Count} children");
-
-        if (_childNodes.Count == 0)
-        {
-            Debug.LogWarning($"No children found on node {gameObject.name}!");
-            return;
-        }
-
-        foreach (var child in _childNodes)
-        {
-            // If this child is the ending node, enable it via its own button
-            if (endingNode != null && child == endingNode)
-            {
-                var bossBtn = child.GetComponentInChildren<Button>();
-                if (bossBtn != null) bossBtn.interactable = true;
-                continue;
-            }
-
-            var btn = child.GetComponentInChildren<Button>();
-            if (btn != null) btn.interactable = true;
+            case NodeTypeEnum.Combat:
+                return new Color(0.85f, 0.25f, 0.25f);
+            case NodeTypeEnum.MoreHealth:
+                return new Color(0.25f, 0.75f, 0.40f);
+            case NodeTypeEnum.MoreButtons:
+                return new Color(0.95f, 0.75f, 0.15f);
+            case NodeTypeEnum.Shop:
+                return new Color(0.20f, 0.60f, 0.95f);
+            case NodeTypeEnum.Treasure:
+                return new Color(0.65f, 0.35f, 0.85f);
+            case NodeTypeEnum.FinalFight:
+                return new Color(0.90f, 0.15f, 0.30f);
+            default:
+                return Color.white;
         }
     }
 
-    public NodeTypeEnum GetNodeType()
+    public void Init(int row, int column, NodeTypeEnum type, Action<Node> clickCallback, Action<Node> inspectCallback)
     {
-        return type;
+        Row = row;
+        Column = column;
+        Type = type;
+        onInspect = inspectCallback;
+
+        ring = GetComponent<Image>();
+        float size = ((RectTransform)transform).sizeDelta.y;
+
+        fill = AddImage("Fill", ring.sprite, size * FillScale);
+        icon = AddText("Icon", IconFor(type), size * 0.5f, Vector2.zero, new Vector2(size, size));
+        icon.alignment = TextAlignmentOptions.Midline;
+
+        label = AddText("Label", "YOU ARE HERE", size * 0.22f, new Vector2(0f, -size * 0.8f), new Vector2(size * 3f, size * 0.4f));
+        label.characterSpacing = 6f;
+
+        button = GetComponent<Button>();
+        button.transition = Selectable.Transition.None;
+        button.onClick.AddListener(() => clickCallback(this));
     }
 
-    public RoomType GetRoomTier()
+    public void SetLook(Color fillColor, Color iconColor, Color ringColor, bool showRing, bool interactable, bool current)
     {
-        return roomTier;
+        ring.color = showRing ? ringColor : Color.clear;
+        fill.color = fillColor;
+        icon.color = iconColor;
+        label.color = ringColor;
+        label.gameObject.SetActive(current);
+        button.interactable = interactable;
     }
 
-    public void SetRoomTier(RoomType tier)
+    public void OnPointerEnter(PointerEventData eventData)
     {
-        roomTier = tier;
+        onInspect?.Invoke(this);
     }
 
-    public Transform GetNodeTransform()
+    public void OnSelect(BaseEventData eventData)
     {
-        return this.gameObject.transform;
+        onInspect?.Invoke(this);
     }
 
-    public void SetChildNode(Node childNode)
+    private static string IconFor(NodeTypeEnum type)
     {
-        if (childNode == null) return;
-        if (!_childNodes.Contains(childNode)) _childNodes.Add(childNode);
-        if (!childNode._parentNodes.Contains(this)) childNode._parentNodes.Add(this);
+        switch (type)
+        {
+            case NodeTypeEnum.Combat:
+                return "×";
+            case NodeTypeEnum.MoreHealth:
+                return "+";
+            case NodeTypeEnum.MoreButtons:
+                return "¤";
+            case NodeTypeEnum.Shop:
+                return "▲";
+            case NodeTypeEnum.Treasure:
+                return "■";
+            case NodeTypeEnum.FinalFight:
+                return "♣";
+            default:
+                return "?";
+        }
     }
 
-    public void SetParentNode(Node parentNode)
+    private Image AddImage(string name, Sprite sprite, float size)
     {
-        if (parentNode == null) return;
-        if (!_parentNodes.Contains(parentNode)) _parentNodes.Add(parentNode);
-        if (!parentNode._childNodes.Contains(this)) parentNode._childNodes.Add(this);
+        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+        rect.SetParent(transform, false);
+        rect.sizeDelta = Vector2.one * size;
+
+        Image image = rect.gameObject.AddComponent<Image>();
+        image.sprite = sprite;
+        image.raycastTarget = false;
+        return image;
     }
 
-    public void SetNodeAsActive()
+    private TMP_Text AddText(string name, string text, float fontSize, Vector2 position, Vector2 size)
     {
-        _isActive = true;
-    }
+        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+        rect.SetParent(transform, false);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
 
-    public void SetStartingNode()
-    {
-        _isStartingNode = true;
-    }
-
-    public void SetEndingNode()
-    {
-        _isEndingNode = true;
-    }
-
-    public bool IsStartingNode()
-    {
-        return _isStartingNode;
-    }
-
-    public bool IsEndingNode()
-    {
-        return _isEndingNode;
-    }
-
-    public bool HasNode(Node node)
-    {
-        return _childNodes.Contains(node);
-    }
-
-    public void SetType(NodeTypeEnum nodeType)
-    {
-        type = nodeType;
-    }
-
-    public void SetNodeIndex(int index)
-    {
-        nodeIndex = index;
-    }
-
-    public int GetNodeIndex()
-    {
-        return nodeIndex;
+        TextMeshProUGUI tmp = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.fontSize = fontSize;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
+        tmp.raycastTarget = false;
+        return tmp;
     }
 }

@@ -1,50 +1,63 @@
 using System;
+using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
-[System.Serializable]
-public class NodeLayer
-{
-    public Node[] nodes;
-}
-
 public class MapBehaviour : MonoBehaviour
 {
-    [Header("Map Variables")]
-    [SerializeField] private int maxLayerNodes;
-    [SerializeField] private int maxLayers;
-    [SerializeField] private int pathNum;
+    private enum NodeState
+    {
+        Current,
+        Available,
+        Later,
+        Closed
+    }
 
-    [Tooltip("Room difficulty tier per layer; index 0 is the first layer. Leave empty to ramp automatically from Entrance up to MiniBoss across the map.")]
-    [SerializeField] private RoomType[] layerTiers;
+    [Header("Layout")]
+    [SerializeField] private RectTransform nodeArea;
+    [SerializeField] private RectTransform lineHolder;
+    [SerializeField] private GameObject nodePrefab;
+    [SerializeField] private LineBetweenObjects linePrefab;
+    [SerializeField] private float nodeSize = 64f;
+    [SerializeField] private Vector2 areaPadding = new Vector2(0.15f, 0.18f);
 
-    [Header("Node Map")] 
-    [SerializeField] private NodeLayer[] nodeLayers;
+    [Header("Rooms")]
+    [SerializeField] private RoomType[] rowTiers;
+    [Range(0f, 1f)] [SerializeField] private float restRoomChance = 0.25f;
+    [Range(0f, 1f)] [SerializeField] private float shopRoomChance = 0.15f;
+    [SerializeField] private float restRoomHeal = 40f;
 
-    [Header("Node Prefabs")] 
-    [SerializeField] private GameObject combatNode;
-    [SerializeField] private GameObject merchantNode;
-    [SerializeField] private GameObject bossNode;
-    [SerializeField] private GameObject placeholderNode;
-    //[SerializeField] private GameObject miniBossNode;
-    //[SerializeField] private GameObject treasureNode;
-    
-    [Header("Node References")]
-    [SerializeField] private Node finalNode;
+    [Header("Node Rewards")]
+    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
+    [SerializeField] private float moreButtonsMultiplier = 1.5f;
+    [SerializeField] private float treasureHeal = 50f;
+    [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
 
-    private int _startCoord = 0;
-    private bool _isBossConnected = false;
-    private int _currNodeIndex;
+    [Header("Colors")]
+    [SerializeField] private Color gold = new Color(1f, 0.78f, 0.22f);
+    [SerializeField] private Color grey = new Color(0.55f, 0.55f, 0.55f);
+    [SerializeField] private Color dimmed = new Color(0.3f, 0.3f, 0.3f, 0.35f);
 
-    private Node _startingNode;
-    private Node _completedNode;
-    private bool _roomCompleted;
-    private Node _currNode;
-    private Node _prevNode;
-    private Node _nextNode;
-    private Node[][] _map;
+    private MapGrid map;
+    private readonly Node[,] nodes = new Node[MapGrid.Rows, MapGrid.Columns];
+    private readonly List<(Image image, int row, int from, int to)> lines = new List<(Image, int, int, int)>();
+    private readonly List<int> path = new List<int>();
+
+    private TMP_Text header;
+    private TMP_Text hud;
+    private TMP_Text inspect;
+
+    private Node entered;
+    private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
+    private int roomIndex;
+    private bool roomCompleted;
+
+    public bool HasNextRoom => entered != null && entered.Type != NodeTypeEnum.FinalFight
+                               && roomCompleted && roomIndex + 1 < rooms.Count;
 
     private void OnEnable()
     {
@@ -58,296 +71,383 @@ public class MapBehaviour : MonoBehaviour
         WaveManager.OnEnemiesCleared -= OnEnemiesCleared;
     }
 
-    // The last enemy of the room in progress fell. Winning the final fight ends the run as a victory
-    // right away (GDD > Save System): picking up the rewards, dying to a trap afterwards or quitting
-    // on the end-of-level screen all keep it.
-    private void OnEnemiesCleared()
+    private void Start()
     {
-        _roomCompleted = true;
-        if (_completedNode != null && _completedNode.IsEndingNode())
-        {
-            Services.Run?.EndRun(RunOutcome.Victory);
-        }
+        if (map == null) CreateMap();
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (scene.name != "_MapScene") return;
-        
-        //Debug.Log("Scene Loaded");
-        
         CreateMap();
+    }
+
+    private void OnEnemiesCleared()
+    {
+        roomCompleted = true;
+        if (entered != null && entered.Type == NodeTypeEnum.FinalFight)
+        {
+            Services.Run?.EndRun(RunOutcome.Victory);
+        }
     }
 
     private void CreateMap()
     {
-        InitializeMap();
+        Time.timeScale = 1f;
+        Clear();
 
-        for (var i = 0; i < pathNum; i++)
+        map = MapGenerator.Generate(new System.Random(Random.Range(int.MinValue, int.MaxValue)));
+        BuildHud();
+        PlaceLineHolder();
+
+        for (int row = 0; row < MapGrid.Rows; row++)
         {
-            GeneratePath(); 
-        } 
-        
-        SetActiveNodes();
-        AssignLocations();
-        MakeStartingNodesInteractable();
-    }
-
-    private void InitializeMap()
-    {
-        _map = new Node[nodeLayers.Length][];
-        
-        for (var i = 0; i < nodeLayers.Length; i++)
-        {
-            _map[i] = nodeLayers[i].nodes;
-        }
-    }
-
-    private void ResetMap()
-    {
-        _isBossConnected = false;
-        _startingNode = null;
-        _currNode = null;
-        _prevNode = null;
-        _nextNode = null;
-
-        if (finalNode) finalNode.ResetNode();
-
-        foreach (var t in _map)
-        {
-            foreach (var t1 in t)
+            for (int column = 0; column < MapGrid.Columns; column++)
             {
-                t1.ResetNode();
+                if (map.IsNode(row, column))
+                {
+                    SpawnNode(row, column);
+                }
             }
         }
-    }
 
-    private void AssignLocations()
-    {
-        for (var l = 0; l < maxLayers; l++)
+        for (int row = 0; row < MapGrid.LastRow; row++)
         {
-            for (var n = 0; n < maxLayerNodes; n++)
+            foreach (var (from, to) in map.EdgesFrom(row))
             {
-                var node = _map[l][n];
-                node.SetRoomTier(TierForLayer(node.GetNodeType(), l));
-                SpawnNode(node.GetNodeType(), node.GetNodeTransform());
+                SpawnLine(row, from, to);
             }
         }
+
+        Refresh();
     }
 
-    /// <summary>
-    /// Difficulty tier for a node, derived from how deep into the run it sits.
-    /// This is what makes the GDD's Run Progression table actually drive the game -
-    /// without it every combat room falls back to WaveManager's inspector default.
-    /// </summary>
-    private RoomType TierForLayer(NodeTypeEnum nodeType, int layerIndex)
+    private void Clear()
     {
-        // Non-combat nodes are defined by what they are, not by how deep they are.
-        if (nodeType == NodeTypeEnum.Merchant) return RoomType.Shop;
-        if (nodeType == NodeTypeEnum.Boss) return RoomType.Boss;
-
-        // An authored ladder always wins.
-        if (layerTiers != null && layerIndex < layerTiers.Length) return layerTiers[layerIndex];
-
-        // Otherwise ramp across the depth of the map.
-        if (layerIndex <= 0) return RoomType.Entrance;
-        if (maxLayers <= 1) return RoomType.Medium;
-
-        var progress = (float)layerIndex / (maxLayers - 1);
-        if (progress < 0.34f) return RoomType.Medium;
-        if (progress < 0.67f) return RoomType.MediumHard;
-        if (progress < 1f) return RoomType.Hard;
-        return RoomType.MiniBoss;
-    }
-
-    private void SpawnNode(NodeTypeEnum nodeType, Transform nodeTransform)
-    {
-        var node = nodeTransform.GetComponent<Node>();
-        node.SetType(nodeType);
-
-        var spawnedNode = nodeType switch
+        foreach (Node node in nodes)
         {
-            NodeTypeEnum.Combat => Instantiate(combatNode, nodeTransform, false),
-            NodeTypeEnum.Merchant => Instantiate(merchantNode, nodeTransform, false),
-            NodeTypeEnum.Placeholder => Instantiate(placeholderNode, nodeTransform, false),
-            NodeTypeEnum.Boss => Instantiate(combatNode, nodeTransform, false),
-            _ => throw new ArgumentOutOfRangeException(nameof(nodeType), nodeType, null)
-        };
-
-        var nodeBehaviour = spawnedNode.GetComponent<NodeBehaviour>();
-        var button = spawnedNode.GetComponentInChildren<Button>();
-
-        if (nodeBehaviour != null) nodeBehaviour.SetNode(node); // ← this is the key line
-        if (button && nodeBehaviour) button.onClick.AddListener(nodeBehaviour.LoadLevel);
-    }
-
-    private void ChooseStartingNode() 
-    { 
-        _startCoord = Random.Range(0, _map[0].Length); 
-        _startingNode = _map[0][_startCoord];
-
-        if (!_startingNode)
-        {
-            Debug.Log("No Starting node found");
-            ResetMap();
-            InitializeMap();
-            return;
+            if (node != null) Destroy(node.gameObject);
         }
-        
-        if (!_startingNode.IsStartingNode())
+        Array.Clear(nodes, 0, nodes.Length);
+
+        foreach (var line in lines)
         {
-            _startingNode.SetStartingNode(); 
-            _startingNode.SetType(NodeTypeEnum.Combat); 
-            _currNode = _startingNode;
+            if (line.image != null) Destroy(line.image.gameObject);
+        }
+        lines.Clear();
+
+        path.Clear();
+        entered = null;
+    }
+
+    private void PlaceLineHolder()
+    {
+        lineHolder.SetParent(nodeArea, false);
+        lineHolder.SetAsFirstSibling();
+        lineHolder.anchorMin = Vector2.zero;
+        lineHolder.anchorMax = Vector2.one;
+        lineHolder.offsetMin = Vector2.zero;
+        lineHolder.offsetMax = Vector2.zero;
+        lineHolder.pivot = nodeArea.pivot;
+    }
+
+    private void SpawnNode(int row, int column)
+    {
+        RectTransform rect = Instantiate(nodePrefab, nodeArea, false).GetComponent<RectTransform>();
+        bool singleNodeRow = row == 0 || row == MapGrid.LastRow;
+        float u = singleNodeRow ? 0.5f : (column + 0.5f) / MapGrid.Columns;
+        float v = (float)row / MapGrid.LastRow;
+        Vector2 anchor = new Vector2(Mathf.Lerp(areaPadding.x, 1f - areaPadding.x, u), Mathf.Lerp(areaPadding.y, 1f - areaPadding.y, v));
+
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.one * nodeSize;
+        rect.name = $"Node_{row}_{column}";
+
+        Node node = rect.GetComponent<Node>();
+        node.Init(row, column, map.TypeAt(row, column), Enter, Inspect);
+        nodes[row, column] = node;
+    }
+
+    private void SpawnLine(int row, int from, int to)
+    {
+        LineBetweenObjects line = Instantiate(linePrefab, lineHolder, false);
+        line.SetObjects(nodes[row, from].gameObject, nodes[row + 1, to].gameObject);
+        lines.Add((line.GetComponent<Image>(), row, from, to));
+    }
+
+    private void Refresh()
+    {
+        HashSet<(int, int)> available = new HashSet<(int, int)>();
+        if (path.Count == 0)
+        {
+            available.Add((0, 0));
         }
         else
         {
-            ChooseStartingNode();
-        } 
-        
-        //Debug.Log("Starting node: [0," + _startCoord + "]");
-    }
-
-    private void ConnectNextNode(int layerIndex, int nodeIndex)
-    {
-        _currNode.SetParentNode(_currNode == _startingNode ? null : _prevNode);
-        _currNode.SetNodeAsActive();
-
-        var nextLayerIndex = layerIndex + 1;
-        if (nextLayerIndex >= maxLayers) return;
-        
-        var minIndex = Mathf.Clamp(nodeIndex - 1, 0, _map[nextLayerIndex].Length - 1);
-        var maxIndex = Mathf.Clamp(nodeIndex + 1, 0, _map[nextLayerIndex].Length - 1);
-        var nextIndex = Random.Range(minIndex, maxIndex + 1);
-
-        _nextNode = _map[nextLayerIndex][nextIndex];
-
-        if (_currNode.HasNode(_nextNode))
-        {
-            minIndex = Mathf.Clamp(nodeIndex - 1, 0, _map[nextLayerIndex].Length - 1);
-            maxIndex = Mathf.Clamp(nodeIndex + 1, 0, _map[nextLayerIndex].Length - 1);
-            nextIndex = Random.Range(minIndex, maxIndex + 1);
-
-            _nextNode = _map[nextLayerIndex][nextIndex];
-        }
-
-        _currNode.SetChildNode(_nextNode);
-        //Debug.Log($"Moving from [{layerIndex},{nodeIndex}] to [{nextLayerIndex},{nextIndex}]");
-
-        _prevNode = _currNode;
-        _currNode = _nextNode;
-        _nextNode = null;
-
-        ConnectNextNode(nextLayerIndex, nextIndex);
-    }
-    
-    private void ConnectToBossNode()
-    {
-        if (_isBossConnected) return;
-    
-        for (var i = 0; i < maxLayerNodes; i++)
-        {
-            _map[maxLayers-1][i].SetChildNode(finalNode);
-        }
-
-        finalNode.SetEndingNode();
-        finalNode.SetType(NodeTypeEnum.Boss);
-        finalNode.SetRoomTier(RoomType.Boss);
-
-        var spawnedBoss = Instantiate(bossNode, finalNode.GetNodeTransform());
-    
-        var nodeBehaviour = spawnedBoss.GetComponent<NodeBehaviour>();
-        var button = spawnedBoss.GetComponentInChildren<Button>();
-
-        if (nodeBehaviour != null) nodeBehaviour.SetNode(finalNode);
-        if (button != null && nodeBehaviour != null) button.onClick.AddListener(nodeBehaviour.LoadLevel);
-
-        finalNode.SetNodeAsActive(); 
-        finalNode.ToggleNode();
-        _isBossConnected = true;
-    }
-
-    private void SetActiveNodes()
-    {
-        for (var i = 0; i < maxLayers; i++)
-        {
-            for (var j = 0; j < _map[i].Length; j++)
+            int row = path.Count - 1;
+            foreach (int child in map.Children(row, path[row]))
             {
-                _map[i][j].ToggleNode();
-            }
-        }
-    }
-    
-    private void MakeStartingNodesInteractable()
-    {
-        for (var i = 0; i < maxLayers; i++)
-        {
-            for (var j = 0; j < _map[i].Length; j++)
-            {
-                var node = _map[i][j];
-                var nodeBtn = node.GetComponentInChildren<Button>();
-                nodeBtn.interactable = nodeBtn && node.IsStartingNode();
+                available.Add((row + 1, child));
             }
         }
 
-        // Boss node starts locked
-        var bossBtn = finalNode.GetComponentInChildren<Button>();
-        if (bossBtn != null) bossBtn.interactable = false;
-    }
-    
-    private void GeneratePath()
-    {
-        ChooseStartingNode();
-        ConnectNextNode(0, _startCoord);
-        ConnectToBossNode();
+        HashSet<(int, int)> reachable = new HashSet<(int, int)>(available);
+        for (int row = path.Count; row < MapGrid.LastRow; row++)
+        {
+            foreach (var (from, to) in map.EdgesFrom(row))
+            {
+                if (reachable.Contains((row, from)))
+                {
+                    reachable.Add((row + 1, to));
+                }
+            }
+        }
+
+        Node firstAvailable = null;
+        for (int row = 0; row < MapGrid.Rows; row++)
+        {
+            for (int column = 0; column < MapGrid.Columns; column++)
+            {
+                Node node = nodes[row, column];
+                if (node == null) continue;
+
+                NodeState state = OnPath(row, column) ? (row == path.Count - 1 ? NodeState.Current : NodeState.Closed)
+                    : available.Contains((row, column)) ? NodeState.Available
+                    : reachable.Contains((row, column)) ? NodeState.Later
+                    : NodeState.Closed;
+
+                ApplyState(node, state);
+                if (state == NodeState.Available && firstAvailable == null)
+                {
+                    firstAvailable = node;
+                }
+            }
+        }
+
+        foreach (var (image, row, from, to) in lines)
+        {
+            bool traversed = OnPath(row, from) && OnPath(row + 1, to);
+            bool ahead = (OnPath(row, from) || reachable.Contains((row, from))) && reachable.Contains((row + 1, to));
+            image.color = traversed ? gold : ahead ? grey : dimmed;
+        }
+
+        RefreshHud();
+
+        if (firstAvailable != null && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(firstAvailable.gameObject);
+        }
     }
 
-    public void CompletedNode()
+    private bool OnPath(int row, int column)
     {
-        if (_completedNode == null)
+        return row < path.Count && path[row] == column;
+    }
+
+    private void ApplyState(Node node, NodeState state)
+    {
+        Color roomColor = Node.GetRoomColor(node.Type);
+
+        switch (state)
         {
-            Debug.LogError("CompletedNode called but _completedNode is null!");
+            case NodeState.Current:
+                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
+                break;
+            case NodeState.Available:
+                node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
+                break;
+            case NodeState.Later:
+                Color laterFill = new Color(roomColor.r * 0.45f, roomColor.g * 0.45f, roomColor.b * 0.45f, 0.95f);
+                node.SetLook(laterFill, roomColor, roomColor, showRing: true, interactable: false, current: false);
+                break;
+            default:
+                Color closedFill = new Color(roomColor.r * 0.2f, roomColor.g * 0.2f, roomColor.b * 0.2f, 0.3f);
+                Color closedIcon = new Color(roomColor.r * 0.5f, roomColor.g * 0.5f, roomColor.b * 0.5f, 0.3f);
+                node.SetLook(closedFill, closedIcon, Color.clear, showRing: false, interactable: false, current: false);
+                break;
+        }
+    }
+
+    private void Enter(Node node)
+    {
+        if (entered != null) return;
+
+        entered = node;
+        path.Add(node.Column);
+        PlanRooms(node);
+        roomIndex = 0;
+        LoadRoom();
+    }
+
+    private void LoadRoom()
+    {
+        var (room, setup) = rooms[roomIndex];
+        roomCompleted = room == RoomType.Shop || room == RoomType.Treasure;
+        SceneController.Instance.LoadLevel(room, setup, entered.Row, roomIndex == 0);
+    }
+
+    public void LeaveRoom()
+    {
+        if (entered == null)
+        {
+            SceneController.Instance.UnloadLevel();
             return;
         }
 
-        // Leaving the final fight: after a win (already saved in OnEnemiesCleared) the player goes back to
-        // the hub; leaving through the pause menu before winning keeps the boss open.
-        if (_completedNode.IsEndingNode())
+        if (entered.Type == NodeTypeEnum.FinalFight)
         {
-            bool won = _roomCompleted;
-            _completedNode = null;
-            if (won) Services.Flow?.EnterHub();
+            bool won = roomCompleted;
+            entered = null;
+            if (won)
+            {
+                Services.Flow?.EnterHub();
+                return;
+            }
+
+            path.RemoveAt(path.Count - 1);
+            SceneController.Instance.UnloadLevel();
+            Refresh();
             return;
         }
 
-        // Lock all buttons first
-        for (var i = 0; i < maxLayers; i++)
+        if (roomCompleted && ++roomIndex < rooms.Count)
         {
-            for (var j = 0; j < _map[i].Length; j++)
-            {
-                var btn = _map[i][j].GetComponentInChildren<Button>();
-                if (btn != null) btn.interactable = false;
-            }
+            LoadRoom();
+            return;
         }
 
-        // Also lock boss button
-        var bossBtn = finalNode.GetComponentInChildren<Button>();
-        if (bossBtn != null) bossBtn.interactable = false;
-
-        // Unlock children — if a child is the ending node, enable the boss button instead
-        _completedNode.ActivateChildren(finalNode);
-        _completedNode = null;
+        entered = null;
+        SceneController.Instance.UnloadLevel();
+        Refresh();
     }
 
-    public void SetCurrentNodeIndex(int index)
+    private void PlanRooms(Node node)
     {
-        _currNodeIndex = index;
+        rooms.Clear();
+        switch (node.Type)
+        {
+            case NodeTypeEnum.Shop:
+                rooms.Add((RoomType.Shop, null));
+                return;
+            case NodeTypeEnum.Treasure:
+                int buttons = treasureButtons[Mathf.Clamp(SceneIndex(), 0, treasureButtons.Length - 1)];
+                if (Random.value < 0.5f)
+                {
+                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: treasureHeal)));
+                }
+                else
+                {
+                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: buttons, healthDropChance: 0f)));
+                }
+                return;
+            case NodeTypeEnum.FinalFight:
+                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
+                return;
+        }
+
+        Action<WaveManager> rewards = node.Type switch
+        {
+            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
+            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
+            _ => null
+        };
+
+        int count = Random.value < 0.5f ? 4 : 5;
+        RoomType tier = BaseTier(node.Row);
+        for (int i = 0; i < count; i++)
+        {
+            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
+        }
+
+        if (node.Row == 0) return;
+
+        float roll = Random.value;
+        int middle = Random.Range(1, count - 1);
+        if (roll < restRoomChance)
+        {
+            rooms[middle] = (RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: restRoomHeal));
+        }
+        else if (roll < restRoomChance + shopRoomChance)
+        {
+            rooms[middle] = (RoomType.Shop, null);
+        }
     }
-    
-    public void SetCurrentNode(Node node)
+
+    private RoomType BaseTier(int row)
     {
-        _completedNode = node;
-        _roomCompleted = false;
-        //Debug.Log($"Current node set to: {node.gameObject.name}");
+        if (rowTiers != null && row < rowTiers.Length) return rowTiers[row];
+        if (row <= 2) return RoomType.Entrance;
+        return row <= 4 ? RoomType.Medium : RoomType.MediumHard;
+    }
+
+    private static RoomType StepUp(RoomType tier, int steps)
+    {
+        return (RoomType)Mathf.Min((int)tier + steps, (int)RoomType.Hard);
+    }
+
+    private static int SceneIndex()
+    {
+        return Services.Run != null && Services.Run.IsActive ? Services.Run.Scene : 0;
+    }
+
+    private void BuildHud()
+    {
+        if (header != null) return;
+
+        Transform canvas = nodeArea.GetComponentInParent<Canvas>().transform;
+        header = MakeText(canvas, "Header", new Vector2(0f, 1f), TextAlignmentOptions.TopLeft, 34f);
+        hud = MakeText(canvas, "Hud", new Vector2(1f, 1f), TextAlignmentOptions.TopRight, 34f);
+        inspect = MakeText(canvas, "Inspect", new Vector2(0.5f, 0f), TextAlignmentOptions.Bottom, 30f);
+        inspect.rectTransform.anchoredPosition += Vector2.up * 70f;
+
+        TMP_Text legend = MakeText(canvas, "Legend", new Vector2(0.5f, 0f), TextAlignmentOptions.Bottom, 22f);
+        legend.color = grey;
+        legend.text = "Select a room to enter";
+    }
+
+    private void RefreshHud()
+    {
+        var run = Services.Run;
+        bool active = run != null && run.IsActive;
+        header.text = $"ACT {(active ? run.Act + 1 : 1)} · SCENE {(active ? run.Scene + 1 : 1)}\n<size=70%>Take {(active ? run.CurrentTake : 1)}</size>";
+
+        var stats = PlayerStatsManager.Instance;
+        string health = stats != null && stats.MaxHealth > 0f ? $"{stats.CurrentHealth:0} / {stats.MaxHealth:0}" : "-- / --";
+        hud.text = $"HP {health}\n<size=70%>Buttons {(stats != null ? stats.CurrentCoins : 0)}</size>";
+        inspect.text = "";
+    }
+
+    private void Inspect(Node node)
+    {
+        string description = node.Row == 0 ? "First Spot · 4-5 rooms" : node.Type switch
+        {
+            NodeTypeEnum.Combat => "Combat · 4-5 rooms",
+            NodeTypeEnum.MoreHealth => "More Health · 4-5 rooms",
+            NodeTypeEnum.MoreButtons => "More Buttons · 4-5 rooms",
+            NodeTypeEnum.Shop => "Shop · merchant",
+            NodeTypeEnum.Treasure => "Treasure · rewards",
+            NodeTypeEnum.FinalFight => "Final Fight · Boss",
+            _ => ""
+        };
+        inspect.text = description;
+    }
+
+    private static TMP_Text MakeText(Transform parent, string name, Vector2 corner, TextAlignmentOptions alignment, float size)
+    {
+        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+        rect.SetParent(parent, false);
+        rect.anchorMin = corner;
+        rect.anchorMax = corner;
+        rect.pivot = corner;
+        rect.anchoredPosition = new Vector2((0.5f - corner.x) * 80f, (0.5f - corner.y) * 60f);
+        rect.sizeDelta = new Vector2(corner.x == 0.5f ? 1200f : 560f, 120f);
+
+        TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+        text.fontSize = size;
+        text.alignment = alignment;
+        text.raycastTarget = false;
+        return text;
     }
 }

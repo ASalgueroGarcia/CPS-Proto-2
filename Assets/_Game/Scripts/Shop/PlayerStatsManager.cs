@@ -13,6 +13,8 @@ public class PlayerStatsManager : MonoBehaviour
     // HEALTH.
     private float currentHealth;
     private float maxHealth;
+    public float CurrentHealth => currentHealth;
+    public float MaxHealth => maxHealth;
 
     // CURRENCY.
     private int currentCoins = 0;

@@ -51,7 +51,9 @@ public class ShopManager : MonoBehaviour
         {
             int f = j;
             powerUpsButtons[j].onClick.AddListener(() => PowerUpSelect(f));
-            powerUpsButtons[j].onClick.AddListener(() => SoundManager.Instance.PlaySound(purchaseClip));
+            powerUpsButtons[j].onClick.AddListener(() => {
+                if (SoundManager.Instance != null && purchaseClip != null) SoundManager.Instance.PlaySound(purchaseClip);
+            });
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
         HideShopLogic();

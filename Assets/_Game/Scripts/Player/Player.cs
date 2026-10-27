@@ -75,6 +75,9 @@ public class Player : MonoBehaviour
 
     public static bool IsPaused = false;
 
+    /// <summary>Set during scripted walks (room entrance and exit): the states ignore input while it is on.</summary>
+    public bool InputLocked { get; set; }
+
 #endregion
 #region Unity Lifecycle
 
