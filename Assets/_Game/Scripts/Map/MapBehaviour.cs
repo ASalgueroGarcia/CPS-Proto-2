@@ -322,6 +322,10 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
+        // Leaving before the node's last room is cleared (pause > Return to map) doesn't pass the
+        // node: it stays open on the map, like an unfinished Final Fight.
+        if (!roomCompleted) path.RemoveAt(path.Count - 1);
+
         entered = null;
         SceneController.Instance.UnloadLevel();
         Refresh();
