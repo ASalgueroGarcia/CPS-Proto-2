@@ -20,6 +20,22 @@ public class MapGeneratorTests
     }
 
     [Test]
+    public void Grid_Is8RowsBy4Columns()
+    {
+        Assert.AreEqual(8, MapGrid.Rows);
+        Assert.AreEqual(4, MapGrid.Columns);
+    }
+
+    [Test]
+    public void FourPaths_LeaveTheFirstSpot_IntoTwoToFourColumns()
+    {
+        foreach (MapGrid map in Maps())
+        {
+            Assert.That(map.Children(0, 0).Count, Is.InRange(2, 4));
+        }
+    }
+
+    [Test]
     public void FirstAndLastRows_AreSingleFixedNodes()
     {
         foreach (MapGrid map in Maps())
@@ -152,6 +168,10 @@ public class MapGeneratorTests
             Assert.AreEqual(a.TypeAt(row, column), b.TypeAt(row, column));
         }
         Assert.AreEqual(AllNodes(a).Count(), AllNodes(b).Count());
+        for (int row = 0; row < MapGrid.LastRow; row++)
+        {
+            CollectionAssert.AreEquivalent(a.EdgesFrom(row).ToList(), b.EdgesFrom(row).ToList());
+        }
     }
 
     private static IEnumerable<(int row, int column)> AllNodes(MapGrid map)

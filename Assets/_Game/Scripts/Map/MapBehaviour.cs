@@ -239,9 +239,10 @@ public class MapBehaviour : MonoBehaviour
 
         RefreshHud();
 
-        if (firstAvailable != null && EventSystem.current != null)
+        Node selected = entered != null ? entered : firstAvailable;
+        if (selected != null && EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(firstAvailable.gameObject);
+            EventSystem.current.SetSelectedGameObject(selected.gameObject);
         }
     }
 
@@ -257,7 +258,8 @@ public class MapBehaviour : MonoBehaviour
         switch (state)
         {
             case NodeState.Current:
-                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
+                // Clickable only while it's a node left unfinished, to resume it.
+                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: entered != null, current: true);
                 break;
             case NodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
@@ -276,7 +278,12 @@ public class MapBehaviour : MonoBehaviour
 
     private void Enter(Node node)
     {
-        if (entered != null) return;
+        if (entered != null)
+        {
+            // The node left unfinished: pick up at the room that wasn't cleared, same plan.
+            if (node == entered) LoadRoom();
+            return;
+        }
 
         entered = node;
         path.Add(node.Column);
@@ -322,9 +329,14 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
-        // Leaving before the node's last room is cleared (pause > Return to map) doesn't pass the
-        // node: it stays open on the map, like an unfinished Final Fight.
-        if (!roomCompleted) path.RemoveAt(path.Count - 1);
+        // Leaving before the node's last room is cleared (pause > Return to map) neither passes the
+        // node nor restarts it: it stays current on the map, and clicking it resumes the same room.
+        if (!roomCompleted)
+        {
+            SceneController.Instance.UnloadLevel();
+            Refresh();
+            return;
+        }
 
         entered = null;
         SceneController.Instance.UnloadLevel();
