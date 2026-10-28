@@ -55,6 +55,8 @@ public class MapBehaviour : MonoBehaviour
     private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
     private int roomIndex;
     private bool roomCompleted;
+    private const int MaxShopsPerScene = 2;
+    private int shopRoomCount;
 
     public bool HasNextRoom => entered != null && entered.Type != NodeTypeEnum.FinalFight
                                && roomCompleted && roomIndex + 1 < rooms.Count;
@@ -94,6 +96,7 @@ public class MapBehaviour : MonoBehaviour
     private void CreateMap()
     {
         Time.timeScale = 1f;
+        if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
         Clear();
 
         map = MapGenerator.Generate(new System.Random(Random.Range(int.MinValue, int.MaxValue)));
@@ -138,6 +141,7 @@ public class MapBehaviour : MonoBehaviour
 
         path.Clear();
         entered = null;
+        shopRoomCount = 0;
     }
 
     private void PlaceLineHolder()
@@ -329,6 +333,7 @@ public class MapBehaviour : MonoBehaviour
         switch (node.Type)
         {
             case NodeTypeEnum.Shop:
+                shopRoomCount++;
                 rooms.Add((RoomType.Shop, null));
                 return;
             case NodeTypeEnum.Treasure:
@@ -369,8 +374,9 @@ public class MapBehaviour : MonoBehaviour
         {
             rooms[middle] = (RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: restRoomHeal));
         }
-        else if (roll < restRoomChance + shopRoomChance)
+        else if (shopRoomCount < MaxShopsPerScene && roll < restRoomChance + shopRoomChance)
         {
+            shopRoomCount++;
             rooms[middle] = (RoomType.Shop, null);
         }
     }

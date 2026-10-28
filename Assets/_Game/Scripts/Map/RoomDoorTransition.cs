@@ -113,20 +113,21 @@ public class RoomDoorTransition : MonoBehaviour
         if (map != null) map.LeaveRoom();
         else SceneController.Instance?.UnloadLevel();
 
-        if (!nextRoom) ScreenFader.Instance.FadeTo(0f, fadeInTime);
+        if (!nextRoom && ScreenFader.Instance != null) ScreenFader.Instance.FadeTo(0f, fadeInTime);
     }
 
     private IEnumerator Walk(Vector3 direction, float distance)
     {
+        if (player == null) yield break;
         Vector3 start = player.transform.position;
         float timeout = distance / Mathf.Max(player.speed, 0.1f) * 2f + 0.5f;
 
-        player.Locomotion.UpdateFromInput(new Vector2(direction.x, direction.z));
-        for (float t = 0f; t < timeout && FlatDistance(start, player.transform.position) < distance; t += Time.deltaTime)
+        if (player.Locomotion != null) player.Locomotion.UpdateFromInput(new Vector2(direction.x, direction.z));
+        for (float t = 0f; t < timeout && player != null && FlatDistance(start, player.transform.position) < distance; t += Time.deltaTime)
         {
             yield return null;
         }
-        player.Locomotion.UpdateFromInput(Vector2.zero);
+        if (player != null && player.Locomotion != null) player.Locomotion.UpdateFromInput(Vector2.zero);
     }
 
     private static float FlatDistance(Vector3 a, Vector3 b)

@@ -37,6 +37,7 @@ public class SceneController : MonoBehaviour
         Instance = this;
         earlyRows = hl1Layouts.Concat(hl2Layouts).ToArray();
         lateRows = hl2Layouts.Concat(hl3Layouts).ToArray();
+        if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
     }
 
     public void LoadLevel(RoomType room, Action<WaveManager> setup = null, int mapRow = 0, bool firstOfNode = true)
@@ -75,6 +76,7 @@ public class SceneController : MonoBehaviour
         mapCanvas.gameObject.SetActive(visible);
         if (mapCamera != null) mapCamera.SetActive(visible);
         if (mapEventSystem != null) mapEventSystem.SetActive(visible);
+        if (visible && ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
