@@ -349,7 +349,6 @@ public class MapBehaviour : MonoBehaviour
         switch (node.Type)
         {
             case NodeTypeEnum.Shop:
-                shopRoomCount++;
                 rooms.Add((RoomType.Shop, null));
                 return;
             case NodeTypeEnum.Treasure:
