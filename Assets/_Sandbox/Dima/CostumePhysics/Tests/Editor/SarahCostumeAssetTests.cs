@@ -114,6 +114,11 @@ public class SarahCostumeAssetTests
         var sarah = OpenSarah();
         var rigs = sarah.GetComponents<JiggleRig>();
         Assert.IsNotEmpty(rigs, "no Jiggle rigs on Sarah_Hybrid");
+        var damageBlend = sarah.GetComponent<JiggleDamageBlend>();
+        Assert.IsTrue(damageBlend != null && damageBlend.enabled, "JiggleDamageBlend missing or disabled: the robe would double the baked motion");
+        var listed = new SerializedObject(damageBlend).FindProperty("rigs");
+        var listedRigs = Enumerable.Range(0, listed.arraySize).Select(i => listed.GetArrayElementAtIndex(i).objectReferenceValue).ToList();
+        Assert.IsTrue(rigs.All(r => listedRigs.Contains(r)), "a JiggleRig isn't faded by JiggleDamageBlend: it would jiggle on top of the baked motion");
         var roots = rigs.Select(r => r.GetJiggleRigData().rootBone).ToList();
         Assert.IsTrue(roots.All(r => r != null), "a Jiggle rig has no root bone");
         foreach (var rig in rigs)
@@ -129,6 +134,87 @@ public class SarahCostumeAssetTests
             // (Contains, not CollectionAssert: NUnit would compare Transforms as collections of their children.)
             foreach (var other in roots.Where(r => r != data.rootBone)) Assert.IsFalse(cached.Contains(other), $"rig {data.rootBone.name} contains rig root {other.name}");
             Assert.IsFalse(cached.Any(b => b.name.StartsWith("Scarf")), $"rig {data.rootBone.name} jiggles the scarf, which belongs to Cloth");
+            // At runtime the package walks the live hierarchy (not the cache): no collider object may be reachable.
+            var reachable = new List<Transform>();
+            var stack = new Stack<Transform>(new[] { data.rootBone });
+            while (stack.Count > 0)
+            {
+                var t = stack.Pop();
+                reachable.Add(t);
+                foreach (Transform child in t) if (!data.excludedTransforms.Contains(child)) stack.Push(child);
+            }
+            var colliders = reachable.Where(t => t.name.StartsWith("ClothCol_") || t.name.StartsWith("JiggleCol_")).Select(t => t.name).ToList();
+            Assert.IsEmpty(colliders, $"rig {data.rootBone.name} would simulate collider objects as bones");
+        }
+    }
+
+    [Test]
+    public void DamageBlend_ZeroOutsideTakeDamage_FadesInAndOutOnTheRealController()
+    {
+        // A copy, so the test never edits the scene's own Sarah.
+        var sarah = Object.Instantiate(OpenSarah());
+        try
+        {
+            var animator = sarah.GetComponent<Animator>();
+            var blend = sarah.GetComponent<JiggleDamageBlend>();
+            var rigs = sarah.GetComponents<JiggleRig>();
+            float tunedStiffness = rigs[0].GetInputParameters().stiffness.value;
+            float target = blend.TargetBlend;
+            Assert.Greater(target, 0f);
+            animator.Rebind();
+
+            // Every state with baked cloth motion: the switch stays off and the rigs hold the animated pose.
+            var states = ((UnityEditor.Animations.AnimatorController)animator.runtimeAnimatorController).layers[0].stateMachine.states.Select(s => s.state.name).ToList();
+            foreach (var state in states.Where(s => !s.StartsWith("TakeDamage")))
+            {
+                animator.Play(state, 0, 0f);
+                animator.Update(0f);
+                Assert.IsFalse(blend.InStateWithoutBakedCloth(), state);
+                blend.Tick(blend.InStateWithoutBakedCloth(), 1f);
+                Assert.AreEqual(0f, blend.Blend, state);
+            }
+            Assert.IsTrue(rigs.All(r => r.GetInputParameters().stiffness.value == 1f && r.GetInputParameters().soften == 0f
+                                        && r.GetInputParameters().gravity.value == 0f), "rigs not pinned to the animated pose");
+
+            // A crossfade counts from its start: into TakeDamage the switch is on, out of it the switch is off.
+            animator.Play("Idle", 0, 0f);
+            animator.Update(0f);
+            animator.CrossFade("TakeDamage_01", 0.2f, 0, 0f);
+            animator.Update(0.05f);
+            Assert.IsTrue(animator.IsInTransition(0), "no crossfade to test");
+            Assert.IsTrue(blend.InStateWithoutBakedCloth(), "crossfading into TakeDamage_01");
+            animator.Update(0.3f);
+            animator.CrossFade("Idle", 0.2f, 0, 0f);
+            animator.Update(0.05f);
+            Assert.IsTrue(animator.IsInTransition(0), "no crossfade out to test");
+            Assert.IsFalse(blend.InStateWithoutBakedCloth(), "crossfading out of TakeDamage_01");
+
+            foreach (var damage in new[] { "TakeDamage_01", "TakeDamage_02" })
+            {
+                animator.Play(damage, 0, 0f);
+                animator.Update(0f);
+                Assert.IsTrue(blend.InStateWithoutBakedCloth(), damage);
+                blend.Tick(true, 0.05f);
+                Assert.AreEqual(target * 0.5f, blend.Blend, 1e-4f, "halfway after half the fade");
+                blend.Tick(true, 0.05f);
+                Assert.AreEqual(target, blend.Blend, 1e-4f, "at the target after the fade");
+                blend.Tick(true, 1f);
+                Assert.AreEqual(target, blend.Blend, 1e-4f, "holds the target");
+                Assert.AreEqual(Mathf.Lerp(1f, tunedStiffness, target), rigs[0].GetInputParameters().stiffness.value, 1e-4f);
+
+                animator.Play("Idle", 0, 0f);
+                animator.Update(0f);
+                Assert.IsFalse(blend.InStateWithoutBakedCloth());
+                blend.Tick(false, 0.05f);
+                Assert.AreEqual(target * 0.5f, blend.Blend, 1e-4f, "halfway out");
+                blend.Tick(false, 0.06f);
+                Assert.AreEqual(0f, blend.Blend, "back to 0 after the fade");
+                Assert.AreEqual(1f, rigs[0].GetInputParameters().stiffness.value);
+            }
+        }
+        finally
+        {
+            Object.DestroyImmediate(sarah);
         }
     }
 

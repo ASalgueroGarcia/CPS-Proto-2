@@ -2061,6 +2061,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f9dd849195115444894dc6c60116a216, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1848035717}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: f9dd849195115444894dc6c60116a216, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1848035727}
     - targetCorrespondingSourceObject: {fileID: -9219295211436124685, guid: f9dd849195115444894dc6c60116a216, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2026453778}
@@ -3323,6 +3326,7 @@ MonoBehaviour:
     - {fileID: 1848035656}
     - {fileID: 1848035621}
     - {fileID: 1848035623}
+    - {fileID: 1134506882}
     transformCachedData:
     - bone: {fileID: 1848035622}
       normalizedDistanceFromRoot: 0
@@ -4474,6 +4478,56 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1848035727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1848035619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba29fe601f70de84284e27a053d3fbb4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: CostumePhysics::JiggleDamageBlend
+  animator: {fileID: 1848035726}
+  rigs:
+  - {fileID: 1848035724}
+  - {fileID: 1848035723}
+  - {fileID: 1848035722}
+  - {fileID: 1848035721}
+  - {fileID: 1848035720}
+  - {fileID: 1848035719}
+  statesWithoutBakedCloth:
+  - TakeDamage_01
+  - TakeDamage_02
+  targetBlend: 0.5
+  fadeTime: 0.1
+  tuning:
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
+  - stiffness: 0.7
+    soften: 0.3
+    stretch: 0.05
+    gravity: 1
 --- !u!114 &2026453778
 MonoBehaviour:
   m_ObjectHideFlags: 0
