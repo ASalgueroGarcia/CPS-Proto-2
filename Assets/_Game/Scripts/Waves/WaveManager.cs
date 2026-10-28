@@ -21,18 +21,22 @@ public class WaveManager : MonoBehaviour
 
     [Header("Safe Zones")]
     // NOTE: The door transition and completion triggers are placeholders and might not work consistently until room maps match Notion structure.
+    [Tooltip("World XZ of the room's door, kept clear of enemies. The door sets it when it binds the room (SetDoorPosition); this value is only the fallback.")]
     [SerializeField] private Vector2 doorPositionXZ = new Vector2(0f, 13.1f);
     [SerializeField] private float enemySafeRadius = 6f;
     [SerializeField] private float pickupClearance = 0.45f;
     [SerializeField] private float pickupLandingHeight = 0.1f;
 
     [Header("Raycast Settings")]
+    [Tooltip("How high above the spawner's Y position to start the raycast.")]
     [SerializeField] private float raycastHeight = 20f;
+    [Tooltip("The maximum distance to search for a valid NavMesh point from our ground hit.")]
     [SerializeField] private float maxNavMeshDistance = 2f;
 
     [Header("Room Setup")]
     public RoomType currentRoomType = RoomType.Medium;
     public RoomConfigData config;
+    [Tooltip("Library asset holding one RoomConfigData per tier (Data/Rooms).")]
     [SerializeField] private RoomConfigLibrary roomConfigLibrary;
 
     private int currentWaveIndex = 0;
@@ -86,15 +90,26 @@ public class WaveManager : MonoBehaviour
     /// </summary>
     public static event Action OnEnemiesCleared;
 
+    /// <summary>
+    /// Sets the difficulty tier for this room. Called by SceneController immediately
+    /// after the room prefab is instantiated, which is before Start() runs.
+    /// Setting it any later has no effect - the first wave has already been spawned.
+    /// </summary>
     public void SetRoomType(RoomType type)
     {
         if (hasInitialized)
         {
-            Debug.LogWarning($"[WaveManager] SetRoomType({type}) called after room already initialized.", this);
+            Debug.LogWarning($"[WaveManager] SetRoomType({type}) called after the room already initialized as {currentRoomType}. Ignored - set the tier before Start() runs.", this);
             return;
         }
 
         currentRoomType = type;
+    }
+
+    /// <summary>Where the room's door is, so no enemy spawns within Enemy Safe Radius of it.</summary>
+    public void SetDoorPosition(Vector3 doorPosition)
+    {
+        doorPositionXZ = new Vector2(doorPosition.x, doorPosition.z);
     }
 
     /// <summary>
