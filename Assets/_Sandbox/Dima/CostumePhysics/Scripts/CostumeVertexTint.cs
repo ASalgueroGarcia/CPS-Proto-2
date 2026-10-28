@@ -15,6 +15,12 @@ public class CostumeVertexTint : MonoBehaviour
     private void Awake()
     {
         var skinned = GetComponent<SkinnedMeshRenderer>();
+        if (!skinned.sharedMesh.isReadable)
+        {
+            Debug.LogWarning($"CostumeVertexTint: {skinned.sharedMesh.name} needs Read/Write enabled in its import settings.", this);
+            return;
+        }
+
         var bones = skinned.bones;
         var isCostume = new bool[bones.Length];
         for (int i = 0; i < bones.Length; i++) isCostume[i] = bones[i] != null && IsCostume(bones[i].name);
