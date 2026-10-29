@@ -7,6 +7,8 @@ public class ButtonInteraction : MonoBehaviour
 
     public void PlayInteractionSfx()
     {
-        SoundManager.Instance.PlaySound(interactionSfx);
+        // No SoundManager when a scene is played on its own (e.g. _MapScene). Throwing here would
+        // also skip every onClick listener after this one, including the one that enters the node.
+        if (SoundManager.Instance != null && interactionSfx != null) SoundManager.Instance.PlaySound(interactionSfx);
     }
 }

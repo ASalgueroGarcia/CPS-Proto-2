@@ -39,7 +39,7 @@ public class FloorSpikes : MonoBehaviour
 
             _isA = true;
             if (spikesRenderer != null) spikesRenderer.material.color = Color.red;
-            SoundManager.Instance.PlaySound(spikeClip);
+            if (SoundManager.Instance != null && spikeClip != null) SoundManager.Instance.PlaySound(spikeClip);
             yield return new WaitForSeconds(triggerTime); // Tiempo activas
 
             _isA = false;

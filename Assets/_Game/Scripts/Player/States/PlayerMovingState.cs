@@ -4,7 +4,7 @@ public class PlayerMovingState : PlayerStateBase
 {
     public override void Tick()
     {
-        if (Player.IsPaused) return;
+        if (Player.IsPaused || player.InputLocked) return;
 
         if (player.CheckDashInput()) return;
         if (player.CheckAttackInput()) return;

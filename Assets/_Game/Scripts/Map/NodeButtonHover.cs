@@ -1,33 +1,53 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class NodeButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class NodeButtonHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, ISelectHandler, IDeselectHandler
 {
     [Header("Hover Settings")]
     [SerializeField] private float hoverScale = 1.2f;
     [SerializeField] private float scaleSpeed = 8f;
 
-    private Vector3 _originalScale;
-    private Vector3 _targetScale;
+    private Vector3 originalScale;
+    private Vector3 targetScale;
 
     private void Awake()
     {
-        _originalScale = transform.localScale;
-        _targetScale = _originalScale;
+        originalScale = transform.localScale;
+        targetScale = originalScale;
     }
 
     private void Update()
     {
-        transform.localScale = Vector3.Lerp(transform.localScale, _targetScale, Time.deltaTime * scaleSpeed);
+        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.unscaledDeltaTime * scaleSpeed);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        _targetScale = _originalScale * hoverScale;
+        Grow();
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        _targetScale = _originalScale;
+        Shrink();
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        Grow();
+    }
+
+    public void OnDeselect(BaseEventData eventData)
+    {
+        Shrink();
+    }
+
+    private void Grow()
+    {
+        targetScale = originalScale * hoverScale;
+    }
+
+    private void Shrink()
+    {
+        targetScale = originalScale;
     }
 }
