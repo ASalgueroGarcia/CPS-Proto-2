@@ -178,6 +178,7 @@ public class RoomDoorTransition : MonoBehaviour
         if (controller != null) controller.enabled = false;
         player.transform.position = new Vector3(position.x, player.transform.position.y, position.z);
         if (controller != null) controller.enabled = true;
+        foreach (ITeleportListener listener in player.GetComponentsInChildren<ITeleportListener>()) listener.OnTeleported(); // e.g. the scarf's cloth
     }
 
     private void BuildDoor()
