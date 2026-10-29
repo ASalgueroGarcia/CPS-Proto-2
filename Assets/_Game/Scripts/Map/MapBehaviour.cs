@@ -209,6 +209,9 @@ public class MapBehaviour : MonoBehaviour
             }
         }
 
+        // A node left unfinished must be resumed first: the next row shows as "later", not clickable.
+        if (entered != null) available.Clear();
+
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
