@@ -15,21 +15,34 @@ public class PickupDropAnimation : MonoBehaviour
 
     private static readonly int baseColor = Shader.PropertyToID("_BaseColor");
     private Renderer shadow;
+    private Collider[] colliders;
+    private Quaternion upright;
+    private bool falling;
 
     public void Drop(Vector3 restPosition, float groundY)
     {
         StartCoroutine(Fall(restPosition, groundY));
     }
 
+    /// <summary>Ends the drop where the pickup is now: upright, no shadow, colliders back on.</summary>
+    public void Land()
+    {
+        if (!falling) return;
+
+        StopAllCoroutines();
+        Finish();
+    }
+
     private IEnumerator Fall(Vector3 rest, float groundY)
     {
-        Collider[] colliders = GetComponentsInChildren<Collider>();
+        falling = true;
+        colliders = GetComponentsInChildren<Collider>();
         foreach (Collider c in colliders)
         {
             c.enabled = false;
         }
 
-        Quaternion upright = transform.rotation;
+        upright = transform.rotation;
         Vector3 spinAxis = Random.onUnitSphere;
         shadow = CreateShadow(new Vector3(rest.x, groundY + 0.01f, rest.z));
         MaterialPropertyBlock block = new MaterialPropertyBlock();
@@ -61,6 +74,12 @@ public class PickupDropAnimation : MonoBehaviour
         }
 
         transform.position = rest;
+        Finish();
+    }
+
+    private void Finish()
+    {
+        falling = false;
         transform.rotation = upright;
         DestroyShadow();
 

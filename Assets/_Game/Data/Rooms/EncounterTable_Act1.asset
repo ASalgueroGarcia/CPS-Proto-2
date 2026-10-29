@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db8b7fdba30e4c66ac738997d147b207, type: 3}
+  m_Name: EncounterTable_Act1
+  m_EditorClassIdentifier: Spectracle.Waves::EncounterTable
+  enemies:
+  - displayName: Card Soldier
+    prefab: {fileID: 3063489068592993335, guid: c51cf0c3c0904c60a6b6ba7782b0ef7e, type: 3}
+    role: 0
+    cost: 1
+    maxPerRoom: 8
+    firstSpotMax: 8
+    firstScene: 1
+    weightPerScene:
+    - 50
+    - 35
+    - 30
+  - displayName: Flower
+    prefab: {fileID: 6100000000000000001, guid: 7d4f5e218e7e467bbb6f3f4758d3b74d, type: 3}
+    role: 0
+    cost: 1
+    maxPerRoom: 4
+    firstSpotMax: 4
+    firstScene: 2
+    weightPerScene:
+    - 0
+    - 20
+    - 20
+  - displayName: White Rabbit
+    prefab: {fileID: 8195882128523390324, guid: 50bcb89052d4caf47b00190ccc357fcf, type: 3}
+    role: 1
+    cost: 2
+    maxPerRoom: 3
+    firstSpotMax: 1
+    firstScene: 1
+    weightPerScene:
+    - 30
+    - 25
+    - 25
+  - displayName: Caterpillar
+    prefab: {fileID: 1007924606823391567, guid: 52dc244fb8a5bc047905dfa403db234f, type: 3}
+    role: 2
+    cost: 3
+    maxPerRoom: 2
+    firstSpotMax: 0
+    firstScene: 1
+    weightPerScene:
+    - 15
+    - 13
+    - 15
+  - displayName: Deck of Cards
+    prefab: {fileID: 0}
+    role: 5
+    cost: 4
+    maxPerRoom: 1
+    firstSpotMax: 0
+    firstScene: 2
+    weightPerScene:
+    - 5
+    - 7
+    - 10
+  roomBudgetPerScene: 06000000080000000a000000
+  firstSpotBudgetPerScene: 040000000500000006000000
+  budgetStepPerTwoRooms: 1
+  buttonsPerBudgetPoint: 0.5
+  moreButtonsMultiplier: 1.5
+  healthDropChance: 0.15
+  healthDropChanceMoreHealth: 0.45
+  killButtonChance: 0.1
+  killButtonChanceMoreButtons: 0.25
+  buttonFlyDelay: 1
+  buttonFlySpeed: 15
