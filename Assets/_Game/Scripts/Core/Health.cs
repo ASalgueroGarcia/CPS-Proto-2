@@ -37,6 +37,8 @@ public class Health : MonoBehaviour
     [SerializeField] private AudioClip deathClip;
 
     private bool isDying = false;
+    // Set by RestoreHealth: this body carries HP over from an earlier room.
+    private bool healthRestored;
 
 #endregion
 #region Unity Lifecycle
@@ -48,7 +50,9 @@ public class Health : MonoBehaviour
         if (hitFlash == null && targetRenderer != null)
             originalColor = targetRenderer.material.color;
 
-        _currentHealth = _maxHealth;
+        // GDD: HP carries over from room to room and is never refilled automatically, so a body
+        // given the run's HP (RestoreHealth) keeps it; any other body starts full.
+        if (!healthRestored) _currentHealth = _maxHealth;
         OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
 
         if (checkFall)
@@ -111,6 +115,17 @@ public class Health : MonoBehaviour
         _maxHealth = amount;
         _currentHealth = Mathf.Clamp(_currentHealth, 0, _maxHealth);
         OnHealthChanged?.Invoke(_currentHealth, _maxHealth);
+    }
+
+    /// <summary>
+    /// Gives a new body the HP it had in the previous room (PlayerStatsManager, before Start runs),
+    /// so Start doesn't refill it.
+    /// </summary>
+    public void RestoreHealth(float current, float max)
+    {
+        healthRestored = true;
+        SetMaxHealth(max);
+        SetHealth(current);
     }
 
     public void ResetHealth()
