@@ -16,66 +16,82 @@ public class WaveManager : MonoBehaviour
 
     [Header("Enemy Configuration")]
     [SerializeField] private List<EnemyPrefabConfig> enemyConfigs;
-    [SerializeField] private Vector2 spawnAreaSize = new Vector2(30f, 30f);
-    
+    [SerializeField] private Vector2 spawnAreaSize = new Vector2(70f, 30f);
+
+    [Header("Safe Zones")]
+    // NOTE: The door transition and completion triggers are placeholders and might not work consistently until room maps match Notion structure.
+    [SerializeField] private Vector2 doorPositionXZ = new Vector2(0f, 13.1f);
+    [SerializeField] private float enemySafeRadius = 6f;
+    [SerializeField] private float pickupClearance = 0.45f;
+    [SerializeField] private float pickupLandingHeight = 0.1f;
+
     [Header("Raycast Settings")]
-    [Tooltip("How high above the spawner's Y position to start the raycast.")]
     [SerializeField] private float raycastHeight = 20f;
-    [Tooltip("The maximum distance to search for a valid NavMesh point from our ground hit.")]
     [SerializeField] private float maxNavMeshDistance = 2f;
 
     [Header("Room Setup")]
     public RoomType currentRoomType = RoomType.Medium;
     public RoomConfigData config;
-    [Tooltip("Library asset holding one RoomConfigData per tier (Data/Rooms).")]
     [SerializeField] private RoomConfigLibrary roomConfigLibrary;
+
     private int currentWaveIndex = 0;
     private List<GameObject> activeEnemies = new List<GameObject>();
     private bool roomCleared = false;
     private List<GameObject> activePickups = new List<GameObject>();
 
-    [Header("Rewards Placeholders")]
+    [Header("Rewards")]
     [SerializeField] private GameObject coinPrefab;
     [SerializeField] private GameObject healthDropPrefab;
 
-    // Track current wave composition for modifiers
     private int slimoCountInCurrentWave = 0;
     private int heavyCountInCurrentWave = 0;
     private int totalEnemiesInCurrentWave = 0;
 
     private bool hasInitialized = false;
+    private bool held;
 
-    /// <summary>
-    /// Raised once the room is cleared and every reward has been picked up (right away if
-    /// none spawned). UIManager listens and shows the end-of-level canvas.
-    /// </summary>
-    public static event System.Action OnRoomCompleted;
+    private float currencyMultiplier = 1f;
+    private int currencyOverride = -1;
+    private float healthDropChanceOverride = -1f;
+    private float healAmountOverride = -1f;
 
-    /// <summary>
-    /// Raised once, the moment the room's last enemy dies - before its rewards are picked up.
-    /// The fight is won here: MapBehaviour saves a boss victory on it.
-    /// </summary>
-    public static event System.Action OnEnemiesCleared;
+    public static event Action OnRoomCompleted;
+    public static event Action OnEnemiesCleared;
 
-    /// <summary>
-    /// Sets the difficulty tier for this room. Called by SceneController immediately
-    /// after the room prefab is instantiated, which is before Start() runs.
-    /// Setting it any later has no effect - the first wave has already been spawned.
-    /// </summary>
     public void SetRoomType(RoomType type)
     {
         if (hasInitialized)
         {
-            Debug.LogWarning($"[WaveManager] SetRoomType({type}) called after the room already initialized as {currentRoomType}. Ignored - set the tier before Start() runs.", this);
+            Debug.LogWarning($"[WaveManager] SetRoomType({type}) called after room already initialized.", this);
             return;
         }
 
         currentRoomType = type;
     }
 
+    public void SetRewards(float currencyMultiplier = 1f, int currency = -1, float healthDropChance = -1f, float healAmount = -1f)
+    {
+        this.currencyMultiplier = currencyMultiplier;
+        currencyOverride = currency;
+        healthDropChanceOverride = healthDropChance;
+        healAmountOverride = healAmount;
+    }
+
     private void Start()
     {
         hasInitialized = true;
+        if (!held) InitializeRoom();
+    }
+
+    public void HoldUntilBegin()
+    {
+        held = !hasInitialized;
+    }
+
+    public void Begin()
+    {
+        if (!held) return;
+        held = false;
         InitializeRoom();
     }
 
@@ -93,18 +109,18 @@ public class WaveManager : MonoBehaviour
 
     private void SpawnWave()
     {
-        if (roomCleared) return; // Safety check: don't spawn waves if room is already cleared
+        if (roomCleared) return;
 
         currentWaveIndex++;
         if (roomConfigLibrary == null)
         {
-            Debug.LogError("[WaveManager] No RoomConfigLibrary assigned - assign Data/Rooms/RoomConfigLibrary.asset on the WaveManager.", this);
+            Debug.LogError("[WaveManager] RoomConfigLibrary is not assigned.", this);
             return;
         }
 
         config = roomConfigLibrary.Get(currentRoomType);
         if (config == null) return;
-        
+
         int budget = config.budget;
         List<EnemyType> pool = config.enemyPool;
 
@@ -121,7 +137,6 @@ public class WaveManager : MonoBehaviour
         while (currentSpent < budget)
         {
             EnemyType type = pool[Random.Range(0, pool.Count)];
-            // TEMPORARY: 50/50 random spawn between White Rabbit and Flower for EnemyType.Ranged. Revert to standard spawn assignment once all enemies are confirmed working as intended.
             List<EnemyPrefabConfig> matchingConfigs = enemyConfigs.FindAll(c => c.type == type);
             EnemyPrefabConfig prefabConfig = matchingConfigs.Count > 0 ? matchingConfigs[Random.Range(0, matchingConfigs.Count)] : null;
 
@@ -132,7 +147,6 @@ public class WaveManager : MonoBehaviour
                 if (TrySpawnEnemy(prefabConfig.prefab))
                 {
                     currentSpent += prefabConfig.cost;
-                    Debug.Log($"Spawned {type} (Cost: {prefabConfig.prefab.name}). Remaining Budget: {budget - currentSpent}");
                     totalEnemiesInCurrentWave++;
                     if (type == EnemyType.Slimo) slimoCountInCurrentWave++;
                     if (type == EnemyType.Heavy) heavyCountInCurrentWave++;
@@ -140,7 +154,7 @@ public class WaveManager : MonoBehaviour
             }
             else
             {
-                var cheapest = enemyConfigs.Find(c => c.cost == 1);
+                EnemyPrefabConfig cheapest = enemyConfigs.Find(c => c.cost == 1);
                 if (cheapest != null && currentSpent + cheapest.cost <= budget)
                 {
                     if (TrySpawnEnemy(cheapest.prefab))
@@ -154,8 +168,7 @@ public class WaveManager : MonoBehaviour
                 else break;
             }
         }
-        
-        // If we failed to spawn any enemies for some reason, check if room is cleared
+
         if (activeEnemies.Count == 0 && !roomCleared)
         {
             CheckWaveCompletion();
@@ -164,16 +177,15 @@ public class WaveManager : MonoBehaviour
 
     private bool TrySpawnEnemy(GameObject prefab)
     {
-        Vector3 spawnPos;
-        if (TryGetRandomPoint(out spawnPos))
+        if (TryGetEnemyPoint(out Vector3 spawnPos))
         {
             GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity, transform);
             activeEnemies.Add(enemy);
-            
-            Health h = enemy.GetComponent<Health>();
-            if (h != null)
+
+            Health health = enemy.GetComponent<Health>();
+            if (health != null)
             {
-                h.OnDeath.AddListener(() => OnEnemyDeath(enemy));
+                health.OnDeath.AddListener(() => OnEnemyDeath(enemy));
             }
             return true;
         }
@@ -195,7 +207,7 @@ public class WaveManager : MonoBehaviour
     {
         RoomConfigData currentConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
         if (currentConfig == null) return;
-        
+
         if (currentWaveIndex < currentConfig.maxWaves)
         {
             Invoke(nameof(SpawnWave), 2f);
@@ -210,12 +222,9 @@ public class WaveManager : MonoBehaviour
     {
         if (roomCleared) return;
         roomCleared = true;
-        Debug.Log($"<color=green>Room Cleared!</color> Room Type: {currentRoomType}");
         OnEnemiesCleared?.Invoke();
-        
-        // Cancel any pending wave spawns just in case
+
         CancelInvoke(nameof(SpawnWave));
-        
         SpawnRewards();
     }
 
@@ -223,19 +232,19 @@ public class WaveManager : MonoBehaviour
     {
         RoomConfigData roomConfig = roomConfigLibrary != null ? roomConfigLibrary.Get(currentRoomType) : null;
         if (roomConfig == null) return;
-        
-        // Use transform.position as the base center
-        Vector3 centerPos = transform.position;
 
-        // Spawn currency
-        for (int i = 0; i < roomConfig.expectedCurrency; i++)
+        int currency = currencyOverride >= 0
+            ? currencyOverride
+            : Mathf.RoundToInt(roomConfig.expectedCurrency * currencyMultiplier);
+        float healthDropChance = healthDropChanceOverride >= 0f ? healthDropChanceOverride : roomConfig.healthDropChance;
+
+        for (int i = 0; i < currency; i++)
         {
             if (coinPrefab != null)
             {
-                if (TryGetValidPointNear(centerPos, 2f, out Vector3 dropPos))
+                GameObject coinObj = SpawnPickup(coinPrefab);
+                if (coinObj != null)
                 {
-                    GameObject coinObj = Instantiate(coinPrefab, dropPos + Vector3.up * 0.5f, Quaternion.identity);
-                    activePickups.Add(coinObj);
                     Coin coin = coinObj.GetComponent<Coin>();
                     if (coin != null)
                     {
@@ -245,64 +254,80 @@ public class WaveManager : MonoBehaviour
             }
         }
 
-        // Health drop
-        if (Random.value < roomConfig.healthDropChance)
+        if (Random.value < healthDropChance)
         {
             if (healthDropPrefab != null)
             {
-                if (TryGetValidPointNear(centerPos, 1.5f, out Vector3 healthPos))
+                GameObject healthObj = SpawnPickup(healthDropPrefab);
+                if (healthObj != null)
                 {
-                    GameObject healthObj = Instantiate(healthDropPrefab, healthPos + Vector3.up * 0.5f, Quaternion.identity);
-                    activePickups.Add(healthObj);
                     HealthPickup health = healthObj.GetComponent<HealthPickup>();
                     if (health != null)
                     {
+                        if (healAmountOverride >= 0f) health.HealAmount = healAmountOverride;
                         health.OnCollected += () => OnPickupCollected(healthObj);
                     }
                 }
             }
         }
 
-        // If no pickups were spawned, the room is complete right away
         if (activePickups.Count == 0)
         {
             OnRoomCompleted?.Invoke();
         }
     }
 
-    private bool TryGetValidPointNear(Vector3 center, float radius, out Vector3 result)
+    private GameObject SpawnPickup(GameObject prefab)
     {
-        // Try up to 10 times to find a valid spot
-        for (int i = 0; i < 10; i++)
-        {
-            Vector2 randomCircle = Random.insideUnitCircle * radius;
-            Vector3 origin = new Vector3(center.x + randomCircle.x, center.y + raycastHeight, center.z + randomCircle.y);
+        if (!TryGetPickupPoint(out Vector3 ground)) return null;
 
-            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2))
+        Vector3 rest = ground + Vector3.up * pickupLandingHeight;
+        GameObject pickup = Instantiate(prefab, rest, Quaternion.identity);
+        activePickups.Add(pickup);
+        if (pickup.TryGetComponent(out PickupDropAnimation drop))
+        {
+            drop.Drop(rest, ground.y);
+        }
+        return pickup;
+    }
+
+    private bool TryGetEnemyPoint(out Vector3 result)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            if (TryGetRandomPoint(out result)
+                && Vector2.Distance(new Vector2(result.x, result.z), doorPositionXZ) >= enemySafeRadius)
             {
-                // Check if we hit ground (you might want to check layer/tag here, 
-                // but for now we follow TryGetRandomPoint logic)
-                if (NavMesh.SamplePosition(hit.point, out NavMeshHit navHit, maxNavMeshDistance, NavMesh.AllAreas))
-                {
-                    result = navHit.position;
-                    return true;
-                }
+                return true;
             }
         }
 
-        result = center;
+        result = Vector3.zero;
         return false;
     }
 
-    // Rewards spawn at the scene root, so they would outlive the room: an uncollected coin picked
-    // up in the next room would complete this one over there (end-of-level screen, boss "win").
+    private bool TryGetPickupPoint(out Vector3 result)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            if (TryGetRandomPoint(out result)
+                && !Physics.CheckSphere(result + Vector3.up * (pickupClearance + 0.05f), pickupClearance,
+                    Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+            {
+                return true;
+            }
+        }
+
+        result = Vector3.zero;
+        return false;
+    }
+
     private void OnDestroy()
     {
         foreach (GameObject pickup in activePickups)
         {
             if (pickup != null) Destroy(pickup);
         }
-
         activePickups.Clear();
     }
 
@@ -323,7 +348,7 @@ public class WaveManager : MonoBehaviour
         float randomY = Random.Range(-spawnAreaSize.y / 2f, spawnAreaSize.y / 2f);
         Vector3 origin = new Vector3(transform.position.x + randomX, transform.position.y + raycastHeight, transform.position.z + randomY);
 
-        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2))
+        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2f))
         {
             if (NavMesh.SamplePosition(hit.point, out NavMeshHit navHit, maxNavMeshDistance, NavMesh.AllAreas))
             {

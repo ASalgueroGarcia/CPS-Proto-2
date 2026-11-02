@@ -4,7 +4,7 @@ public class PlayerIdleState : PlayerStateBase
 {
     public override void Tick()
     {
-        if (Player.IsPaused) return;
+        if (Player.IsPaused || player.InputLocked) return;
 
         // Check for state transitions based on player input
         if (player.CheckDashInput()) return;

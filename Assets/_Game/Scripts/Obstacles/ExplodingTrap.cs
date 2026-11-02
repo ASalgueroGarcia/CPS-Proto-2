@@ -56,7 +56,7 @@ public class ExplodingTrap : MonoBehaviour
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);
             ef.Play();
-            SoundManager.Instance.PlaySound(explosionClip);
+            if (SoundManager.Instance != null && explosionClip != null) SoundManager.Instance.PlaySound(explosionClip);
             Destroy(ef.gameObject,expTime);
         }
 

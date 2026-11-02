@@ -1,3 +1,3 @@
 ﻿# Prefabs / Map
-Map nodes (Boss/Combat/Merchant/MiniBoss/Treasure), node buttons, Line.
+MapNode (the one node button MapBehaviour spawns for every node type), Line.
 Owner: Antonio.

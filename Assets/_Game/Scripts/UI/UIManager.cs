@@ -59,14 +59,12 @@ public class UIManager : MonoBehaviour
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
         SceneManager.sceneUnloaded += OnSceneUnloaded;
-        WaveManager.OnRoomCompleted += ShowEoLCanvas;
     }
 
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
         SceneManager.sceneUnloaded -= OnSceneUnloaded;
-        WaveManager.OnRoomCompleted -= ShowEoLCanvas;
     }
 
     private void OnSceneUnloaded(Scene scene)
@@ -261,6 +259,7 @@ public class UIManager : MonoBehaviour
 
     // Removed EnsureUIElementsExist method to allow designers to modify UI in Canvases
 
+    // No longer raised on room clear: RoomDoorTransition walks the player out through the door instead.
     public void ShowEoLCanvas()
     {
         if (eolCanvas != null)

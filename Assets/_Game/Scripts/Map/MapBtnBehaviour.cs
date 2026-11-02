@@ -6,31 +6,38 @@ public class MapBtnBehaviour : MonoBehaviour
     [SerializeField] private GameObject pauseMenu;
     [SerializeField] private GameObject eolCanvas;
 
-    private MapBehaviour _mapBehaviour;
+    private MapBehaviour mapBehaviour;
 
     private void Start()
     {
-        _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+        mapBehaviour = FindFirstObjectByType<MapBehaviour>();
     }
 
     public void ReturnToMap()
     {
-        if (SceneController.Instance)
+        if (SceneController.Instance == null)
         {
-            // This button lives on the persistent UI, but the map scene is reloaded for every new
-            // run (after a death or a victory): find the current map again once the old one is gone.
-            if (_mapBehaviour == null) _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+            Debug.LogError("SceneController instance is null! Cannot return to map.");
+            return;
+        }
 
-            if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
-            if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
-            
-            Time.timeScale = 1f;
-            _mapBehaviour.CompletedNode();
-            SceneController.Instance.UnloadLevel();
+        if (mapBehaviour == null)
+        {
+            mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+        }
+
+        if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
+        if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
+
+        Time.timeScale = 1f;
+
+        if (mapBehaviour != null)
+        {
+            mapBehaviour.LeaveRoom();
         }
         else
         {
-            Debug.LogError("SceneController instance is null! Cannot return to map.");
+            SceneController.Instance.UnloadLevel();
         }
     }
 }

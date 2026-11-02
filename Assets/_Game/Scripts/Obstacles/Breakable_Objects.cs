@@ -10,7 +10,7 @@ public class Breakable_Objects : MonoBehaviour, IBreakable
 
     public void TakeDamage(int dmg)
     {
-        SoundManager.Instance.PlaySound(hitImpactClip);
+        if (SoundManager.Instance != null && hitImpactClip != null) SoundManager.Instance.PlaySound(hitImpactClip);
         hp -= dmg;
         if (hp <= 0)
         {
