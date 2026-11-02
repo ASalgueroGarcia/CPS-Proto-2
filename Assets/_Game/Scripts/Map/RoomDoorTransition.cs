@@ -74,7 +74,13 @@ public class RoomDoorTransition : MonoBehaviour
         if (player != null) Lock(false);
 
         if (waveManager != null) waveManager.Begin();
-        else OpenExit();
+        else
+        {
+            // A room without waves (the shop): the intro leaves the player on the exit mark, so the exit
+            // only opens once they've stepped off, or standing still would walk them straight out.
+            while (player != null && !leaving && (player.transform.position - mark.transform.position).sqrMagnitude < markRadius * markRadius * 4f) yield return null;
+            OpenExit();
+        }
     }
 
     private void OpenExit()
