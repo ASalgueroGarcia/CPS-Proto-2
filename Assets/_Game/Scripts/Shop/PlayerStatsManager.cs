@@ -214,6 +214,8 @@ public class PlayerStatsManager : MonoBehaviour
     public void ResetAllThePlayerStats()
     {
         _hasStats = false;
+        currentHealth = 0f; // the map shows "-- / --" until the next room's player is captured
+        maxHealth = 0f;
         currentCriticalDamage = 25.0f;
         currentSpecialDamage = 20.0f;
         currentAttackSpeed = 1.0f;
