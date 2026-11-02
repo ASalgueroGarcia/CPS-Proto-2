@@ -160,6 +160,15 @@ public class PlayerCostumeTests
     }
 
     [Test]
+    public void DashTrail_HasAMaterial_AndOnlyEmitsDuringADash()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
+        TrailRenderer trail = prefab.GetComponentInChildren<TrailRenderer>(true);
+        Assert.IsNotNull(trail.sharedMaterial, "a null material renders magenta");
+        Assert.IsFalse(trail.emitting, "PlayerDashController turns it on for the dash");
+    }
+
+    [Test]
     public void DoorTeleport_TellsTheListenersUnderThePlayer_IncludingTheScarf()
     {
         var player = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
