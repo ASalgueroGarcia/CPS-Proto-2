@@ -1,5 +1,6 @@
 // SHOP-MANAGER -> NO SINGLETON IN CASE THERE ARE MORE STORES.
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
@@ -56,7 +57,56 @@ public class ShopManager : MonoBehaviour
             });
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
+        // Its own listeners take the player back to the map; the shop must not freeze time again meanwhile.
+        if (returnMapButton != null) returnMapButton.onClick.AddListener(() => HideShopLogic());
+
+        foreach (Selectable selectable in shopPanel.GetComponentsInChildren<Selectable>(true))
+        {
+            selectable.gameObject.AddComponent<CancelClosesShop>().Shop = this;
+        }
+
         HideShopLogic();
+    }
+
+    private void Update()
+    {
+        if (!IsShopOpen) return;
+
+        // The pause menu's Resume unfreezes everything while the shop is still up.
+        if (Time.timeScale > 0f)
+        {
+            Time.timeScale = 0f;
+            Player.IsPaused = true;
+        }
+
+        KeepFocus();
+    }
+
+    private void OnDestroy()
+    {
+        if (IsShopOpen) Player.IsPaused = false;
+    }
+
+    // A gamepad can only move from a selected control. A mouse click on the background clears the
+    // selection, and so does the pause menu closing.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy) return;
+
+        Button first = powerUpsButtons.Length > 0 && powerUpsButtons[0] != null ? powerUpsButtons[0] : exitButton;
+        events.SetSelectedGameObject(first.gameObject);
+    }
+
+    /// <summary>The UI Cancel input (Esc, gamepad B) only reaches the selected control.</summary>
+    private class CancelClosesShop : MonoBehaviour, ICancelHandler
+    {
+        public ShopManager Shop;
+
+        public void OnCancel(BaseEventData eventData) => Shop.HideShopLogic();
     }
     
     public void OpenShop()
@@ -98,11 +148,15 @@ public class ShopManager : MonoBehaviour
         }
         
         Time.timeScale = 0f;
+        Player.IsPaused = true;
+        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+        KeepFocus();
     }
 
     public void HideShopLogic()
     {
         StopAllCoroutines();
+        if (IsShopOpen) Player.IsPaused = false;
         shopPanel.SetActive(false);
         returnMapButton.gameObject.SetActive(false);
         IsShopOpen = false;
