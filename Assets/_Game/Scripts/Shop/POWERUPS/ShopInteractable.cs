@@ -17,7 +17,7 @@ public class ShopInteractable : MonoBehaviour
             shopManager = FindFirstObjectByType<ShopManager>();
         }
         EUI.SetActive(false);
-
+        InputPromptLabel.AddTo(EUI);
     }
 
     private void OnTriggerEnter(Collider other)
@@ -26,6 +26,7 @@ public class ShopInteractable : MonoBehaviour
         {
             // Player -> near? -> active.
             playerNear = true;
+            Player.InteractableInRange = true;
 
         // E -> UI.
         if(EUI != null && !shopManager.IsShopOpen)
@@ -39,15 +40,21 @@ public class ShopInteractable : MonoBehaviour
         if(other.gameObject.CompareTag("Player"))
         {
             playerNear = false;
+            Player.InteractableInRange = false;
         }
         if (EUI != null){
             EUI.SetActive(false);
         }
     }
 
+    private void OnDisable()
+    {
+        if (playerNear) Player.InteractableInRange = false;
+    }
+
     private void Update()
     {
-        if(playerNear && Keyboard.current.eKey.wasPressedThisFrame && !shopManager.IsShopOpen)
+        if(playerNear && InteractPressed() && !shopManager.IsShopOpen)
         {
             shopManager.OpenShop();
             if(EUI != null)
@@ -55,5 +62,13 @@ public class ShopInteractable : MonoBehaviour
                 EUI.SetActive(false);
             }
         }
+    }
+
+    private static bool InteractPressed()
+    {
+        Keyboard keyboard = Keyboard.current;
+        Gamepad gamepad = Gamepad.current;
+        return (keyboard != null && keyboard.eKey.wasPressedThisFrame)
+               || (gamepad != null && gamepad.buttonNorth.wasPressedThisFrame);
     }
 }

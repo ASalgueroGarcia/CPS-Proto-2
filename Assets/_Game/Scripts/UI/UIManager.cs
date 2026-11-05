@@ -25,6 +25,11 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider playerHealthSlider;
     [SerializeField] private Image healthBar;
     [SerializeField] private Image cooldown;
+    [SerializeField] private GameObject specialPrompt;
+    [SerializeField] private GameObject attackPrompt;
+    [SerializeField] private Color specialCoolingColor = new Color(0.86f, 0.86f, 0.86f);
+    [SerializeField] private Color specialReadyColor = new Color(0.98f, 0.78f, 0.3f);
+    [SerializeField] private AudioClip specialReadyClip;
     
     [Header("CANVAS REFERENCES")]
     [SerializeField] private GameObject playerUICanvas;
@@ -38,6 +43,7 @@ public class UIManager : MonoBehaviour
     private Player _playerFsm;
     private static UIManager _instance;
     private Coroutine _restartAfterDeath;
+    private bool _specialWasCooling;
 
     public static UIManager Instance => _instance;
 
@@ -229,6 +235,9 @@ public class UIManager : MonoBehaviour
             deathCanvas.SetActive(false);
         }
 
+        InputPromptLabel.AddTo(specialPrompt);
+        InputPromptLabel.AddTo(attackPrompt, InputPromptLabel.PadButton.West);
+
         if (pauseAction != null)
         {
             pauseAction.action.Enable();
@@ -343,22 +352,7 @@ public class UIManager : MonoBehaviour
                 damageText.text = $"DMG: {_playerFsm.WeaponBaseDamage:F1}";
             }
 
-            if (specialCDText != null)
-            {
-                if (_playerFsm.SpecialTimer > 0)
-                {
-                    cooldown.fillAmount += _playerFsm.SpecialTimer;
-                    specialCDText.text = $"{_playerFsm.SpecialTimer:F1}s";
-                }
-                    
-
-                else
-                {
-                    specialCDText.text = "READY";
-                    cooldown.fillAmount = float.MaxValue;
-                }
-                    
-            }
+            UpdateSpecialIndicator();
 
             if (comboText != null)
             {
@@ -392,6 +386,32 @@ public class UIManager : MonoBehaviour
                 inventoryText.text = itemNames;
             }
         }
+    }
+
+    // GDD, HUD states: empty when just used, fills bottom to top, gold until used, one sound when ready.
+    private void UpdateSpecialIndicator()
+    {
+        float remaining = _playerFsm.SpecialTimer;
+        float total = _playerFsm.SpecialCooldown;
+        bool cooling = remaining > 0f;
+
+        if (cooldown != null)
+        {
+            cooldown.fillAmount = cooling && total > 0f ? 1f - Mathf.Clamp01(remaining / total) : 1f;
+            cooldown.color = cooling ? specialCoolingColor : specialReadyColor;
+        }
+
+        if (specialCDText != null)
+        {
+            specialCDText.text = cooling ? $"{remaining:F1}s" : "READY";
+        }
+
+        if (_specialWasCooling && !cooling && specialReadyClip != null && SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySound(specialReadyClip);
+        }
+
+        _specialWasCooling = cooling;
     }
 
     public void StartGame()

@@ -75,6 +75,9 @@ public class Player : MonoBehaviour
 
     public static bool IsPaused = false;
 
+    /// <summary>On a gamepad Interact and Special share the North button: next to something usable, it uses it.</summary>
+    public static bool InteractableInRange = false;
+
     /// <summary>Set during scripted walks (room entrance and exit): the states ignore input while it is on.</summary>
     public bool InputLocked { get; set; }
 
@@ -260,6 +263,7 @@ public class Player : MonoBehaviour
     {
         if (specialAttackAction == null || specialAttackAction.action == null) return false;
         if (!specialAttackAction.action.WasPressedThisFrame()) return false;
+        if (InteractableInRange && specialAttackAction.action.activeControl?.device is Gamepad) return false;
 
         if (Weapon?.CurrentWeapon != null && !Weapon.CurrentWeapon.CanUseSpecial) return false;
 
@@ -370,6 +374,8 @@ public class Player : MonoBehaviour
     }
 
     public float SpecialTimer => Weapon?.CurrentWeapon?.SpecialTimer ?? 0f;
+
+    public float SpecialCooldown => Weapon?.CurrentWeapon?.SpecialCooldown ?? 0f;
 
     public int ComboStep => Weapon?.CurrentWeapon?.CurrentComboStep ?? 0;
 
