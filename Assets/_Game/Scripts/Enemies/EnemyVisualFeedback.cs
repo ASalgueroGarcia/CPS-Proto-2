@@ -1,5 +1,5 @@
 using UnityEngine;
-public class EnemyVisualFeedback : MonoBehaviour
+public class EnemyVisualFeedback : MonoBehaviour, IHitFlash
 {
     [SerializeField] private Renderer targetRenderer;
     [SerializeField] private Color hitColor = Color.white;

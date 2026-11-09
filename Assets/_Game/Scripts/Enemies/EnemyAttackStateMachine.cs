@@ -1,4 +1,5 @@
 using UnityEngine;
+
 public class EnemyAttackStateMachine
 {
     public enum State { Approaching, Windup, Executing, Cooldown }

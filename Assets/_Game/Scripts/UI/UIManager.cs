@@ -35,8 +35,9 @@ public class UIManager : MonoBehaviour
     private bool _isPaused = false;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
-    private PlayerFSM _playerFsm;
+    private Player _playerFsm;
     private static UIManager _instance;
+    private Coroutine _restartAfterDeath;
 
     public static UIManager Instance => _instance;
 
@@ -89,7 +90,7 @@ public class UIManager : MonoBehaviour
         RefreshHUDVisibility();
 
         // Refresh references when a new scene is loaded
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = PlayerStatsManager.Instance;
         
         // Unsubscribe from old health component if any
@@ -163,7 +164,7 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
 
         if (playerUICanvas == null) playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
@@ -258,6 +259,7 @@ public class UIManager : MonoBehaviour
 
     // Removed EnsureUIElementsExist method to allow designers to modify UI in Canvases
 
+    // No longer raised on room clear: RoomDoorTransition walks the player out through the door instead.
     public void ShowEoLCanvas()
     {
         if (eolCanvas != null)
@@ -268,6 +270,10 @@ public class UIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        // A duplicate (the UI copy in a scene loaded again, e.g. back to the title) destroys itself in
+        // Awake: it never subscribed, and disabling the shared pause action here would kill pausing.
+        if (_instance != this) return;
+
         if (pauseAction != null)
         {
             pauseAction.action.performed -= OnPausePressed;
@@ -282,6 +288,10 @@ public class UIManager : MonoBehaviour
 
     private void OnPausePressed(InputAction.CallbackContext context)
     {
+        // The title screen has nothing to pause - there Esc is the menus' "back" (Cancel). A lobby in
+        // the same scene has a player, so pausing keeps working there.
+        if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
+
         if (_isPaused){
             Resume();
         }
@@ -307,7 +317,7 @@ public class UIManager : MonoBehaviour
     {
         if (_playerHealth == null)
         {
-            _playerFsm = FindFirstObjectByType<PlayerFSM>();
+            _playerFsm = FindFirstObjectByType<Player>();
             if (_playerFsm != null)
             {
                 _playerHealth = _playerFsm.GetComponent<Health>();
@@ -330,15 +340,15 @@ public class UIManager : MonoBehaviour
 
             if (damageText != null)
             {
-                damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
+                damageText.text = $"DMG: {_playerFsm.WeaponBaseDamage:F1}";
             }
 
             if (specialCDText != null)
             {
-                if (_playerFsm.specialTimer > 0)
+                if (_playerFsm.SpecialTimer > 0)
                 {
-                    cooldown.fillAmount += _playerFsm.specialTimer;
-                    specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
+                    cooldown.fillAmount += _playerFsm.SpecialTimer;
+                    specialCDText.text = $"{_playerFsm.SpecialTimer:F1}s";
                 }
                     
 
@@ -352,7 +362,7 @@ public class UIManager : MonoBehaviour
 
             if (comboText != null)
             {
-                comboText.text = $"{_playerFsm.comboStep}";
+                comboText.text = $"{_playerFsm.ComboStep}";
             }
         }
 
@@ -386,9 +396,20 @@ public class UIManager : MonoBehaviour
 
     public void StartGame()
     {
+        // A new run replaces whatever was still on screen: a restart waiting after a death (a won boss
+        // can be continued meanwhile, which would start two runs) or a pause menu opened during it.
+        if (_restartAfterDeath != null)
+        {
+            StopCoroutine(_restartAfterDeath);
+            _restartAfterDeath = null;
+        }
+
+        if (deathCanvas != null) deathCanvas.SetActive(false);
+        if (_isPaused) Resume();
+
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
@@ -400,6 +421,7 @@ public class UIManager : MonoBehaviour
         if (_playerStats != null) _playerStats.ResetAllThePlayerStats();
         
         RefreshHUDVisibility();
+        Services.Run?.BeginRun(ActProgress.SelectedAct);
         SceneManager.LoadScene("_MapScene");
     }
 
@@ -418,7 +440,7 @@ public class UIManager : MonoBehaviour
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
         Time.timeScale = 0f;
         _isPaused = true;
-        PlayerFSM.IsPaused = _isPaused;
+        Player.IsPaused = _isPaused;
     }
 
     public void Resume()
@@ -432,14 +454,14 @@ public class UIManager : MonoBehaviour
         
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
     }
     
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 
@@ -451,15 +473,17 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        Services.Run?.EndRun(RunOutcome.Death);
         gameObject.SetActive(true); 
         if (deathCanvas != null) deathCanvas.gameObject.SetActive(true);
-        StartCoroutine(StartGameWithDelay(2f));
+        if (_restartAfterDeath != null) StopCoroutine(_restartAfterDeath);
+        _restartAfterDeath = StartCoroutine(StartGameWithDelay(2f));
     }
 
     private IEnumerator StartGameWithDelay(float delay)
     {
         yield return new WaitForSecondsRealtime(delay);
-        if (deathCanvas != null) deathCanvas.SetActive(false);
+        _restartAfterDeath = null;
         StartGame();
     }
 }

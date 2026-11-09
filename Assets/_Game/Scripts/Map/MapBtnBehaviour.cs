@@ -6,27 +6,38 @@ public class MapBtnBehaviour : MonoBehaviour
     [SerializeField] private GameObject pauseMenu;
     [SerializeField] private GameObject eolCanvas;
 
-    private MapBehaviour _mapBehaviour;
+    private MapBehaviour mapBehaviour;
 
     private void Start()
     {
-        _mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+        mapBehaviour = FindFirstObjectByType<MapBehaviour>();
     }
 
     public void ReturnToMap()
     {
-        if (SceneController.Instance)
+        if (SceneController.Instance == null)
         {
-            if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
-            if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
-            
-            Time.timeScale = 1f;
-            _mapBehaviour.CompletedNode();
-            SceneController.Instance.UnloadLevel();
+            Debug.LogError("SceneController instance is null! Cannot return to map.");
+            return;
+        }
+
+        if (mapBehaviour == null)
+        {
+            mapBehaviour = FindFirstObjectByType<MapBehaviour>();
+        }
+
+        if (pauseMenu != null && pauseMenu.activeSelf) pauseMenu.SetActive(false);
+        if (eolCanvas != null && eolCanvas.activeSelf) eolCanvas.SetActive(false);
+
+        Time.timeScale = 1f;
+
+        if (mapBehaviour != null)
+        {
+            mapBehaviour.LeaveRoom();
         }
         else
         {
-            Debug.LogError("SceneController instance is null! Cannot return to map.");
+            SceneController.Instance.UnloadLevel();
         }
     }
 }

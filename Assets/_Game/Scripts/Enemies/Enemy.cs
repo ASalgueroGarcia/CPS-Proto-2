@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
+using Core.Utils;
 
 [RequireComponent(typeof(Health))]
 [RequireComponent(typeof(NavMeshAgent))]
@@ -49,8 +50,7 @@ public class Enemy : MonoBehaviour
         Health.OnDeath.AddListener(HandleDeath);
         Health.OnDamageTaken.AddListener(HandleDamageTaken);
 
-        if (GetComponent<EnemyUIAutoSetup>() == null)
-            gameObject.AddComponent<EnemyUIAutoSetup>();
+        gameObject.GetOrAddComponent<EnemyUIAutoSetup>();
     }
     private void ResolveAttackStrategy()
     {
@@ -86,7 +86,7 @@ public class Enemy : MonoBehaviour
 
     private void Start()
     {
-        var playerObject = FindFirstObjectByType<PlayerFSM>();
+        var playerObject = FindFirstObjectByType<Player>();
         if (playerObject != null)
         {
             PlayerTransform = playerObject.transform;

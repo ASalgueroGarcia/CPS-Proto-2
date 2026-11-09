@@ -8,12 +8,13 @@ public class PlayerStatsManager : MonoBehaviour
 
     // REFS.
     private Health healthPlayer;
-    private PlayerFSM playerController;
-    private WaveManager waveManager;
+    private Player playerController;
 
     // HEALTH.
     private float currentHealth;
     private float maxHealth;
+    public float CurrentHealth => currentHealth;
+    public float MaxHealth => maxHealth;
 
     // CURRENCY.
     private int currentCoins = 0;
@@ -57,7 +58,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void BindToPlayer()
     {
-        playerController = FindFirstObjectByType<PlayerFSM>();
+        playerController = FindFirstObjectByType<Player>();
         if (playerController == null) return;
 
         healthPlayer = playerController.GetComponent<Health>();
@@ -72,8 +73,8 @@ public class PlayerStatsManager : MonoBehaviour
             // FIRST TIME: Capture defaults from the player prefab instance
             currentSpeed = playerController.speed;
             currentDashSpeed = playerController.dashSpeed;
-            currentNormalDamage = playerController.weaponBaseDamage;
-            currentCritChance = playerController.baseCritChance;
+            currentNormalDamage = playerController.WeaponBaseDamage;
+            currentCritChance = playerController.BaseCritChance;
 
             if (healthPlayer != null)
             {
@@ -87,8 +88,8 @@ public class PlayerStatsManager : MonoBehaviour
         {
             playerController.speed = currentSpeed;
             playerController.dashSpeed = currentDashSpeed;
-            playerController.weaponBaseDamage = currentNormalDamage;
-            playerController.baseCritChance = currentCritChance;
+            playerController.WeaponBaseDamage = currentNormalDamage;
+            playerController.BaseCritChance = currentCritChance;
 
             if (healthPlayer != null)
             {
@@ -103,7 +104,6 @@ public class PlayerStatsManager : MonoBehaviour
             healthPlayer.OnHealthChanged.AddListener(SyncHealth);
         }
         
-        waveManager = FindFirstObjectByType<WaveManager>();
     }
 
     private void OnDestroy()
@@ -173,7 +173,7 @@ public class PlayerStatsManager : MonoBehaviour
         currentNormalDamage += v;
         if (playerController != null)
         {
-            playerController.weaponBaseDamage = currentNormalDamage;
+            playerController.WeaponBaseDamage = currentNormalDamage;
         }
     }
 
@@ -227,10 +227,7 @@ public class PlayerStatsManager : MonoBehaviour
 
     public void MoreEnemySpawnRate(float value)
     {
-        if (waveManager != null)
-        {
-            Debug.Log("MORE ENEMIES!!");
-        }
+        Debug.Log("MORE ENEMIES!!");
     }
     
     public void ResetAllThePlayerStats()
