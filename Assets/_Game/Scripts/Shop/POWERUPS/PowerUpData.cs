@@ -8,7 +8,7 @@ public class PowerUpData : ScriptableObject
     public string powerUpName;
     public string powerUpDescription;
     public Sprite powerUpIcon;
-    public float price;
+    public int price;
     [System.Serializable]
 
     // EFFECT.
