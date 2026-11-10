@@ -33,6 +33,7 @@ public class RoomDoorTransition : MonoBehaviour
     private GameObject mark; // Floor glowing exit button
     private bool exitOpen;
     private bool leaving;
+    private bool steppedOffMark;
 
     public void Bind(WaveManager targetWaveManager)
     {
@@ -94,8 +95,20 @@ public class RoomDoorTransition : MonoBehaviour
     // This is a placeholder until room layouts match Notion specifications.
     private void OnTriggerStay(Collider other)
     {
-        if (!mark.activeSelf || leaving || other.GetComponentInParent<Player>() == null) return;
+        // The exit mark sits where the walk-in ends, so it only counts once the player has stepped off it.
+        if (!mark.activeSelf || leaving || !steppedOffMark || !IsPlayerBody(other)) return;
         StartCoroutine(Leave());
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // Only the body counts: the player's weapon hitboxes are triggers too and swing in and out while standing still.
+        if (IsPlayerBody(other)) steppedOffMark = true;
+    }
+
+    private static bool IsPlayerBody(Collider other)
+    {
+        return other is CharacterController && other.GetComponentInParent<Player>() != null;
     }
 
     private IEnumerator Leave()

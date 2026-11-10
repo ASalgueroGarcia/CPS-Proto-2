@@ -73,7 +73,31 @@ public class Player : MonoBehaviour
     private Dictionary<PlayerState, PlayerStateBase> _states;
     private PlayerStateBase _currentStateInstance;
 
-    public static bool IsPaused = false;
+    private static bool _isPaused;
+    private static int _unpausedFrame = -1;
+
+    /// <summary>
+    /// Pause menu, shop and other screens over the game. The frame a screen closes still ignores input:
+    /// the press that closed it (A on the shop, Resume) must not also dash or attack.
+    /// </summary>
+    public static bool IsPaused
+    {
+        get => _isPaused;
+        set
+        {
+            if (_isPaused && !value) _unpausedFrame = Time.frameCount;
+            _isPaused = value;
+        }
+    }
+
+    private static bool PressedThisFrame(InputActionReference action)
+    {
+        return action != null && action.action != null && action.action.WasPressedThisFrame()
+               && Time.frameCount != _unpausedFrame;
+    }
+
+    /// <summary>On a gamepad Interact and Special share the North button: next to something usable, it uses it.</summary>
+    public static bool InteractableInRange = false;
 
     /// <summary>Set during scripted walks (room entrance and exit): the states ignore input while it is on.</summary>
     public bool InputLocked { get; set; }
@@ -238,8 +262,7 @@ public class Player : MonoBehaviour
 
     public bool CheckDashInput()
     {
-        if (dashAction == null || dashAction.action == null) return false;
-        if (!dashAction.action.WasPressedThisFrame()) return false;
+        if (!PressedThisFrame(dashAction)) return false;
 
         Vector2 input = moveAction != null && moveAction.action != null ? moveAction.action.ReadValue<Vector2>() : Vector2.zero;
         Dash.StartDash(new Vector3(input.x, 0, input.y).normalized);
@@ -249,8 +272,7 @@ public class Player : MonoBehaviour
 
     public bool CheckAttackInput()
     {
-        if (attackAction == null || attackAction.action == null) return false;
-        if (!attackAction.action.WasPressedThisFrame()) return false;
+        if (!PressedThisFrame(attackAction)) return false;
 
         Weapon.OnAttackInput();
         return true;
@@ -258,8 +280,9 @@ public class Player : MonoBehaviour
 
     public bool CheckHeavyAttackInput()
     {
-        if (specialAttackAction == null || specialAttackAction.action == null) return false;
-        if (!specialAttackAction.action.WasPressedThisFrame()) return false;
+        if (!PressedThisFrame(specialAttackAction)) return false;
+        // Not activeControl: a tap shorter than one input update leaves it null.
+        if (InteractableInRange && Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame) return false;
 
         if (Weapon?.CurrentWeapon != null && !Weapon.CurrentWeapon.CanUseSpecial) return false;
 
@@ -370,6 +393,8 @@ public class Player : MonoBehaviour
     }
 
     public float SpecialTimer => Weapon?.CurrentWeapon?.SpecialTimer ?? 0f;
+
+    public float SpecialCooldown => Weapon?.CurrentWeapon?.SpecialCooldown ?? 0f;
 
     public int ComboStep => Weapon?.CurrentWeapon?.CurrentComboStep ?? 0;
 

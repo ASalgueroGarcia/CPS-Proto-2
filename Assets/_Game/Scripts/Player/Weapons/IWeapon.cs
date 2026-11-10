@@ -9,6 +9,7 @@ public interface IWeapon
     float BaseCritChance { get; set; }
 
     float SpecialTimer { get; }
+    float SpecialCooldown { get; }
     bool CanUseSpecial { get; }
     float AttackAnimationSpeed { get; }
     float SpecialAnimationSpeed { get; }
