@@ -54,7 +54,7 @@ public class ShopInteractable : MonoBehaviour
 
     private void Update()
     {
-        if(playerNear && InteractPressed() && !shopManager.IsShopOpen)
+        if(playerNear && InteractPressed() && !shopManager.IsShopOpen && !Player.IsPaused)
         {
             shopManager.OpenShop();
             if(EUI != null)

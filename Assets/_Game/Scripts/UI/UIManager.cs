@@ -303,6 +303,13 @@ public class UIManager : MonoBehaviour
         // the same scene has a player, so pausing keeps working there.
         if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
 
+        // Esc is also the UI Cancel: in the shop it closes the shop (as B does), it doesn't pause over it.
+        if (!_isPaused && ShopManager.Open != null && context.control != null && context.control.device is Keyboard)
+        {
+            ShopManager.Open.HideShopLogic();
+            return;
+        }
+
         if (_isPaused){
             Resume();
         }
@@ -490,6 +497,7 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(true);
         }
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
+        _lastPauseSelection = null;
         Time.timeScale = 0f;
         _isPaused = true;
         Player.IsPaused = _isPaused;

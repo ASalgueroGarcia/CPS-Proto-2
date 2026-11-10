@@ -30,6 +30,9 @@ public class ShopManager : MonoBehaviour
     private RectTransform _panelRect;
     public bool IsShopOpen = false;
 
+    /// <summary>The shop on screen, if any: Esc closes it instead of opening the pause menu.</summary>
+    public static ShopManager Open { get; private set; }
+
 
     private void Start()
     {
@@ -82,9 +85,10 @@ public class ShopManager : MonoBehaviour
         KeepFocus();
     }
 
-    private void OnDestroy()
+    // Leaving the room from the pause menu destroys an open shop: it must not leave the map frozen.
+    private void OnDisable()
     {
-        if (IsShopOpen) Player.IsPaused = false;
+        if (IsShopOpen) HideShopLogic();
     }
 
     // A gamepad can only move from a selected control. A mouse click on the background clears the
@@ -149,6 +153,7 @@ public class ShopManager : MonoBehaviour
         
         Time.timeScale = 0f;
         Player.IsPaused = true;
+        Open = this;
         if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
         KeepFocus();
     }
@@ -157,8 +162,9 @@ public class ShopManager : MonoBehaviour
     {
         StopAllCoroutines();
         if (IsShopOpen) Player.IsPaused = false;
-        shopPanel.SetActive(false);
-        returnMapButton.gameObject.SetActive(false);
+        if (Open == this) Open = null;
+        if (shopPanel != null) shopPanel.SetActive(false);
+        if (returnMapButton != null) returnMapButton.gameObject.SetActive(false);
         IsShopOpen = false;
         Time.timeScale = 1f;
     }
