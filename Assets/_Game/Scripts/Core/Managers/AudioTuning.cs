@@ -1,6 +1,6 @@
 using UnityEngine;
 
-/// <summary>Designer-tunable limits for runtime pitch and speed, and the pause noise layer.</summary>
+/// <summary>Designer-tunable limits for runtime pitch and speed, and how the music sounds while paused.</summary>
 [CreateAssetMenu(fileName = "AudioTuning", menuName = "Audio/Audio Tuning")]
 public class AudioTuning : ScriptableObject
 {
@@ -19,4 +19,10 @@ public class AudioTuning : ScriptableObject
     [Range(0f, 1f)] public float pauseNoiseVolume = 0.25f;
     [Tooltip("Fade in and out, in real seconds.")]
     [Min(0f)] public float pauseNoiseFadeSeconds = 0.4f;
+
+    [Header("Pause music (old record heard from another room)")]
+    [Tooltip("While paused the music keeps nothing above this frequency. Lower = more muffled.")]
+    [Range(300f, 22000f)] public float pauseLowpassHz = 1800f;
+    [Tooltip("While paused the music keeps nothing below this frequency. Higher = thinner, smaller speaker.")]
+    [Range(10f, 2000f)] public float pauseHighpassHz = 450f;
 }

@@ -17,6 +17,8 @@ public class AudioManager : MonoBehaviour
     public const string MusicSpeedParameter = "MusicSpeed";
     public const string MusicPitchShiftParameter = "MusicPitchShift";
     public const string SfxPitchParameter = "SfxPitch";
+    public const string MusicLowpassParameter = "MusicLowpass";
+    public const string MusicHighpassParameter = "MusicHighpass";
 
     [Serializable]
     public class Sound
@@ -67,6 +69,7 @@ public class AudioManager : MonoBehaviour
     private TweenedValue musicSpeed = new TweenedValue(1f);
     private TweenedValue sfxPitch = new TweenedValue(1f);
     private TweenedValue noiseVolume = new TweenedValue(0f);
+    private TweenedValue pauseMuffle = new TweenedValue(0f);
 
     /// <summary>Current music pitch, 1 = as recorded.</summary>
     public float MusicPitch => musicPitch.Current;
@@ -175,6 +178,7 @@ public class AudioManager : MonoBehaviour
         bool pitchMoved = musicPitch.Step(dt) | musicSpeed.Step(dt) | sfxPitch.Step(dt);
         if (pitchMoved) ApplyPitchAndSpeed();
         if (noiseVolume.Step(dt)) ApplyNoise();
+        if (pauseMuffle.Step(dt)) ApplyMuffle();
     }
 
     #region Pitch, speed and pause noise
@@ -208,9 +212,13 @@ public class AudioManager : MonoBehaviour
         sfxPitch.MoveTo(1f, seconds);
     }
 
-    /// <summary>Fades the pause noise in over the current music, or back out. Works while the game is paused.</summary>
+    /// <summary>
+    /// Pause sound: the music turns thin and muffled, like an old record heard from another room,
+    /// with the noise layered on top. Pass false to fade back. Works while the game is paused.
+    /// </summary>
     public void SetPauseNoise(bool on)
     {
+        pauseMuffle.MoveTo(on ? 1f : 0f, tuning.pauseNoiseFadeSeconds);
         if (tuning.pauseNoiseClip == null) return;
         noiseVolume.MoveTo(on ? tuning.pauseNoiseVolume : 0f, tuning.pauseNoiseFadeSeconds);
     }
@@ -223,6 +231,15 @@ public class AudioManager : MonoBehaviour
         mixer.SetFloat(MusicSpeedParameter, musicSpeed.Current);
         mixer.SetFloat(MusicPitchShiftParameter, AudioPitch.ShifterRatio(musicPitch.Current, musicSpeed.Current));
         mixer.SetFloat(SfxPitchParameter, sfxPitch.Current);
+    }
+
+    private void ApplyMuffle()
+    {
+        AudioMixer mixer = musicGroup != null ? musicGroup.audioMixer : null;
+        if (mixer == null) return;
+
+        mixer.SetFloat(MusicLowpassParameter, AudioFilter.Cutoff(AudioFilter.OpenLowpassHz, tuning.pauseLowpassHz, pauseMuffle.Current));
+        mixer.SetFloat(MusicHighpassParameter, AudioFilter.Cutoff(AudioFilter.OpenHighpassHz, tuning.pauseHighpassHz, pauseMuffle.Current));
     }
 
     private void ApplyNoise()

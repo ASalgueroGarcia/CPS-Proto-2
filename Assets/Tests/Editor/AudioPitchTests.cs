@@ -61,4 +61,18 @@ public class AudioPitchTests
 
         Assert.AreEqual(0f, value.Current, 0.0001f);
     }
+
+    [Test]
+    public void Filter_is_open_at_zero_and_fully_closed_at_one()
+    {
+        Assert.AreEqual(22000f, AudioFilter.Cutoff(22000f, 1800f, 0f), 0.01f);
+        Assert.AreEqual(1800f, AudioFilter.Cutoff(22000f, 1800f, 1f), 0.01f);
+        Assert.AreEqual(450f, AudioFilter.Cutoff(10f, 450f, 1f), 0.01f);
+    }
+
+    [Test]
+    public void Filter_sweeps_in_equal_pitch_steps()
+    {
+        Assert.AreEqual(2000f, AudioFilter.Cutoff(20000f, 200f, 0.5f), 0.5f);
+    }
 }
