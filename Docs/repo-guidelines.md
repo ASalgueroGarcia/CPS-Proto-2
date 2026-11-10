@@ -34,16 +34,11 @@ Need a change in code you don't own? Don't push. Use one of the three routes bel
 
 In every case: the code owner's review + **APPROVAL is obligatory** before merge. The owner is free to close a PR built for them ("ready to die" PRs are fine — say so in the PR body).
 
-## 4. The approval gate (on request)
+## 4. Enforcing approvals (optional)
 
-The `Code-owner approval gate` workflow (`.github/workflows/codeowner-approval.yml`) runs **only when requested**: Actions → *Code-owner approval gate* → *Run workflow* → PR number. Kalashnikov-simple — **exactly one approval is ever required**:
+Today the approval rule above is a team agreement; nothing blocks a merge. If we want GitHub to enforce it, the repo admin (Antonio) can turn on the built-in option: **Settings → Branches → Add branch protection rule** on `dev` → **Require a pull request before merging** → **Require review from Code Owners**. The repo is public, so this is free.
 
-- sums the **changed lines** (additions + deletions) inside each owner's paths
-- the single **most-touched owner** (if their paths carry ≥ 10 changed lines) must have an **APPROVED review** — nobody else is asked
-- the PR author cannot cover themselves; if the most-touched paths are the author's own, the gate passes
-- below the threshold, or no owned paths at all → gate passes, zero approvals
-
-The automatic triggers (run on every PR / every review) are **disabled and preserved commented** in the workflow file — uncomment the two trigger blocks to restore them. To make requested runs blocking, the repo owner (Antonio — only the repo admin can) opens **Settings → Branches → Add branch protection rule** on the default branch → **Require status checks** → select `Code-owner approval gate`.
+Note: GitHub then asks for an owner's approval for every owned path a PR touches, so a PR that crosses two owners' areas needs both.
 
 ## 5. Hygiene
 
@@ -53,8 +48,3 @@ The automatic triggers (run on every PR / every review) are **disabled and prese
 - **Disposables welcome** — mark them in the PR body so nobody merges reluctantly
 - **Small PRs:** one concern per PR; split by owner area so one contested file can't hold the rest back
 - **Review comments say how they were checked:** a claim about behaviour ("X goes through Y", "this breaks Z") says whether it was tested in play mode / by a test, or is from reading the code. Opinions are marked as suggestions or nits
-
-## 6. Free-tier reality
-
-- No organization → no team owners and no built-in required-reviews automation; that's why the gate is a plain Python job + branch protection (free on public repos, flipped by the repo admin)
-- Public repo → GitHub Actions minutes are free; the gate runs in seconds
