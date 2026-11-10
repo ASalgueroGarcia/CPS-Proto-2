@@ -62,6 +62,9 @@ public class SoundManager : MonoBehaviour
     
     private void PlayMusic()
     {
+        // Already playing: keep the track running across scene loads instead of restarting it.
+        if (musicSource.clip == null || musicSource.isPlaying) return;
+
         musicSource.loop = true;
         musicSource.Play();
     }
