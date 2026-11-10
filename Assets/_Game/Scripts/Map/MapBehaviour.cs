@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Random = UnityEngine.Random;
 
 public class MapBehaviour : MonoBehaviour
 {
@@ -25,17 +24,9 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float nodeSize = 64f;
     [SerializeField] private Vector2 areaPadding = new Vector2(0.15f, 0.18f);
 
-    [Header("Rooms")]
-    [SerializeField] private RoomType[] rowTiers;
-    [Range(0f, 1f)] [SerializeField] private float restRoomChance = 0.25f;
-    [Range(0f, 1f)] [SerializeField] private float shopRoomChance = 0.15f;
-    [SerializeField] private float restRoomHeal = 40f;
-
-    [Header("Node Rewards")]
-    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
-    [SerializeField] private float moreButtonsMultiplier = 1.5f;
-    [SerializeField] private float treasureHeal = 50f;
-    [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
+    [Header("Tuning")]
+    [Tooltip("Generation and room numbers. Edit the asset in Data/Map.")]
+    [SerializeField] private MapConfig config;
 
     [Header("Colors")]
     [SerializeField] private Color gold = new Color(1f, 0.78f, 0.22f);
@@ -52,11 +43,11 @@ public class MapBehaviour : MonoBehaviour
     private TMP_Text inspect;
 
     private Node entered;
-    private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
+    private readonly System.Random rng = new System.Random();
+    private MapRoomPlanner planner;
+    private List<PlannedRoom> rooms = new List<PlannedRoom>();
     private int roomIndex;
     private bool roomCompleted;
-    private const int MaxShopsPerScene = 2;
-    private int shopRoomCount;
 
     public bool HasNextRoom => entered != null && entered.Type != NodeTypeEnum.FinalFight
                                && roomCompleted && roomIndex + 1 < rooms.Count;
@@ -99,7 +90,9 @@ public class MapBehaviour : MonoBehaviour
         if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
         Clear();
 
-        map = MapGenerator.Generate(new System.Random(Random.Range(int.MinValue, int.MaxValue)));
+        if (config == null) config = ScriptableObject.CreateInstance<MapConfig>();
+        map = MapGenerator.Generate(rng, config.generation);
+        planner = new MapRoomPlanner(config.rooms, rng);
         BuildHud();
         PlaceLineHolder();
 
@@ -141,7 +134,6 @@ public class MapBehaviour : MonoBehaviour
 
         path.Clear();
         entered = null;
-        shopRoomCount = 0;
     }
 
     private void PlaceLineHolder()
@@ -280,16 +272,18 @@ public class MapBehaviour : MonoBehaviour
 
         entered = node;
         path.Add(node.Column);
-        PlanRooms(node);
+        rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1);
         roomIndex = 0;
         LoadRoom();
     }
 
     private void LoadRoom()
     {
-        var (room, setup) = rooms[roomIndex];
-        roomCompleted = room == RoomType.Shop || room == RoomType.Treasure;
-        SceneController.Instance.LoadLevel(room, setup, entered.Row, roomIndex == 0);
+        PlannedRoom room = rooms[roomIndex];
+        roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
+        Action<WaveManager> setup = null;
+        if (room.Rewards.HasValue) setup = room.Rewards.Value.Apply;
+        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0);
     }
 
     public void LeaveRoom()
@@ -325,72 +319,6 @@ public class MapBehaviour : MonoBehaviour
         entered = null;
         SceneController.Instance.UnloadLevel();
         Refresh();
-    }
-
-    private void PlanRooms(Node node)
-    {
-        rooms.Clear();
-        switch (node.Type)
-        {
-            case NodeTypeEnum.Shop:
-                shopRoomCount++;
-                rooms.Add((RoomType.Shop, null));
-                return;
-            case NodeTypeEnum.Treasure:
-                int buttons = treasureButtons[Mathf.Clamp(SceneIndex(), 0, treasureButtons.Length - 1)];
-                if (Random.value < 0.5f)
-                {
-                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: treasureHeal)));
-                }
-                else
-                {
-                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: buttons, healthDropChance: 0f)));
-                }
-                return;
-            case NodeTypeEnum.FinalFight:
-                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
-                return;
-        }
-
-        Action<WaveManager> rewards = node.Type switch
-        {
-            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
-            _ => null
-        };
-
-        int count = Random.value < 0.5f ? 4 : 5;
-        RoomType tier = BaseTier(node.Row);
-        for (int i = 0; i < count; i++)
-        {
-            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
-        }
-
-        if (node.Row == 0) return;
-
-        float roll = Random.value;
-        int middle = Random.Range(1, count - 1);
-        if (roll < restRoomChance)
-        {
-            rooms[middle] = (RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: restRoomHeal));
-        }
-        else if (shopRoomCount < MaxShopsPerScene && roll < restRoomChance + shopRoomChance)
-        {
-            shopRoomCount++;
-            rooms[middle] = (RoomType.Shop, null);
-        }
-    }
-
-    private RoomType BaseTier(int row)
-    {
-        if (rowTiers != null && row < rowTiers.Length) return rowTiers[row];
-        if (row <= 2) return RoomType.Entrance;
-        return row <= 4 ? RoomType.Medium : RoomType.MediumHard;
-    }
-
-    private static RoomType StepUp(RoomType tier, int steps)
-    {
-        return (RoomType)Mathf.Min((int)tier + steps, (int)RoomType.Hard);
     }
 
     private static int SceneIndex()
