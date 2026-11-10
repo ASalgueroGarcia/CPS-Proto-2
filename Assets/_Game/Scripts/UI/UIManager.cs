@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -44,6 +45,7 @@ public class UIManager : MonoBehaviour
     private static UIManager _instance;
     private Coroutine _restartAfterDeath;
     private bool _specialWasCooling;
+    private GameObject _lastPauseSelection;
 
     public static UIManager Instance => _instance;
 
@@ -314,7 +316,11 @@ public class UIManager : MonoBehaviour
         // Safety check: Ensure HUD stays hidden in non-gameplay scenes
         RefreshHUDVisibility();
 
-        if (_isPaused) return;
+        if (_isPaused)
+        {
+            KeepPauseFocus();
+            return;
+        }
 
         if (playerUICanvas != null && playerUICanvas.activeSelf)
         {
@@ -386,6 +392,32 @@ public class UIManager : MonoBehaviour
                 inventoryText.text = itemNames;
             }
         }
+    }
+
+    // The D-pad's automatic navigation also finds the buttons behind the pause menu (the shop, the map
+    // nodes), and A on one of them would buy or enter a room while paused. Bring focus back to the menu.
+    private void KeepPauseFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || pausePanel == null || !pausePanel.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy && selected.transform.IsChildOf(pausePanel.transform))
+        {
+            _lastPauseSelection = selected;
+            return;
+        }
+
+        GameObject back = _lastPauseSelection != null && _lastPauseSelection.activeInHierarchy ? _lastPauseSelection : null;
+        if (back == null)
+        {
+            foreach (Selectable selectable in pausePanel.GetComponentsInChildren<Selectable>())
+            {
+                if (selectable.IsInteractable()) { back = selectable.gameObject; break; }
+            }
+        }
+
+        if (back != null) events.SetSelectedGameObject(back);
     }
 
     // GDD, HUD states: empty when just used, fills bottom to top, gold until used, one sound when ready.
