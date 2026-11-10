@@ -441,6 +441,12 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 0f;
         _isPaused = true;
         Player.IsPaused = _isPaused;
+        SetPauseNoise(true);
+    }
+
+    private static void SetPauseNoise(bool on)
+    {
+        if (AudioManager.Instance != null) AudioManager.Instance.SetPauseNoise(on);
     }
 
     public void Resume()
@@ -455,13 +461,15 @@ public class UIManager : MonoBehaviour
         Time.timeScale = 1f;
         _isPaused = false;
         Player.IsPaused = false;
+        SetPauseNoise(false);
     }
-    
+
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
         _isPaused = false;
         Player.IsPaused = false;
+        SetPauseNoise(false);
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 
