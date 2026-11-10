@@ -21,7 +21,7 @@ ones it lists. Nothing ever points up.
 | Assembly | Uses | Packages |
 |---|---|---|
 | `Spectracle.UI` | Menus, Map, Waves, Shop, Player, Core | Input System, TextMesh Pro, UGUI |
-| `Spectracle.Map` | Waves, Core | UGUI |
+| `Spectracle.Map` | Waves, Shop, Player, Core | TextMesh Pro, UGUI |
 | `Spectracle.Waves` | Pickups, Core | |
 | `Spectracle.Pickups` | Shop, Core | |
 | `Spectracle.Shop` | Player, Core | Input System, TextMesh Pro, UGUI |
@@ -31,7 +31,7 @@ ones it lists. Nothing ever points up.
 | `Spectracle.Menus` | Core | |
 | `Spectracle.Core` | - | UGUI |
 | `Spectracle.Environment` | - | |
-| `Spectracle.Tests.Editor` | Menus, Waves, Core | NUnit, Test Runner, AI Navigation |
+| `Spectracle.Tests.Editor` | Map, Enemies, Menus, Waves, Core | NUnit, Test Runner, AI Navigation |
 
 Every reference in that table is used: removing any one of them breaks the build.
 
