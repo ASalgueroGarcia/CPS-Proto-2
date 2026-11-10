@@ -16,7 +16,7 @@ public class EnemyLaunchSettings : ScriptableObject
     [Header("Launch conditions")]
     [Tooltip("Hits weaker than this push the enemy but never launch it.")]
     [Min(0f)] public float minLaunchForce = 5f;
-    [Tooltip("Layers that count as walls and obstacles. Trigger colliders are ignored.")]
+    [Tooltip("Layers that count as walls and obstacles. Trigger colliders are ignored, except explosives, which go off when an enemy is knocked into them.")]
     public LayerMask wallLayers = 1;
     [Tooltip("Radius of the probe that looks for a wall ahead of the enemy.")]
     [Min(0.01f)] public float probeRadius = 0.4f;

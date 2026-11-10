@@ -5,6 +5,7 @@ using UnityEngine.AI;
 /// <summary>
 /// Owns an enemy's knockback. A hit pushes the enemy away from its source; if the
 /// push runs into a wall or obstacle the enemy is launched back off it in an arc.
+/// Running into an explosive sets it off first, so the enemy takes the blast as it flies.
 /// Added by <see cref="Enemy"/> when the prefab has launch settings assigned.
 /// </summary>
 [RequireComponent(typeof(Enemy))]
@@ -54,7 +55,7 @@ public class EnemyKnockback : MonoBehaviour
         {
             float step = force * settings.pushSpeedPerForce * (1f - elapsed / settings.pushDuration) * Time.deltaTime;
 
-            if (force >= settings.minLaunchForce && CanLaunch() && HitsWall(direction, step, out Vector3 normal))
+            if (force >= settings.minLaunchForce && CanLaunch() && HitsSomething(direction, step, out Vector3 normal))
             {
                 yield return LaunchRoutine(LaunchArc.BounceDirection(direction, normal), force);
                 yield break;
@@ -98,6 +99,39 @@ public class EnemyKnockback : MonoBehaviour
     }
 
     private bool CanLaunch() => enemy.Agent.isActiveAndEnabled && enemy.Agent.isOnNavMesh;
+
+    private bool HitsSomething(Vector3 direction, float step, out Vector3 normal)
+    {
+        IExplosive explosive = ExplosiveAhead(direction, step, out normal);
+        if (explosive == null) return HitsWall(direction, step, out normal);
+
+        explosive.Detonate();
+        return true;
+    }
+
+    // Explosives have no solid collider, only a wide trigger, so contact is measured against their visible body.
+    private IExplosive ExplosiveAhead(Vector3 direction, float step, out Vector3 normal)
+    {
+        Vector3 origin = transform.position + Vector3.up * settings.probeHeight;
+        float reach = settings.probeRadius + settings.probeDistance + step;
+
+        foreach (Collider near in Physics.OverlapSphere(origin, reach, settings.wallLayers, QueryTriggerInteraction.Collide))
+        {
+            IExplosive explosive = near.GetComponentInParent<IExplosive>();
+            if (explosive == null) continue;
+
+            Renderer body = ((Component)explosive).GetComponentInChildren<Renderer>();
+            Vector3 toBody = (body != null ? body.bounds.ClosestPoint(origin) : near.transform.position) - origin;
+            toBody.y = 0f;
+            if (toBody.magnitude > reach || Vector3.Dot(toBody, direction) <= 0f) continue;
+
+            normal = -toBody.normalized;
+            return explosive;
+        }
+
+        normal = default;
+        return null;
+    }
 
     private bool HitsWall(Vector3 direction, float step, out Vector3 normal)
     {
