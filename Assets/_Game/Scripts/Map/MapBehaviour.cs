@@ -8,14 +8,6 @@ using UnityEngine.UI;
 
 public class MapBehaviour : MonoBehaviour
 {
-    private enum NodeState
-    {
-        Current,
-        Available,
-        Later,
-        Closed
-    }
-
     [Header("Layout")]
     [SerializeField] private RectTransform nodeArea;
     [SerializeField] private RectTransform lineHolder;
@@ -36,7 +28,7 @@ public class MapBehaviour : MonoBehaviour
     private MapGrid map;
     private readonly Node[,] nodes = new Node[MapGrid.Rows, MapGrid.Columns];
     private readonly List<(Image image, int row, int from, int to)> lines = new List<(Image, int, int, int)>();
-    private readonly List<int> path = new List<int>();
+    private MapProgress progress;
 
     private TMP_Text header;
     private TMP_Text hud;
@@ -93,6 +85,7 @@ public class MapBehaviour : MonoBehaviour
         if (config == null) config = ScriptableObject.CreateInstance<MapConfig>();
         map = MapGenerator.Generate(rng, config.generation);
         planner = new MapRoomPlanner(config.rooms, rng);
+        progress = new MapProgress(map);
         BuildHud();
         PlaceLineHolder();
 
@@ -132,7 +125,6 @@ public class MapBehaviour : MonoBehaviour
         }
         lines.Clear();
 
-        path.Clear();
         entered = null;
     }
 
@@ -175,32 +167,6 @@ public class MapBehaviour : MonoBehaviour
 
     private void Refresh()
     {
-        HashSet<(int, int)> available = new HashSet<(int, int)>();
-        if (path.Count == 0)
-        {
-            available.Add((0, 0));
-        }
-        else
-        {
-            int row = path.Count - 1;
-            foreach (int child in map.Children(row, path[row]))
-            {
-                available.Add((row + 1, child));
-            }
-        }
-
-        HashSet<(int, int)> reachable = new HashSet<(int, int)>(available);
-        for (int row = path.Count; row < MapGrid.LastRow; row++)
-        {
-            foreach (var (from, to) in map.EdgesFrom(row))
-            {
-                if (reachable.Contains((row, from)))
-                {
-                    reachable.Add((row + 1, to));
-                }
-            }
-        }
-
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
@@ -209,13 +175,9 @@ public class MapBehaviour : MonoBehaviour
                 Node node = nodes[row, column];
                 if (node == null) continue;
 
-                NodeState state = OnPath(row, column) ? (row == path.Count - 1 ? NodeState.Current : NodeState.Closed)
-                    : available.Contains((row, column)) ? NodeState.Available
-                    : reachable.Contains((row, column)) ? NodeState.Later
-                    : NodeState.Closed;
-
+                MapNodeState state = progress.StateOf(row, column);
                 ApplyState(node, state);
-                if (state == NodeState.Available && firstAvailable == null)
+                if (state == MapNodeState.Available && firstAvailable == null)
                 {
                     firstAvailable = node;
                 }
@@ -224,9 +186,7 @@ public class MapBehaviour : MonoBehaviour
 
         foreach (var (image, row, from, to) in lines)
         {
-            bool traversed = OnPath(row, from) && OnPath(row + 1, to);
-            bool ahead = (OnPath(row, from) || reachable.Contains((row, from))) && reachable.Contains((row + 1, to));
-            image.color = traversed ? gold : ahead ? grey : dimmed;
+            image.color = progress.IsTraversed(row, from, to) ? gold : progress.IsAhead(row, from, to) ? grey : dimmed;
         }
 
         RefreshHud();
@@ -237,24 +197,19 @@ public class MapBehaviour : MonoBehaviour
         }
     }
 
-    private bool OnPath(int row, int column)
-    {
-        return row < path.Count && path[row] == column;
-    }
-
-    private void ApplyState(Node node, NodeState state)
+    private void ApplyState(Node node, MapNodeState state)
     {
         Color roomColor = Node.GetRoomColor(node.Type);
 
         switch (state)
         {
-            case NodeState.Current:
+            case MapNodeState.Current:
                 node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
                 break;
-            case NodeState.Available:
+            case MapNodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
                 break;
-            case NodeState.Later:
+            case MapNodeState.Later:
                 Color laterFill = new Color(roomColor.r * 0.45f, roomColor.g * 0.45f, roomColor.b * 0.45f, 0.95f);
                 node.SetLook(laterFill, roomColor, roomColor, showRing: true, interactable: false, current: false);
                 break;
@@ -271,7 +226,7 @@ public class MapBehaviour : MonoBehaviour
         if (entered != null) return;
 
         entered = node;
-        path.Add(node.Column);
+        progress.Enter(node.Column);
         rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1);
         roomIndex = 0;
         LoadRoom();
@@ -304,7 +259,7 @@ public class MapBehaviour : MonoBehaviour
                 return;
             }
 
-            path.RemoveAt(path.Count - 1);
+            progress.StepBack();
             SceneController.Instance.UnloadLevel();
             Refresh();
             return;
