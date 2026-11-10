@@ -1,0 +1,41 @@
+name: Code-owner approval gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to check"
+        required: true
+        type: number
+      min_lines:
+        description: "Changed lines in an owner's paths that require their approval"
+        required: false
+        type: number
+        default: 10
+  # AUTO-TRIGGERS - disabled 2026-09-24 at Dima's call (check runs on request only).
+  # Uncomment these two blocks to restore automatic checks on every PR / review change:
+  # pull_request:
+  #   types: [opened, synchronize, reopened, ready_for_review]
+  # pull_request_review:
+  #   types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: codeowner-approval-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check code-owner approvals
+        run: |
+          python3 .github/scripts/check_codeowner_approval.py "$PR_NUMBER" "$MIN_LINES"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ inputs.pr_number || github.event.pull_request.number }}
+          MIN_LINES: ${{ inputs.min_lines || '10' }}
