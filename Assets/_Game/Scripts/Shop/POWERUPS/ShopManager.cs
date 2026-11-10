@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using TMPro;
 
@@ -12,6 +13,7 @@ public class ShopManager : MonoBehaviour
     [SerializeField] private Button exitButton; // If the player do not want to buy any item.
     [SerializeField] private Button returnMapButton;
     [SerializeField] private GameObject shopPanel;
+    [SerializeField] private ShopLobbyTablePreview lobbyShop;
 
     [Header("UI ELEMENTS PER ITEM")]
     [SerializeField] private TextMeshProUGUI[] itemNameTexts = new TextMeshProUGUI[3];
@@ -22,13 +24,15 @@ public class ShopManager : MonoBehaviour
 
     [Header("SFX Settings")]
     [SerializeField] private AudioClip purchaseClip;
-
+    [SerializeField] private AudioClip deniedPurchaseClip;
     private PlayerStatsManager _playerStatsManager;
     private readonly PowerUpData[] _currentPowerUps = new PowerUpData[3];
+    public UnityEvent OnNotEnoughCoins;
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
     public bool IsShopOpen = false;
-
+    public bool newItemsRequired = true;
+    public int priceOfThePowerUp;
 
     private void Start()
     {
@@ -47,7 +51,7 @@ public class ShopManager : MonoBehaviour
         _panelRect = shopPanel.GetComponent<RectTransform>();
 
         // 2. Conect the buttont to -> selectPower.
-        for(int j = 0; j < powerUpsButtons.Length; j++)
+        for (int j = 0; j < powerUpsButtons.Length; j++)
         {
             int f = j;
             powerUpsButtons[j].onClick.AddListener(() => PowerUpSelect(f));
@@ -56,16 +60,34 @@ public class ShopManager : MonoBehaviour
             });
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
+        if (newItemsRequired)
+        {
+            AddNewItems();
+            newItemsRequired = false;
+        }
+
+        // Esto es lo que garantiza que el panel quede cerrado al arrancar.
         HideShopLogic();
     }
-    
+
     public void OpenShop()
     {
         StopAllCoroutines();
         shopPanel.SetActive(true);
         IsShopOpen = true;
         returnMapButton.gameObject.SetActive(true);
-    
+
+        if (newItemsRequired)
+        {
+            AddNewItems();
+            newItemsRequired = false;
+        }
+
+        Time.timeScale = 0f;
+    }
+
+    private void AddNewItems(){
+
         //to check if the player has the item already ---
         List<PowerUpData> availablePowerUps = new List<PowerUpData>();
         foreach(PowerUpData p in powerUpsA)
@@ -96,8 +118,10 @@ public class ShopManager : MonoBehaviour
             itemPriceTexts[i].text = "$" + _currentPowerUps[i].price.ToString();
             powerUpImage[i].sprite = _currentPowerUps[i].powerUpIcon;
         }
-        
-        Time.timeScale = 0f;
+        if (lobbyShop != null)
+        {
+            lobbyShop.RefreshPreview(_currentPowerUps);
+        }
     }
 
     public void HideShopLogic()
@@ -112,11 +136,20 @@ public class ShopManager : MonoBehaviour
     public void PowerUpSelect(int l)
     {
         PowerUpData selectedPowerUp = _currentPowerUps[l];
-        // APPLY THE POWERUP.
-        if (_playerStatsManager != null && selectedPowerUp != null)
+        if (_playerStatsManager == null || selectedPowerUp == null) return; // empty slot: nothing happens.
+
+        // 1. PAY FIRST. Not enough coins -> nothing is applied and the shop stays open.
+        if (!_playerStatsManager.tryToBuy(selectedPowerUp.price))
         {
-            _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+            if(deniedPurchaseClip != null) SoundManager.Instance.PlaySound(deniedPurchaseClip);
+            OnNotEnoughCoins?.Invoke();
+            return;
         }
+
+        // 2. Paid -> sound + effect + close.
+        SoundManager.Instance.PlaySound(purchaseClip);
+        _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+        newItemsRequired = true;
         HideShopLogic();
     }
 }
