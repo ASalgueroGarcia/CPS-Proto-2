@@ -16,6 +16,10 @@ public class Enemy : MonoBehaviour
     [Tooltip("The attack behaviour component. Drag any MonoBehaviour that implements IEnemyAttackStrategy.")]
     [SerializeField] private MonoBehaviour attackStrategyComponent;
 
+    [Header("Knockback")]
+    [Tooltip("Leave empty to keep the plain Health knockback with no wall launch.")]
+    [SerializeField] private EnemyLaunchSettings launchSettings;
+
     [Header("State Tracker")]
     public EnemyState currentState = EnemyState.Patrol;
 
@@ -51,6 +55,8 @@ public class Enemy : MonoBehaviour
         Health.OnDamageTaken.AddListener(HandleDamageTaken);
 
         gameObject.GetOrAddComponent<EnemyUIAutoSetup>();
+        if (launchSettings != null)
+            gameObject.GetOrAddComponent<EnemyKnockback>().Initialize(this, launchSettings);
     }
     private void ResolveAttackStrategy()
     {
