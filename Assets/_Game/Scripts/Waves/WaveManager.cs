@@ -17,6 +17,10 @@ public class WaveManager : MonoBehaviour
     [Header("Enemy Configuration")]
     [SerializeField] private List<EnemyPrefabConfig> enemyConfigs;
     [SerializeField] private Vector2 spawnAreaSize = new Vector2(70f, 30f);
+    [Tooltip("Parent of the layout's spawn points (GDD > Arena Layouts). Empty = enemies appear anywhere in the spawn area.")]
+    [SerializeField] private Transform spawnPoints;
+    [Tooltip("How far from a spawn point an enemy may appear, so a group does not stack on one spot.")]
+    [SerializeField] private float spawnPointScatter = 1.5f;
 
     [Header("Safe Zones")]
     // NOTE: The door transition and completion triggers are placeholders and might not work consistently until room maps match Notion structure.
@@ -293,6 +297,8 @@ public class WaveManager : MonoBehaviour
 
     private bool TryGetEnemyPoint(out Vector3 result)
     {
+        if (TryGetSpawnPoint(out result)) return true;
+
         for (int i = 0; i < 20; i++)
         {
             if (TryGetRandomPoint(out result)
@@ -304,6 +310,20 @@ public class WaveManager : MonoBehaviour
 
         result = Vector3.zero;
         return false;
+    }
+
+    // GDD layouts carry their own spawn points, already kept clear of the start zone.
+    private bool TryGetSpawnPoint(out Vector3 result)
+    {
+        result = Vector3.zero;
+        if (spawnPoints == null || spawnPoints.childCount == 0) return false;
+
+        Vector2 scatter = Random.insideUnitCircle * spawnPointScatter;
+        Vector3 point = spawnPoints.GetChild(Random.Range(0, spawnPoints.childCount)).position + new Vector3(scatter.x, 0f, scatter.y);
+        if (!NavMesh.SamplePosition(point, out NavMeshHit spot, maxNavMeshDistance, NavMesh.AllAreas)) return false;
+
+        result = spot.position;
+        return true;
     }
 
     private bool TryGetPickupPoint(out Vector3 result)
