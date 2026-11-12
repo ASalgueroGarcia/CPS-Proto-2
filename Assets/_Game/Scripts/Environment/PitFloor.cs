@@ -1,27 +1,37 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Sits on a room layout that has pits. The layout brings its own floor with the holes cut out,
-/// so the arena's plain floor is hidden while the layout is loaded. Only its look is hidden:
-/// its collider stays, and the pits themselves block walking.
+/// so the room scene's own floor surfaces are hidden while the layout is loaded. Only their look
+/// is hidden: their colliders stay, and the pits themselves block walking.
 /// </summary>
 public class PitFloor : MonoBehaviour
 {
-    [Tooltip("Name of the arena's floor object in the room scene.")]
-    [SerializeField] private string arenaFloorName = "Ground";
+    [Tooltip("Names of the floor objects in the room scene: the walkable plane and the stage surface under it.")]
+    [SerializeField] private string[] sceneFloorNames = { "Ground", "Arena Flat" };
 
-    private Renderer arenaFloor;
+    private readonly List<Renderer> hidden = new List<Renderer>();
 
     private void OnEnable()
     {
-        GameObject floor = GameObject.Find(arenaFloorName);
-        if (floor == null || !floor.TryGetComponent(out arenaFloor)) return;
+        foreach (string floorName in sceneFloorNames)
+        {
+            GameObject floor = GameObject.Find(floorName);
+            if (floor == null || !floor.TryGetComponent(out Renderer surface) || !surface.enabled) continue;
 
-        arenaFloor.enabled = false;
+            surface.enabled = false;
+            hidden.Add(surface);
+        }
     }
 
     private void OnDisable()
     {
-        if (arenaFloor != null) arenaFloor.enabled = true;
+        foreach (Renderer surface in hidden)
+        {
+            if (surface != null) surface.enabled = true;
+        }
+
+        hidden.Clear();
     }
 }
