@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Designer-tunable limits for runtime pitch and speed, and how the music sounds while paused.</summary>
 [CreateAssetMenu(fileName = "AudioTuning", menuName = "Audio/Audio Tuning")]
 public class AudioTuning : ScriptableObject
 {

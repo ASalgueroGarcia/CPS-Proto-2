@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-/// <summary>Numbers that decide which rooms a map node plays. Lives inside <see cref="MapConfig"/>.</summary>
 [Serializable]
 public class MapRoomSettings
 {

@@ -13,7 +13,6 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
-    // Exposed parameters of MasterAudioMixer.
     public const string MusicSpeedParameter = "MusicSpeed";
     public const string MusicPitchShiftParameter = "MusicPitchShift";
     public const string SfxPitchParameter = "SfxPitch";
@@ -71,13 +70,9 @@ public class AudioManager : MonoBehaviour
     private TweenedValue noiseVolume = new TweenedValue(0f);
     private TweenedValue pauseMuffle = new TweenedValue(0f);
 
-    /// <summary>Current music pitch, 1 = as recorded.</summary>
     public float MusicPitch => musicPitch.Current;
-    /// <summary>Current music playback speed, 1 = as recorded.</summary>
     public float MusicSpeed => musicSpeed.Current;
-    /// <summary>Current pitch of every sound effect, 1 = as recorded.</summary>
     public float SfxPitch => sfxPitch.Current;
-    /// <summary>True while the pause noise is on or fading.</summary>
     public bool IsPauseNoiseAudible => noiseSource != null && noiseSource.isPlaying;
 
     private void Awake()
@@ -204,7 +199,6 @@ public class AudioManager : MonoBehaviour
         sfxPitch.MoveTo(Mathf.Clamp(pitch, tuning.minPitch, tuning.maxPitch), seconds);
     }
 
-    /// <summary>Puts music pitch, music speed and SFX pitch back to 1.</summary>
     public void ResetPitchAndSpeed(float seconds = 0f)
     {
         musicPitch.MoveTo(1f, seconds);

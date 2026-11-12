@@ -1,4 +1,3 @@
-/// <summary>One room of a map node: its type and, when the node changes them, its rewards.</summary>
 public readonly struct PlannedRoom
 {
     public readonly RoomType Room;

@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-/// <summary>Numbers the map generator rolls with. Lives inside <see cref="MapConfig"/>.</summary>
 [Serializable]
 public class MapGenerationSettings
 {

@@ -1,6 +1,5 @@
 using NUnit.Framework;
 
-/// <summary>Independent music pitch and speed, and the glide used to change them.</summary>
 public class AudioPitchTests
 {
     [Test]

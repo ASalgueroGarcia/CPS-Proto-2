@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 public static class MapGenerator
 {
-    /// <summary>Rolls a map with the default numbers.</summary>
     public static MapGrid Generate(Random rng) => Generate(rng, new MapGenerationSettings());
 
     /// <summary>Rolls a map. The same seed and settings always give the same map.</summary>

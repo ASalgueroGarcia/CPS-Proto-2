@@ -41,10 +41,8 @@ public class MapProgress
         return reachable.Contains((row, column)) ? MapNodeState.Later : MapNodeState.Closed;
     }
 
-    /// <summary>True for a connection the player has walked.</summary>
     public bool IsTraversed(int row, int from, int to) => OnPath(row, from) && OnPath(row + 1, to);
 
-    /// <summary>True for a connection the player can still take.</summary>
     public bool IsAhead(int row, int from, int to) =>
         (OnPath(row, from) || reachable.Contains((row, from))) && reachable.Contains((row + 1, to));
 

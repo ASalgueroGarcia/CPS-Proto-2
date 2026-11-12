@@ -1,6 +1,5 @@
 using NUnit.Framework;
 
-/// <summary>Node states as the player moves up the map: one node per row, no going back.</summary>
 public class MapProgressTests
 {
     // Row 0: one node. Row 1: columns 0 and 2. Row 2: columns 0, 1 and 3. Then single file to the end.

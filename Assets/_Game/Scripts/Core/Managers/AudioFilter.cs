@@ -1,11 +1,8 @@
 using UnityEngine;
 
-/// <summary>Cutoff maths for the mixer's lowpass and highpass filters.</summary>
 public static class AudioFilter
 {
-    /// <summary>Lowpass cutoff that lets everything through.</summary>
     public const float OpenLowpassHz = 22000f;
-    /// <summary>Highpass cutoff that lets everything through.</summary>
     public const float OpenHighpassHz = 10f;
 
     /// <summary>

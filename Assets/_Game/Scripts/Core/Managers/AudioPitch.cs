@@ -1,6 +1,5 @@
 using UnityEngine;
 
-/// <summary>Math behind changing music speed and pitch independently.</summary>
 public static class AudioPitch
 {
     // Limits of the mixer's Pitch Shifter effect.
