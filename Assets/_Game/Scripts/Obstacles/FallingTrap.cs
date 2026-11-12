@@ -9,6 +9,9 @@ public class FallingTrap : MonoBehaviour
     [SerializeField] private float fallingTimeDelay = 0.8f;
     [SerializeField] private float cooldown = 6.0f;
     [SerializeField] private float damage = 30.0f; // same damage to player and enemys.
+    [Tooltip("How hard a player caught under the impact is shoved away, in a random direction.")]
+    [SerializeField] private float playerPushForce = 10f;
+    [SerializeField] private float playerPushDuration = 0.2f;
 
     [Header("VISUALS")]
     [Tooltip("Height the falling object drops from.")]
@@ -114,6 +117,12 @@ public class FallingTrap : MonoBehaviour
             if (h[k].CompareTag("Player")|| h[k].CompareTag("Enemy"))
             {
                 h[k].GetComponent<Health>()?.TakeDamage(damage);
+
+                if (h[k].TryGetComponent(out Player player))
+                {
+                    Vector2 away = Random.insideUnitCircle.normalized;
+                    player.ApplyKnockback(new Vector3(away.x, 0f, away.y), playerPushForce, playerPushDuration);
+                }
             }
         }
     }
