@@ -28,6 +28,8 @@ public class WaveManager : MonoBehaviour
     [SerializeField] private float enemySafeRadius = 6f;
     [SerializeField] private float pickupClearance = 0.45f;
     [SerializeField] private float pickupLandingHeight = 0.1f;
+    [Tooltip("Coins and health never drop outside this area, so they stay clear of the walls of the 50 x 30 room.")]
+    [SerializeField] private Vector2 pickupAreaLimit = new Vector2(42f, 22f);
 
     [Header("Raycast Settings")]
     [SerializeField] private float raycastHeight = 20f;
@@ -330,7 +332,7 @@ public class WaveManager : MonoBehaviour
     {
         for (int i = 0; i < 20; i++)
         {
-            if (TryGetRandomPoint(out result)
+            if (TryGetRandomPoint(out result, Vector2.Min(spawnAreaSize, pickupAreaLimit))
                 && !Physics.CheckSphere(result + Vector3.up * (pickupClearance + 0.05f), pickupClearance,
                     Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             {
@@ -362,10 +364,12 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    private bool TryGetRandomPoint(out Vector3 result)
+    private bool TryGetRandomPoint(out Vector3 result) => TryGetRandomPoint(out result, spawnAreaSize);
+
+    private bool TryGetRandomPoint(out Vector3 result, Vector2 area)
     {
-        float randomX = Random.Range(-spawnAreaSize.x / 2f, spawnAreaSize.x / 2f);
-        float randomY = Random.Range(-spawnAreaSize.y / 2f, spawnAreaSize.y / 2f);
+        float randomX = Random.Range(-area.x / 2f, area.x / 2f);
+        float randomY = Random.Range(-area.y / 2f, area.y / 2f);
         Vector3 origin = new Vector3(transform.position.x + randomX, transform.position.y + raycastHeight, transform.position.z + randomY);
 
         if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastHeight * 2f))
