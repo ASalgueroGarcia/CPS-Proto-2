@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0946c10aafbb4982bf14c17930b84269, type: 3}
+  m_Name: MapConfig
+  m_EditorClassIdentifier: Spectracle.Map::MapConfig
+  generation:
+    pathCount: 4
+    shopFirstRow: 2
+    shopLastRow: 5
+    combatWeight: 40
+    moreHealthWeight: 20
+    moreButtonsWeight: 20
+    treasureWeight: 20
+  rooms:
+    rowTiers: 0000000000000000000000000100000001000000020000000200000002000000
+    minRooms: 4
+    maxRooms: 5
+    roomsPerDifficultyStep: 2
+    restRoomChance: 0.25
+    shopRoomChance: 0.15
+    restRoomHeal: 40
+    maxShopsPerScene: 2
+    moreHealthDropChance: 0.45
+    moreButtonsMultiplier: 1.5
+    treasureHealChance: 0.5
+    treasureHeal: 50
+    treasureButtons: 0a0000000c0000000e000000

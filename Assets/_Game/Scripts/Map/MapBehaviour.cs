@@ -5,18 +5,9 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using Random = UnityEngine.Random;
 
 public class MapBehaviour : MonoBehaviour
 {
-    private enum NodeState
-    {
-        Current,
-        Available,
-        Later,
-        Closed
-    }
-
     [Header("Layout")]
     [SerializeField] private RectTransform nodeArea;
     [SerializeField] private RectTransform lineHolder;
@@ -25,17 +16,9 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float nodeSize = 64f;
     [SerializeField] private Vector2 areaPadding = new Vector2(0.15f, 0.18f);
 
-    [Header("Rooms")]
-    [SerializeField] private RoomType[] rowTiers;
-    [Range(0f, 1f)] [SerializeField] private float restRoomChance = 0.25f;
-    [Range(0f, 1f)] [SerializeField] private float shopRoomChance = 0.15f;
-    [SerializeField] private float restRoomHeal = 40f;
-
-    [Header("Node Rewards")]
-    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
-    [SerializeField] private float moreButtonsMultiplier = 1.5f;
-    [SerializeField] private float treasureHeal = 50f;
-    [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
+    [Header("Tuning")]
+    [Tooltip("Generation and room numbers. Edit the asset in Data/Map.")]
+    [SerializeField] private MapConfig config;
 
     [Header("Colors")]
     [SerializeField] private Color gold = new Color(1f, 0.78f, 0.22f);
@@ -45,18 +28,18 @@ public class MapBehaviour : MonoBehaviour
     private MapGrid map;
     private readonly Node[,] nodes = new Node[MapGrid.Rows, MapGrid.Columns];
     private readonly List<(Image image, int row, int from, int to)> lines = new List<(Image, int, int, int)>();
-    private readonly List<int> path = new List<int>();
+    private MapProgress progress;
 
     private TMP_Text header;
     private TMP_Text hud;
     private TMP_Text inspect;
 
     private Node entered;
-    private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
+    private readonly System.Random rng = new System.Random();
+    private MapRoomPlanner planner;
+    private List<PlannedRoom> rooms = new List<PlannedRoom>();
     private int roomIndex;
     private bool roomCompleted;
-    private const int MaxShopsPerScene = 2;
-    private int shopRoomCount;
 
     public bool HasNextRoom => entered != null && entered.Type != NodeTypeEnum.FinalFight
                                && roomCompleted && roomIndex + 1 < rooms.Count;
@@ -99,7 +82,10 @@ public class MapBehaviour : MonoBehaviour
         if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
         Clear();
 
-        map = MapGenerator.Generate(new System.Random(Random.Range(int.MinValue, int.MaxValue)));
+        if (config == null) config = ScriptableObject.CreateInstance<MapConfig>();
+        map = MapGenerator.Generate(rng, config.generation);
+        planner = new MapRoomPlanner(config.rooms, rng);
+        progress = new MapProgress(map);
         BuildHud();
         PlaceLineHolder();
 
@@ -139,9 +125,7 @@ public class MapBehaviour : MonoBehaviour
         }
         lines.Clear();
 
-        path.Clear();
         entered = null;
-        shopRoomCount = 0;
     }
 
     private void PlaceLineHolder()
@@ -183,32 +167,6 @@ public class MapBehaviour : MonoBehaviour
 
     private void Refresh()
     {
-        HashSet<(int, int)> available = new HashSet<(int, int)>();
-        if (path.Count == 0)
-        {
-            available.Add((0, 0));
-        }
-        else
-        {
-            int row = path.Count - 1;
-            foreach (int child in map.Children(row, path[row]))
-            {
-                available.Add((row + 1, child));
-            }
-        }
-
-        HashSet<(int, int)> reachable = new HashSet<(int, int)>(available);
-        for (int row = path.Count; row < MapGrid.LastRow; row++)
-        {
-            foreach (var (from, to) in map.EdgesFrom(row))
-            {
-                if (reachable.Contains((row, from)))
-                {
-                    reachable.Add((row + 1, to));
-                }
-            }
-        }
-
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
@@ -217,13 +175,9 @@ public class MapBehaviour : MonoBehaviour
                 Node node = nodes[row, column];
                 if (node == null) continue;
 
-                NodeState state = OnPath(row, column) ? (row == path.Count - 1 ? NodeState.Current : NodeState.Closed)
-                    : available.Contains((row, column)) ? NodeState.Available
-                    : reachable.Contains((row, column)) ? NodeState.Later
-                    : NodeState.Closed;
-
+                MapNodeState state = progress.StateOf(row, column);
                 ApplyState(node, state);
-                if (state == NodeState.Available && firstAvailable == null)
+                if (state == MapNodeState.Available && firstAvailable == null)
                 {
                     firstAvailable = node;
                 }
@@ -232,9 +186,7 @@ public class MapBehaviour : MonoBehaviour
 
         foreach (var (image, row, from, to) in lines)
         {
-            bool traversed = OnPath(row, from) && OnPath(row + 1, to);
-            bool ahead = (OnPath(row, from) || reachable.Contains((row, from))) && reachable.Contains((row + 1, to));
-            image.color = traversed ? gold : ahead ? grey : dimmed;
+            image.color = progress.IsTraversed(row, from, to) ? gold : progress.IsAhead(row, from, to) ? grey : dimmed;
         }
 
         RefreshHud();
@@ -245,24 +197,19 @@ public class MapBehaviour : MonoBehaviour
         }
     }
 
-    private bool OnPath(int row, int column)
-    {
-        return row < path.Count && path[row] == column;
-    }
-
-    private void ApplyState(Node node, NodeState state)
+    private void ApplyState(Node node, MapNodeState state)
     {
         Color roomColor = Node.GetRoomColor(node.Type);
 
         switch (state)
         {
-            case NodeState.Current:
+            case MapNodeState.Current:
                 node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
                 break;
-            case NodeState.Available:
+            case MapNodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
                 break;
-            case NodeState.Later:
+            case MapNodeState.Later:
                 Color laterFill = new Color(roomColor.r * 0.45f, roomColor.g * 0.45f, roomColor.b * 0.45f, 0.95f);
                 node.SetLook(laterFill, roomColor, roomColor, showRing: true, interactable: false, current: false);
                 break;
@@ -279,17 +226,19 @@ public class MapBehaviour : MonoBehaviour
         if (entered != null) return;
 
         entered = node;
-        path.Add(node.Column);
-        PlanRooms(node);
+        progress.Enter(node.Column);
+        rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1);
         roomIndex = 0;
         LoadRoom();
     }
 
     private void LoadRoom()
     {
-        var (room, setup) = rooms[roomIndex];
-        roomCompleted = room == RoomType.Shop || room == RoomType.Treasure;
-        SceneController.Instance.LoadLevel(room, setup, entered.Row, roomIndex == 0);
+        PlannedRoom room = rooms[roomIndex];
+        roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
+        Action<WaveManager> setup = null;
+        if (room.Rewards.HasValue) setup = room.Rewards.Value.Apply;
+        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0);
     }
 
     public void LeaveRoom()
@@ -310,7 +259,7 @@ public class MapBehaviour : MonoBehaviour
                 return;
             }
 
-            path.RemoveAt(path.Count - 1);
+            progress.StepBack();
             SceneController.Instance.UnloadLevel();
             Refresh();
             return;
@@ -325,72 +274,6 @@ public class MapBehaviour : MonoBehaviour
         entered = null;
         SceneController.Instance.UnloadLevel();
         Refresh();
-    }
-
-    private void PlanRooms(Node node)
-    {
-        rooms.Clear();
-        switch (node.Type)
-        {
-            case NodeTypeEnum.Shop:
-                shopRoomCount++;
-                rooms.Add((RoomType.Shop, null));
-                return;
-            case NodeTypeEnum.Treasure:
-                int buttons = treasureButtons[Mathf.Clamp(SceneIndex(), 0, treasureButtons.Length - 1)];
-                if (Random.value < 0.5f)
-                {
-                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: treasureHeal)));
-                }
-                else
-                {
-                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: buttons, healthDropChance: 0f)));
-                }
-                return;
-            case NodeTypeEnum.FinalFight:
-                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
-                return;
-        }
-
-        Action<WaveManager> rewards = node.Type switch
-        {
-            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
-            _ => null
-        };
-
-        int count = Random.value < 0.5f ? 4 : 5;
-        RoomType tier = BaseTier(node.Row);
-        for (int i = 0; i < count; i++)
-        {
-            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
-        }
-
-        if (node.Row == 0) return;
-
-        float roll = Random.value;
-        int middle = Random.Range(1, count - 1);
-        if (roll < restRoomChance)
-        {
-            rooms[middle] = (RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: restRoomHeal));
-        }
-        else if (shopRoomCount < MaxShopsPerScene && roll < restRoomChance + shopRoomChance)
-        {
-            shopRoomCount++;
-            rooms[middle] = (RoomType.Shop, null);
-        }
-    }
-
-    private RoomType BaseTier(int row)
-    {
-        if (rowTiers != null && row < rowTiers.Length) return rowTiers[row];
-        if (row <= 2) return RoomType.Entrance;
-        return row <= 4 ? RoomType.Medium : RoomType.MediumHard;
-    }
-
-    private static RoomType StepUp(RoomType tier, int steps)
-    {
-        return (RoomType)Mathf.Min((int)tier + steps, (int)RoomType.Hard);
     }
 
     private static int SceneIndex()
