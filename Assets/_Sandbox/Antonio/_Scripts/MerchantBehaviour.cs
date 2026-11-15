@@ -33,6 +33,8 @@ public class MerchantBehaviour : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
+        //player.InteractibleInRange = false;
+
         dialoguePrompt.SetActive(false);
     }
 
