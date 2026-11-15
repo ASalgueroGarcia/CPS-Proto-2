@@ -12,7 +12,7 @@ public class ElevatorBehaviour : MonoBehaviour
     [SerializeField] private float speed = 2f;
 
     [Header("Player Settings")]
-    [SerializeField] private PlayerFSM player;
+    [SerializeField] private Player player;
 
     private int _currentIndex = 0;
     private bool _isBusy;
