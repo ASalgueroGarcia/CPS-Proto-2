@@ -34,6 +34,21 @@ public class SoundManager : MonoBehaviour
         }
     }
 
+    // Volumes come from settings.json (Settings Menu sliders). Start, not Awake: the mixer
+    // ignores SetFloat before then.
+    private void Start()
+    {
+        if (Instance != this || Services.Settings == null) return;
+
+        Services.Settings.AudioChanged += ApplyVolumes;
+        ApplyVolumes(Services.Settings.Data);
+    }
+
+    private void ApplyVolumes(SettingsData settings)
+    {
+        AudioVolume.Apply(mixer, settings);
+    }
+
     /// <summary>
     /// Sets the track that plays in the background,
     /// can be used for ambiance or background music.
@@ -98,5 +113,9 @@ public class SoundManager : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (Instance == this && Services.Settings != null)
+        {
+            Services.Settings.AudioChanged -= ApplyVolumes;
+        }
     }
 }

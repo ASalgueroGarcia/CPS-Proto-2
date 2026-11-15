@@ -1,9 +1,9 @@
 public enum NodeTypeEnum
 {
-    Placeholder,
     Combat,
-    Merchant,
-    Boss
-    //MiniBoss,
-    //Treasure
+    MoreHealth,
+    MoreButtons,
+    Shop,
+    Treasure,
+    FinalFight
 }

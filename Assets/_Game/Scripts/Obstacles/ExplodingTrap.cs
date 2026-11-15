@@ -56,7 +56,7 @@ public class ExplodingTrap : MonoBehaviour
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);
             ef.Play();
-            SoundManager.Instance.PlaySound(explosionClip);
+            if (SoundManager.Instance != null && explosionClip != null) SoundManager.Instance.PlaySound(explosionClip);
             Destroy(ef.gameObject,expTime);
         }
 
@@ -68,7 +68,7 @@ public class ExplodingTrap : MonoBehaviour
             if (hits[i].CompareTag("Player"))
             {
                 hits[i].GetComponent<Health>()?.TakeDamage(damageToPlayer);
-                var playerController = hits[i].GetComponent<PlayerFSM>();
+                var playerController = hits[i].GetComponent<Player>();
                 if (playerController != null)
                 {
                     playerController.ApplyKnockback(dir.normalized, knockbackEffect, 0.2f);
