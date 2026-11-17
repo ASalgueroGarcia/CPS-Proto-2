@@ -26,17 +26,29 @@ public class ActPoster : MonoBehaviour
             Debug.LogError("[ActPoster] No ActSelectScreen found - the poster can't open.", this);
         }
 
+        InputPromptLabel.AddTo(interactPrompt);
         SetPrompt(false);
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")) _playerNear = true;
+        if (other.CompareTag("Player")) SetPlayerNear(true);
     }
 
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Player")) _playerNear = false;
+        if (other.CompareTag("Player")) SetPlayerNear(false);
+    }
+
+    private void OnDisable()
+    {
+        if (_playerNear) SetPlayerNear(false);
+    }
+
+    private void SetPlayerNear(bool near)
+    {
+        _playerNear = near;
+        Player.InteractableInRange = near;
     }
 
     private void Update()
