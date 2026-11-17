@@ -126,6 +126,25 @@ public class PlayerStatsManager : MonoBehaviour
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
     }
 
+    public bool CanBuy(int itemValue)
+    {
+        if(currentCoins >= itemValue)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool tryToBuy(int itemValue)
+    {
+        if(currentCoins < itemValue)
+        {
+            return false;
+        }
+
+        currentCoins -= itemValue;
+        return true;
+    }
     public void Heal(float amount)
     {
         if (healthPlayer != null)
