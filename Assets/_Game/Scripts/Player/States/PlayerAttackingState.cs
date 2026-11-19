@@ -29,5 +29,9 @@ public class PlayerAttackingState : PlayerStateBase
     }
 
     // Ensure the hitbox is killed on any exit path (combo end, heavy attack interrupt, etc.)
-    public override void Exit() => Modules.Weapon.OnAnimationEvent("DisableHitbox");
+    public override void Exit()
+    {
+        Modules.Weapon.OnAnimationEvent("DisableHitbox");
+        Modules.Locomotion?.StopLunge();
+    }
 }

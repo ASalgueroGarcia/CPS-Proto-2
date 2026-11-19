@@ -351,6 +351,12 @@ public class Player : MonoBehaviour
 
     public float gravity => config != null ? config.gravity : 0f;
 
+    public float acceleration => config != null ? config.acceleration : 40f;
+
+    public float deceleration => config != null ? config.deceleration : 80f;
+
+    public float lungeSpeed => config != null ? config.lungeSpeed : 8f;
+
     public float runAnimationSpeed => config != null ? config.runAnimationSpeed : 1.5f;
 
     public float dashDuration => config != null ? config.dashDuration : 0.2f;

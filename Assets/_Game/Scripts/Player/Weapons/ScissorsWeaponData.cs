@@ -37,6 +37,11 @@ public class ScissorsWeaponData : ScriptableObject
     [Tooltip("Animator.speed multiplier used while performing the special attack.")]
     public float specialAttackAnimationSpeed = 1.2f;
 
+    [Header("Attack Push")]
+    [Tooltip("How far the player is pushed forward (m) while the attack animation plays. 0 disables the push.")]
+    [Min(0f)]
+    public float lungeDistance = 0.45f;
+
     [Header("Special Attack")]
     [Tooltip("Cooldown (seconds) of the special attack once used.")]
     public float specialCooldown = 10f;

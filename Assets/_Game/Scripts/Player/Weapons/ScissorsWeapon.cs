@@ -73,6 +73,9 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
     private const string HeavyAttackState = "HeavyAttack";
 
+    // The heavy attack spins in place, so it travels less than a light attack.
+    private const float SpecialLungeFactor = 0.4f;
+
 #endregion
 #region Unity Lifecycle
 
@@ -158,10 +161,24 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             Debug.Log($"[COMBO] Playing {result.AnimState} (Step {step.Index})");
         }
 
+        // The attack pushes the player forward a little, along the way they are facing.
+        StartLunge();
+
         _hitEnemies.Clear();
         _hitBreakables.Clear();
 
         SetPlayerColor(result.Color);
+    }
+
+    /// <summary>
+    /// Pushes the player forward along the current facing. The distance is the spec, so the
+    /// push is not tied to the animation: it finishes on its own.
+    /// </summary>
+    private void StartLunge()
+    {
+        if (_player == null || _player.Locomotion == null || _data == null) return;
+
+        _player.Locomotion.StartLunge(transform.root.forward, _data.lungeDistance);
     }
 
     public void OnHeavyAttackInput()
@@ -177,6 +194,12 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             anim.ResetTrigger(HeavyAttackHash);
             anim.SetTrigger(HeavyAttackHash);
             anim.CrossFadeInFixedTime(HeavyAttackState, 0.05f);
+        }
+
+        // The heavy attack spins in place, so it nudges the player forward, not a full lunge.
+        if (_player != null && _player.Locomotion != null && _data != null)
+        {
+            _player.Locomotion.StartLunge(transform.root.forward, _data.lungeDistance * SpecialLungeFactor);
         }
     }
 
@@ -237,6 +260,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _wasHit = true;
         _rig?.DisableAll();
         ResetCombo();
+        _player?.Locomotion?.StopLunge();
     }
 
     public bool ShouldResetCombo()

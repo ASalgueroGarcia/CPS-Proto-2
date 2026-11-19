@@ -19,5 +19,9 @@ public class PlayerSpecialAttackingState : PlayerStateBase
     }
 
     // Defense in depth: kill any residual hitbox on exit.
-    public override void Exit() => Modules.Weapon.OnAnimationEvent("DisableHitbox");
+    public override void Exit()
+    {
+        Modules.Weapon.OnAnimationEvent("DisableHitbox");
+        Modules.Locomotion?.StopLunge();
+    }
 }
