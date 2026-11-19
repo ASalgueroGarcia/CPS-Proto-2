@@ -25,10 +25,10 @@ public class ScissorsWeaponData : ScriptableObject
     public float knockBackForce = 7f;
 
     [Header("Combo")]
-    [Tooltip("Seconds without advancing the combo before it resets automatically.")]
+    [Tooltip("Grace period, in seconds. If the player does not chain the next attack within this time, the combo is lost and the next hit starts again at step 1. Measured from the last chained step, so keeping the rhythm keeps the combo alive. This is the only thing that ends a combo on its own.")]
     public float comboResetTime = 1.0f;
 
-    [Tooltip("Minimum seconds between attacks. Must be <= the combo window duration (~0.2s real time per clip); larger values make combos impossible to chain.")]
+    [Tooltip("Minimum seconds between attacks. The attack animation lasts ~0.2s real time, so a much larger value makes the attacks feel unresponsive.")]
     public float attackCooldown = 0.15f;
 
     [Tooltip("Animator.speed multiplier used while performing light/combo attacks.")]

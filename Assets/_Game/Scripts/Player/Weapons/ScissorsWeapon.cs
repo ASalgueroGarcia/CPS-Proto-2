@@ -62,7 +62,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private List<Health> _hitEnemies = new List<Health>();
     private List<IBreakable> _hitBreakables = new List<IBreakable>();
     private float _specialTimer = 0f;
-    private float _lastHeavyTime = 0f;
     private bool _wasHit = false;
     private float _currentDamage;
     private float _currentCritChance;
@@ -86,7 +85,10 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _player = player;
         if (BodyRenderer != null) _originalColor = BodyRenderer.material.color;
 
-        _combo = new WeaponComboSystem(_data.comboResetTime, _data.attackCooldown, _defaultComboSteps.Length);
+        _combo = new WeaponComboSystem(
+            _data.comboResetTime,
+            _data.attackCooldown,
+            _defaultComboSteps.Length);
         _rig = new WeaponHitboxRig(
             new[] { generalAttackHitbox, hitboxAttack12, hitboxAttack3 },
             HandleHit);
@@ -163,7 +165,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     public void OnHeavyAttackInput()
     {
         _specialTimer = _data.specialCooldown;
-        _lastHeavyTime = Time.time;
 
         Renderer br = BodyRenderer;
         if (br != null) br.material.color = Color.cyan;
@@ -263,12 +264,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     {
         switch (evt)
         {
-            case "OpenComboWindow":
-                if (_combo != null) _combo.OpenWindow();
-                break;
-            case "CloseComboWindow":
-                if (_combo != null) _combo.CloseWindow();
-                break;
             case "EnableHitbox":
                 EnableHitboxForCombo();
                 break;
@@ -368,10 +363,13 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         set { if (_data != null) _data.baseCritChance = value; }
     }
 
-    public bool IsComboWindowOpen => _combo != null && _combo.IsWindowOpen;
-    public float LastAttackTime => Mathf.Max(
-        _combo != null ? _combo.LastAttackTime : 0f,
-        _lastHeavyTime);
+    /// <summary>
+    /// Timestamp of the last light attack. The heavy attack is deliberately excluded: it has
+    /// its own cooldown, and folding it in here made combo bookkeeping read a stale timestamp
+    /// that reset the chain mid-combo.
+    /// </summary>
+    public float LastAttackTime => _combo != null ? _combo.LastAttackTime : 0f;
+
     public int CurrentComboStep => _combo != null ? _combo.CurrentStep : 0;
     public bool HasActiveHitbox => _rig != null && _rig.HasActiveHitbox;
     public bool CanAttack => _combo != null && _combo.CanAttack;

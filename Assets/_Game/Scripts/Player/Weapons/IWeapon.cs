@@ -13,7 +13,6 @@ public interface IWeapon
     float AttackAnimationSpeed { get; }
     float SpecialAnimationSpeed { get; }
 
-    bool IsComboWindowOpen { get; }
     float LastAttackTime { get; }
     int CurrentComboStep { get; }
     bool HasActiveHitbox { get; }

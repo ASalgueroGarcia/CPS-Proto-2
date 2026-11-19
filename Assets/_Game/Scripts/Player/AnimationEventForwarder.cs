@@ -14,7 +14,5 @@ public class AnimationEventForwarder : MonoBehaviour
     public void EnableHitbox3() => player?.OnAnimationEvent("EnableHitbox3");
     public void DisableHitbox() => player?.OnAnimationEvent("DisableHitbox");
     public void ExecuteSpecialAttackDamage() => player?.OnAnimationEvent("ExecuteHeavyDamage");
-    public void OpenComboWindow() => player?.OnAnimationEvent("OpenComboWindow");
-    public void CloseComboWindow() => player?.OnAnimationEvent("CloseComboWindow");
     public void ReturnToIdle() => player?.OnAnimationEvent("ReturnToIdle");
 }
