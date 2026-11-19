@@ -12,6 +12,21 @@ public class PlayerConfig : ScriptableObject
     [Tooltip("Base horizontal movement speed (m/s).")]
     public float speed = 14f;
 
+    [Tooltip("How fast the player reaches the movement speed (m/s^2). Lower feels heavier.")]
+    [Min(0.1f)]
+    public float acceleration = 40f;
+
+    [Tooltip("How fast the player slows down when the input is released (m/s^2). Usually higher than the acceleration, so the player stops quicker than it starts.")]
+    [Min(0.1f)]
+    public float deceleration = 80f;
+
+    [Tooltip("Speed the attack push travels at (m/s). It only decides how long the push lasts - the distance is what matters.")]
+    [Min(0.1f)]
+    public float lungeSpeed = 8f;
+
+    [Tooltip("Rotation speed applied when turning the player (degrees/s).")]
+    public float rotationSpeed = 10f;
+
     [Tooltip("Speed applied during a dash (m/s).")]
     public float dashSpeed = 30f;
 
