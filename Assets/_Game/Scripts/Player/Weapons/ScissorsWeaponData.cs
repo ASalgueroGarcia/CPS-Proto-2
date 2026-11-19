@@ -21,8 +21,8 @@ public class ScissorsWeaponData : ScriptableObject
     [Tooltip("Radius of the special attack AOE sphere.")]
     public float specialRange = 5.0f;
 
-    [Tooltip("Horizontal knockback applied to enemies hit by a light attack.")]
-    public float knockBackForce = 7f;
+    [Tooltip("Knockback applied to enemies hit by a light attack. 0 means enemies are not pushed; a shop item can raise it later. The per-step value lives in the combo steps array.")]
+    public float knockBackForce = 0f;
 
     [Header("Combo")]
     [Tooltip("Grace period, in seconds. If the player does not chain the next attack within this time, the combo is lost and the next hit starts again at step 1. Measured from the last chained step, so keeping the rhythm keeps the combo alive. This is the only thing that ends a combo on its own.")]

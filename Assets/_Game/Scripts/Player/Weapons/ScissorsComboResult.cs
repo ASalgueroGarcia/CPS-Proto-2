@@ -13,6 +13,7 @@ public struct ScissorsComboResult
     [Tooltip("Bonus added to baseCritChance (e.g. 0.25 = +25% crit chance).")]
     public float CritBonus;
 
+    [Tooltip("Knockback pushed into the enemy on this step. 0 means the enemy is not pushed; a shop item can raise it later.")]
     public float Knockback;
     public Color Color;
     public string AnimState;

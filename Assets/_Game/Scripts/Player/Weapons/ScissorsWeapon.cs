@@ -33,23 +33,25 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
 
     // Defaults used when the Inspector _comboSteps array is empty.
     // Matches the original GetScissorsStepResult switch behavior.
+    // Knockback is 0 on the light attacks: enemies are not pushed by default, an item
+    // grants that. The heavy attack keeps its own knockback (specialKnockbackForce).
     private static readonly ScissorsComboResult[] _defaultComboSteps = new[]
     {
         new ScissorsComboResult
         {
-            DamageMultiplier = 1f, CritBonus = 0f, Knockback = 3f,
+            DamageMultiplier = 1f, CritBonus = 0f, Knockback = 0f,
             Color = Color.white, AnimState = "Attack_01",
             HitboxIndex = Hitbox12Index, UseRandomLightClip = true, AudioClip = null,
         },
         new ScissorsComboResult
         {
-            DamageMultiplier = 1.2f, CritBonus = 0f, Knockback = 5f,
+            DamageMultiplier = 1.2f, CritBonus = 0f, Knockback = 0f,
             Color = Color.yellow, AnimState = "Attack_02",
             HitboxIndex = Hitbox12Index, UseRandomLightClip = true, AudioClip = null,
         },
         new ScissorsComboResult
         {
-            DamageMultiplier = 1.5f, CritBonus = 0.25f, Knockback = 8f,
+            DamageMultiplier = 1.5f, CritBonus = 0.25f, Knockback = 0f,
             Color = Color.red, AnimState = "Attack_03",
             HitboxIndex = Hitbox3Index, UseRandomLightClip = false, AudioClip = null,
         },
