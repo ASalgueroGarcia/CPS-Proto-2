@@ -226,6 +226,7 @@ public class Player : MonoBehaviour
     private void HandleHealthDamage(float dmg)
     {
         OnDamageReceived?.Invoke(dmg);
+        playerHealth.GrantInvulnerability(0.5f);
     }
 
     // Named handler so we can unsubscribe symmetrically in OnDisable.

@@ -3,6 +3,12 @@ using UnityEngine;
 
 public class ExplodingTrap : MonoBehaviour
 {
+    /// <summary>
+    /// How much the blast pushes upwards, relative to the horizontal push. Kept small so the
+    /// explosion lifts the player a little instead of throwing them into the sky.
+    /// </summary>
+    private const float LiftFactor = 0.25f;
+
     [Header("DAMAGE SETTINGS")]
     [SerializeField] private float damageToPlayer = 20f;
     [SerializeField] private float damageToEnemy = 20f;
@@ -61,26 +67,37 @@ public class ExplodingTrap : MonoBehaviour
         }
 
         Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
+        bool playerHit = false;
         for (int i = 0; i < hits.Length; i++)
         {
-            Vector3 dir = (hits[i].transform.position - transform.position).normalized + Vector3.up * 1.5f;
-
+            // The player has several colliders (body, model, hitboxes), so the same explosion
+            // would knock it back once per collider. Only the first one counts.
             if (hits[i].CompareTag("Player"))
             {
+                if (playerHit) continue;
+                playerHit = true;
+
+                Vector3 dir = (hits[i].transform.position - transform.position).normalized;
+                // A little lift, so the blast reads as an explosion and not just a shove.
+                Vector3 pushDir = (dir + Vector3.up * LiftFactor).normalized;
+
                 hits[i].GetComponent<Health>()?.TakeDamage(damageToPlayer);
                 var playerController = hits[i].GetComponent<Player>();
                 if (playerController != null)
                 {
-                    playerController.ApplyKnockback(dir.normalized, knockbackEffect, 0.2f);
+                    playerController.ApplyKnockback(pushDir, knockbackEffect, 0.2f);
                 }
             }
             else if (hits[i].CompareTag("Enemy"))
             {
+                Vector3 dir = (hits[i].transform.position - transform.position).normalized;
+                Vector3 pushDir = (dir + Vector3.up * LiftFactor).normalized;
+
                 hits[i].GetComponent<Health>()?.TakeDamage(damageToEnemy);
                 Rigidbody rb = hits[i].GetComponent<Rigidbody>();
                 if (rb != null)
                 {
-                    rb.AddForce(dir.normalized * knockbackEffect, ForceMode.Impulse);
+                    rb.AddForce(pushDir * knockbackEffect, ForceMode.Impulse);
                 }
             }
         }

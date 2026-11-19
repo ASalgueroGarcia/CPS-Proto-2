@@ -163,7 +163,7 @@ public class FlowerAttack : MonoBehaviour, IEnemyAttackStrategy, IEnemyAttackSta
         burrowOrigin = owner.transform.position;
         owner.Agent.ResetPath();
         burrowDestination = FindResurfacePoint(owner, lockedPlayerPosition);
-        health.isInvulnerable = true;
+        health.SetStateInvulnerability(true);
         visualRoot.gameObject.SetActive(false);
 
         if (agent != null)
@@ -226,7 +226,7 @@ public class FlowerAttack : MonoBehaviour, IEnemyAttackStrategy, IEnemyAttackSta
         }
 
         if (health != null)
-            health.isInvulnerable = false;
+            health.SetStateInvulnerability(false);
 
         if (bodyCollider != null)
             bodyCollider.enabled = true;
