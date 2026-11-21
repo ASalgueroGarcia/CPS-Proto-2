@@ -62,7 +62,10 @@ MonoBehaviour:
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
-  isInvulnerable: 0
+  OnKnockbackReceived:
+    m_PersistentCalls:
+      m_Calls: []
+  useInternalKnockback: 1
   targetRenderer: {fileID: 6064214883597259929}
   checkFall: 1
   fallThreshold: -5

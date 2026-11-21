@@ -73,6 +73,8 @@ public class SoundManager : MonoBehaviour
     /// <param name="clip">Sound effect which will be played</param>
     public void PlaySound(AudioClip clip)
     {
+        if (clip == null) return;
+        sfxSource.pitch = 1f;
         sfxSource.PlayOneShot(clip);
     }
 
