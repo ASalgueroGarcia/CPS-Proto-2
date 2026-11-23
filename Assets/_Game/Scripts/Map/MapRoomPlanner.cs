@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Decides which rooms a map node plays. Plain C#: give it a seeded Random and it is repeatable.
-/// Keep one planner per map so the shop limit counts across its nodes.
+/// Keep one planner per map so the shop-room limit counts across its fight nodes.
 /// </summary>
 public class MapRoomPlanner
 {
@@ -23,36 +23,43 @@ public class MapRoomPlanner
     public List<PlannedRoom> Plan(NodeTypeEnum type, int row, int sceneIndex, bool lastScene)
     {
         var rooms = new List<PlannedRoom>();
+        int scene = sceneIndex + 1;
         switch (type)
         {
             case NodeTypeEnum.Shop:
-                shopVisits++;
+                // GDD: the Shop node is 1 per map; maxShopsPerScene caps shop rooms inside fight nodes.
                 rooms.Add(new PlannedRoom(RoomType.Shop));
                 return rooms;
             case NodeTypeEnum.Treasure:
                 rooms.Add(new PlannedRoom(RoomType.Treasure, TreasureRewards(sceneIndex)));
                 return rooms;
             case NodeTypeEnum.FinalFight:
-                rooms.Add(new PlannedRoom(lastScene ? RoomType.Boss : RoomType.MiniBoss));
+                rooms.Add(new PlannedRoom(
+                    lastScene ? RoomType.Boss : RoomType.MiniBoss,
+                    encounter: new EncounterContext(scene, EncounterNodeKind.FinalFight, false, 0)));
                 return rooms;
         }
 
-        RoomRewards? rewards = type switch
+        // The room's place on the map drives its enemies and rewards (WaveManager's EncounterTable).
+        EncounterNodeKind kind = type switch
         {
-            NodeTypeEnum.MoreHealth => new RoomRewards(healthDropChance: settings.moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => new RoomRewards(currencyMultiplier: settings.moreButtonsMultiplier),
-            _ => (RoomRewards?)null
+            NodeTypeEnum.MoreHealth => EncounterNodeKind.MoreHealth,
+            NodeTypeEnum.MoreButtons => EncounterNodeKind.MoreButtons,
+            _ => EncounterNodeKind.Fight
         };
+        bool firstSpot = row == 0;
 
         int count = rng.Next(settings.minRooms, settings.maxRooms + 1);
         RoomType tier = BaseTier(row);
         for (int i = 0; i < count; i++)
         {
-            rooms.Add(new PlannedRoom(row == 0 ? tier : StepUp(tier, i / settings.roomsPerDifficultyStep), rewards));
+            rooms.Add(new PlannedRoom(
+                firstSpot ? tier : StepUp(tier, i / settings.roomsPerDifficultyStep),
+                encounter: new EncounterContext(scene, kind, firstSpot, i)));
         }
 
         // The first node never swaps a fight for a special room, and a swap needs a room that is neither first nor last.
-        if (row == 0 || count < 3) return rooms;
+        if (firstSpot || count < 3) return rooms;
 
         double roll = rng.NextDouble();
         int middle = rng.Next(1, count - 1);

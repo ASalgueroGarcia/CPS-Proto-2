@@ -34,10 +34,14 @@ public class MapProgress
 
     public bool OnPath(int row, int column) => row < path.Count && path[row] == column;
 
-    public MapNodeState StateOf(int row, int column)
+    /// <summary>
+    /// State of a node. When holdingCurrent is true (current node left unfinished), the next row
+    /// shows as Later rather than Available so the player must resume the current node first.
+    /// </summary>
+    public MapNodeState StateOf(int row, int column, bool holdingCurrent = false)
     {
         if (OnPath(row, column)) return row == path.Count - 1 ? MapNodeState.Current : MapNodeState.Closed;
-        if (available.Contains((row, column))) return MapNodeState.Available;
+        if (!holdingCurrent && available.Contains((row, column))) return MapNodeState.Available;
         return reachable.Contains((row, column)) ? MapNodeState.Later : MapNodeState.Closed;
     }
 

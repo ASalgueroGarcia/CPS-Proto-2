@@ -67,16 +67,18 @@ public class MapRoomPlannerTests
     }
 
     [Test]
-    public void Shop_visits_stay_under_the_cap_across_a_map()
+    public void Shop_rooms_inside_fight_nodes_stay_under_the_cap_and_shop_node_does_not_count()
     {
         var alwaysShop = new MapRoomSettings { restRoomChance = 0f, shopRoomChance = 1f };
         MapRoomPlanner planner = Planner(3, alwaysShop);
 
-        int shops = planner.Plan(NodeTypeEnum.Shop, 3, 0, false).Count(r => r.Room == RoomType.Shop);
-        for (int row = 1; row < 7; row++)
-            shops += planner.Plan(NodeTypeEnum.Combat, row, 0, false).Count(r => r.Room == RoomType.Shop);
+        Assert.AreEqual(1, planner.Plan(NodeTypeEnum.Shop, 3, 0, false).Count(r => r.Room == RoomType.Shop));
 
-        Assert.AreEqual(alwaysShop.maxShopsPerScene, shops);
+        int fightNodeShops = 0;
+        for (int row = 1; row < 7; row++)
+            fightNodeShops += planner.Plan(NodeTypeEnum.Combat, row, 0, false).Count(r => r.Room == RoomType.Shop);
+
+        Assert.AreEqual(alwaysShop.maxShopsPerScene, fightNodeShops);
     }
 
     [Test]
@@ -91,16 +93,38 @@ public class MapRoomPlannerTests
     }
 
     [Test]
-    public void More_health_and_more_buttons_change_the_fight_rewards()
+    public void Fight_and_final_fight_rooms_carry_encounter_context_without_reward_overrides()
     {
         var settings = new MapRoomSettings { restRoomChance = 0f, shopRoomChance = 0f };
 
-        foreach (PlannedRoom room in Planner(1, settings).Plan(NodeTypeEnum.MoreHealth, 4, 0, false))
-            Assert.AreEqual(settings.moreHealthDropChance, room.Rewards.Value.HealthDropChance);
+        List<PlannedRoom> healthRooms = Planner(1, settings).Plan(NodeTypeEnum.MoreHealth, 4, 1, false);
+        for (int i = 0; i < healthRooms.Count; i++)
+        {
+            Assert.IsNull(healthRooms[i].Rewards);
+            Assert.IsTrue(healthRooms[i].Encounter.HasValue);
+            Assert.AreEqual(2, healthRooms[i].Encounter.Value.scene);
+            Assert.AreEqual(EncounterNodeKind.MoreHealth, healthRooms[i].Encounter.Value.nodeKind);
+            Assert.IsFalse(healthRooms[i].Encounter.Value.isFirstSpot);
+            Assert.AreEqual(i, healthRooms[i].Encounter.Value.roomInNode);
+        }
+
         foreach (PlannedRoom room in Planner(1, settings).Plan(NodeTypeEnum.MoreButtons, 4, 0, false))
-            Assert.AreEqual(settings.moreButtonsMultiplier, room.Rewards.Value.CurrencyMultiplier);
-        foreach (PlannedRoom room in Planner(1, settings).Plan(NodeTypeEnum.Combat, 4, 0, false))
+        {
             Assert.IsNull(room.Rewards);
+            Assert.AreEqual(EncounterNodeKind.MoreButtons, room.Encounter.Value.nodeKind);
+        }
+
+        foreach (PlannedRoom room in Planner(1, settings).Plan(NodeTypeEnum.Combat, 0, 0, false))
+        {
+            Assert.IsNull(room.Rewards);
+            Assert.AreEqual(EncounterNodeKind.Fight, room.Encounter.Value.nodeKind);
+            Assert.IsTrue(room.Encounter.Value.isFirstSpot);
+        }
+
+        PlannedRoom finalFight = Planner(1, settings).Plan(NodeTypeEnum.FinalFight, 7, 2, true)[0];
+        Assert.IsNull(finalFight.Rewards);
+        Assert.AreEqual(3, finalFight.Encounter.Value.scene);
+        Assert.AreEqual(EncounterNodeKind.FinalFight, finalFight.Encounter.Value.nodeKind);
     }
 
     [Test]

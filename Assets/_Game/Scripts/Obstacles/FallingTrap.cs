@@ -23,12 +23,14 @@ public class FallingTrap : MonoBehaviour
 
     private Vector3 fullShadowScale;
     private Vector3 landedPosition;
-    
+
     private bool triggered = false;
-    private bool onCooldon = false;
+    private bool onCooldown = false;
+    private Collider tCollider;
 
     private void Awake()
     {
+        tCollider = GetComponent<Collider>();
         if (warningShadow != null) fullShadowScale = warningShadow.transform.localScale;
         if (trapObjectFalling != null) landedPosition = trapObjectFalling.transform.localPosition;
         ResetVisuals();
@@ -36,32 +38,29 @@ public class FallingTrap : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if(triggered ||onCooldon)return;
-        if(other.CompareTag("Enemy") || other.CompareTag("Player"))
+        if (triggered || onCooldown)
         {
-            // player or enemy detected ? -> starts the delay.
-            StartCoroutine(FallingC(other));
+            return;
+        }
+
+        if (other.CompareTag("Enemy") || other.CompareTag("Player"))
+        {
+            StartCoroutine(FallingC());
         }
     }
-    
-    private IEnumerator FallingC(Collider other)
+
+    private IEnumerator FallingC()
     {
-        // delay ->
         triggered = true;
         yield return Fall();
 
-        // if the player is still in the zone-> damage.
-        if (IsTargetInZone(other))
-        {
-            DamageZone();
-        }
+        DamageZone();
 
-        // Cooldown before the fall.
-        onCooldon = true;
+        onCooldown = true;
         yield return new WaitForSeconds(Mathf.Min(restTime, cooldown));
         ResetVisuals();
         yield return new WaitForSeconds(Mathf.Max(0f, cooldown - restTime));
-        onCooldon = false;
+        onCooldown = false;
         triggered = false;
     }
 
@@ -95,34 +94,27 @@ public class FallingTrap : MonoBehaviour
         warningShadow.transform.localScale = new Vector3(fullShadowScale.x * size, fullShadowScale.y, fullShadowScale.z * size);
     }
 
-    private bool IsTargetInZone(Collider other)
+    private void DamageZone()
     {
-        if(other == null)return false;
+        if (tCollider == null) return;
+        Bounds b = tCollider.bounds;
 
-        // Colls in the zone.
-        Collider tz = GetComponent<Collider>();
-        if(tz == null){
-            return false;
-        }
-        return tz.bounds.Contains(other.bounds.center);
-    }
+        Collider[] h = Physics.OverlapBox(b.center, b.extents, Quaternion.identity);
 
-    private void DamageZone(){
-
-        // player or enemy in the box area ? -> damage.
-        Collider[] h = Physics.OverlapBox(transform.position, GetComponent<Collider>().bounds.extents, transform.rotation);
-
-        for (int k = 0; k < h.Length;k++)
+        for (int k = 0; k < h.Length; k++)
         {
-            if (h[k].CompareTag("Player")|| h[k].CompareTag("Enemy"))
-            {
-                h[k].GetComponent<Health>()?.TakeDamage(damage);
+            if (!h[k].CompareTag("Player") && !h[k].CompareTag("Enemy"))
+                continue;
 
-                if (h[k].TryGetComponent(out Player player))
-                {
-                    Vector2 away = Random.insideUnitCircle.normalized;
-                    player.ApplyKnockback(new Vector3(away.x, 0f, away.y), playerPushForce, playerPushDuration);
-                }
+            Health health = h[k].GetComponentInParent<Health>();
+            if (health != null)
+                health.TakeDamage(damage);
+
+            Player player = h[k].GetComponentInParent<Player>();
+            if (player != null)
+            {
+                Vector2 away = Random.insideUnitCircle.normalized;
+                player.ApplyKnockback(new Vector3(away.x, 0f, away.y), playerPushForce, playerPushDuration);
             }
         }
     }

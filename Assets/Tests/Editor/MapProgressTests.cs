@@ -87,6 +87,17 @@ public class MapProgressTests
     }
 
     [Test]
+    public void Holding_an_unfinished_node_demotes_next_row_to_later()
+    {
+        var progress = new MapProgress(Map());
+        progress.Enter(0);
+
+        Assert.AreEqual(MapNodeState.Current, progress.StateOf(0, 0, holdingCurrent: true));
+        Assert.AreEqual(MapNodeState.Later, progress.StateOf(1, 0, holdingCurrent: true));
+        Assert.AreEqual(MapNodeState.Later, progress.StateOf(1, 2, holdingCurrent: true));
+    }
+
+    [Test]
     public void Stepping_back_at_the_start_does_nothing()
     {
         var progress = new MapProgress(Map());

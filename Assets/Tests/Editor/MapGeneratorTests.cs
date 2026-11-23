@@ -1,130 +1,198 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 
-/// <summary>The scene map rules (GDD > Level Design > Scene Map), checked over many seeds.</summary>
+/// <summary>
+/// MapGenerator against the GDD Scene Map rules (Level Design > In-Run > "In-Run in Depth" > Scene Map),
+/// over many seeds. Rows here are 0-based: GDD row 1 = row 0, row 8 = MapGrid.LastRow.
+/// </summary>
 public class MapGeneratorTests
 {
-    private const int Seeds = 300;
+    private const int Seeds = 500;
 
     private static IEnumerable<MapGrid> Maps()
     {
         for (int seed = 0; seed < Seeds; seed++)
-            yield return MapGenerator.Generate(new System.Random(seed));
-    }
-
-    private static IEnumerable<(int row, int column)> Nodes(MapGrid map)
-    {
-        for (int row = 0; row < MapGrid.Rows; row++)
-            foreach (int column in map.NodesInRow(row))
-                yield return (row, column);
+        {
+            yield return MapGenerator.Generate(new Random(seed));
+        }
     }
 
     [Test]
-    public void First_and_last_rows_hold_one_node()
+    public void Grid_Is8RowsBy4Columns()
+    {
+        Assert.AreEqual(8, MapGrid.Rows);
+        Assert.AreEqual(4, MapGrid.Columns);
+    }
+
+    [Test]
+    public void FourPaths_LeaveTheFirstSpot_IntoTwoToFourColumns()
     {
         foreach (MapGrid map in Maps())
         {
-            Assert.AreEqual(1, map.NodesInRow(0).Count);
-            Assert.AreEqual(1, map.NodesInRow(MapGrid.LastRow).Count);
+            Assert.That(map.Children(0, 0).Count, Is.InRange(2, 4));
+        }
+    }
+
+    [Test]
+    public void FirstAndLastRows_AreSingleFixedNodes()
+    {
+        foreach (MapGrid map in Maps())
+        {
+            CollectionAssert.AreEqual(new[] { 0 }, map.NodesInRow(0), "Row 1 is the First Spot only.");
+            CollectionAssert.AreEqual(new[] { 0 }, map.NodesInRow(MapGrid.LastRow), "Row 8 is the Final Fight only.");
             Assert.AreEqual(NodeTypeEnum.Combat, map.TypeAt(0, 0));
             Assert.AreEqual(NodeTypeEnum.FinalFight, map.TypeAt(MapGrid.LastRow, 0));
         }
     }
 
     [Test]
-    public void Second_row_has_at_least_two_nodes()
+    public void SecondRow_HasAtLeastTwoNodes()
     {
-        foreach (MapGrid map in Maps())
-            Assert.That(map.NodesInRow(1).Count, Is.InRange(2, MapGrid.Columns));
-    }
-
-    [Test]
-    public void Every_node_is_on_a_path_from_start_to_final_fight()
-    {
+        // The first two paths never start in the same column.
         foreach (MapGrid map in Maps())
         {
-            foreach (var (row, column) in Nodes(map))
-            {
-                if (row > 0) Assert.IsNotEmpty(map.Parents(row, column), $"node {row},{column} has no way in");
-                if (row < MapGrid.LastRow) Assert.IsNotEmpty(map.Children(row, column), $"node {row},{column} is a dead end");
-            }
+            int count = map.NodesInRow(1).Count;
+            Assert.That(count, Is.InRange(2, MapGrid.Columns));
         }
     }
 
     [Test]
-    public void Connections_never_cross()
-    {
-        foreach (MapGrid map in Maps())
-        {
-            for (int row = 0; row < MapGrid.LastRow; row++)
-            {
-                var edges = map.EdgesFrom(row).ToList();
-                foreach (var a in edges)
-                    foreach (var b in edges)
-                        Assert.IsFalse(a.from < b.from && a.to > b.to, $"row {row}: {a} crosses {b}");
-            }
-        }
-    }
-
-    [Test]
-    public void Exactly_one_shop_on_the_middle_rows()
-    {
-        var settings = new MapGenerationSettings();
-        foreach (MapGrid map in Maps())
-        {
-            var shops = Nodes(map).Where(n => map.TypeAt(n.row, n.column) == NodeTypeEnum.Shop).ToList();
-            Assert.AreEqual(1, shops.Count);
-            Assert.That(shops[0].row, Is.InRange(settings.shopFirstRow, settings.shopLastRow));
-        }
-    }
-
-    [Test]
-    public void Treasure_is_never_on_the_second_row_or_right_after_treasure()
-    {
-        foreach (MapGrid map in Maps())
-        {
-            foreach (var (row, column) in Nodes(map).Where(n => map.TypeAt(n.row, n.column) == NodeTypeEnum.Treasure))
-            {
-                Assert.AreNotEqual(1, row);
-                Assert.IsFalse(map.Parents(row, column).Any(p => map.TypeAt(row - 1, p) == NodeTypeEnum.Treasure),
-                    $"treasure {row},{column} follows a treasure");
-            }
-        }
-    }
-
-    [Test]
-    public void A_row_is_never_all_one_type()
+    public void EveryNode_IsOnAPathFromStartToEnd()
     {
         foreach (MapGrid map in Maps())
         {
             for (int row = 1; row < MapGrid.LastRow; row++)
             {
-                var types = map.NodesInRow(row).Select(c => map.TypeAt(row, c)).Where(t => t != NodeTypeEnum.Shop).ToList();
-                if (types.Count >= 2) Assert.Greater(types.Distinct().Count(), 1, $"row {row} is all {types[0]}");
+                foreach (int c in map.NodesInRow(row))
+                {
+                    Assert.IsNotEmpty(map.Parents(row, c), $"Node ({row},{c}) can't be reached.");
+                    Assert.IsNotEmpty(map.Children(row, c), $"Node ({row},{c}) is a dead end.");
+                }
             }
         }
     }
 
     [Test]
-    public void Same_seed_gives_the_same_map()
+    public void Steps_MoveAtMostOneColumn_AndNeverCross()
     {
-        MapGrid a = MapGenerator.Generate(new System.Random(42));
-        MapGrid b = MapGenerator.Generate(new System.Random(42));
-        foreach (var (row, column) in Nodes(a))
+        foreach (MapGrid map in Maps())
         {
-            Assert.IsTrue(b.IsNode(row, column));
-            Assert.AreEqual(a.TypeAt(row, column), b.TypeAt(row, column));
-            CollectionAssert.AreEquivalent(a.Children(row, column), b.Children(row, column));
+            // The first and last rows fan out from / into the single fixed node.
+            for (int row = 1; row < MapGrid.LastRow - 1; row++)
+            {
+                List<(int from, int to)> edges = map.EdgesFrom(row).ToList();
+                foreach (var (from, to) in edges)
+                {
+                    Assert.LessOrEqual(Math.Abs(from - to), 1, $"Row {row}: {from} -> {to} jumps columns.");
+                    foreach (var (a, b) in edges)
+                    {
+                        bool crosses = (a < from && b > to) || (a > from && b < to);
+                        Assert.IsFalse(crosses, $"Row {row}: {from} -> {to} crosses {a} -> {b}.");
+                    }
+                }
+            }
         }
     }
 
     [Test]
-    public void Weights_control_the_node_types()
+    public void ExactlyOneShop_InRows3To6()
+    {
+        foreach (MapGrid map in Maps())
+        {
+            var shops = AllNodes(map).Where(n => map.TypeAt(n.row, n.column) == NodeTypeEnum.Shop).ToList();
+            Assert.AreEqual(1, shops.Count);
+            Assert.That(shops[0].row, Is.InRange(2, 5), "GDD rows 3-6.");
+        }
+    }
+
+    [Test]
+    public void Treasure_NeverInRow2_AndNeverRightAfterAnotherTreasure()
+    {
+        foreach (MapGrid map in Maps())
+        {
+            foreach (var (row, column) in AllNodes(map))
+            {
+                if (map.TypeAt(row, column) != NodeTypeEnum.Treasure) continue;
+
+                Assert.AreNotEqual(1, row, "No Treasure in GDD row 2.");
+                foreach (int parent in map.Parents(row, column))
+                {
+                    Assert.AreNotEqual(NodeTypeEnum.Treasure, map.TypeAt(row - 1, parent),
+                        $"Treasure ({row},{column}) follows another Treasure.");
+                }
+            }
+        }
+    }
+
+    [Test]
+    public void RowsOfTwoOrMore_NeverAllTheSameType()
+    {
+        foreach (MapGrid map in Maps())
+        {
+            for (int row = 1; row < MapGrid.LastRow; row++)
+            {
+                List<NodeTypeEnum> types = map.NodesInRow(row)
+                    .Select(c => map.TypeAt(row, c))
+                    .Where(t => t != NodeTypeEnum.Shop)
+                    .ToList();
+                if (types.Count < 2) continue;
+
+                Assert.Greater(types.Distinct().Count(), 1, $"Row {row}: every node is {types[0]}.");
+            }
+        }
+    }
+
+    [Test]
+    public void MiddleRows_OnlyRollFightHealthButtonsOrTreasure()
+    {
+        var allowed = new[] { NodeTypeEnum.Combat, NodeTypeEnum.MoreHealth, NodeTypeEnum.MoreButtons, NodeTypeEnum.Treasure, NodeTypeEnum.Shop };
+        foreach (MapGrid map in Maps())
+        {
+            foreach (var (row, column) in AllNodes(map).Where(n => n.row > 0 && n.row < MapGrid.LastRow))
+            {
+                CollectionAssert.Contains(allowed, map.TypeAt(row, column));
+            }
+        }
+    }
+
+    [Test]
+    public void SameSeed_SameMap()
+    {
+        MapGrid a = MapGenerator.Generate(new Random(42));
+        MapGrid b = MapGenerator.Generate(new Random(42));
+        foreach (var (row, column) in AllNodes(a))
+        {
+            Assert.IsTrue(b.IsNode(row, column));
+            Assert.AreEqual(a.TypeAt(row, column), b.TypeAt(row, column));
+        }
+        Assert.AreEqual(AllNodes(a).Count(), AllNodes(b).Count());
+        for (int row = 0; row < MapGrid.LastRow; row++)
+        {
+            CollectionAssert.AreEquivalent(a.EdgesFrom(row).ToList(), b.EdgesFrom(row).ToList());
+        }
+    }
+
+    [Test]
+    public void Weights_ControlTheNodeTypes()
     {
         var onlyCombat = new MapGenerationSettings { moreHealthWeight = 0, moreButtonsWeight = 0, treasureWeight = 0, pathCount = 1 };
-        MapGrid map = MapGenerator.Generate(new System.Random(7), onlyCombat);
-        foreach (var (row, column) in Nodes(map).Where(n => n.row > 0 && n.row < MapGrid.LastRow))
+        MapGrid map = MapGenerator.Generate(new Random(7), onlyCombat);
+        foreach (var (row, column) in AllNodes(map).Where(n => n.row > 0 && n.row < MapGrid.LastRow))
+        {
             Assert.That(map.TypeAt(row, column), Is.EqualTo(NodeTypeEnum.Combat).Or.EqualTo(NodeTypeEnum.Shop));
+        }
+    }
+
+    private static IEnumerable<(int row, int column)> AllNodes(MapGrid map)
+    {
+        for (int row = 0; row < MapGrid.Rows; row++)
+        {
+            foreach (int c in map.NodesInRow(row))
+            {
+                yield return (row, c);
+            }
+        }
     }
 }

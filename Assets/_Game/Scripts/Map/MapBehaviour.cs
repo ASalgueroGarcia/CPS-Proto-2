@@ -35,6 +35,7 @@ public class MapBehaviour : MonoBehaviour
     private TMP_Text inspect;
 
     private Node entered;
+    private Node focusTarget;
     private readonly System.Random rng = new System.Random();
     private MapRoomPlanner planner;
     private List<PlannedRoom> rooms = new List<PlannedRoom>();
@@ -59,6 +60,26 @@ public class MapBehaviour : MonoBehaviour
     private void Start()
     {
         if (map == null) CreateMap();
+    }
+
+    private void Update()
+    {
+        KeepFocus();
+    }
+
+    // A gamepad can only move from a selected node, and the selection gets lost: Refresh runs while the
+    // room's EventSystem is still unloading, the pause menu's Resume button is gone once it closes, and
+    // a mouse click on the background clears it.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || focusTarget == null || Player.IsPaused) return;
+        if (!nodeArea.gameObject.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        bool focusIsUsable = selected != null && selected.activeInHierarchy
+                             && selected.TryGetComponent(out Selectable selectable) && selectable.interactable;
+        if (!focusIsUsable) events.SetSelectedGameObject(focusTarget.gameObject);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -126,6 +147,7 @@ public class MapBehaviour : MonoBehaviour
         lines.Clear();
 
         entered = null;
+        focusTarget = null;
     }
 
     private void PlaceLineHolder()
@@ -167,6 +189,7 @@ public class MapBehaviour : MonoBehaviour
 
     private void Refresh()
     {
+        bool holdingCurrent = entered != null;
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
@@ -175,7 +198,7 @@ public class MapBehaviour : MonoBehaviour
                 Node node = nodes[row, column];
                 if (node == null) continue;
 
-                MapNodeState state = progress.StateOf(row, column);
+                MapNodeState state = progress.StateOf(row, column, holdingCurrent);
                 ApplyState(node, state);
                 if (state == MapNodeState.Available && firstAvailable == null)
                 {
@@ -191,9 +214,10 @@ public class MapBehaviour : MonoBehaviour
 
         RefreshHud();
 
-        if (firstAvailable != null && EventSystem.current != null)
+        focusTarget = entered != null ? entered : firstAvailable;
+        if (focusTarget != null && EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(firstAvailable.gameObject);
+            EventSystem.current.SetSelectedGameObject(focusTarget.gameObject);
         }
     }
 
@@ -204,7 +228,8 @@ public class MapBehaviour : MonoBehaviour
         switch (state)
         {
             case MapNodeState.Current:
-                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
+                // Clickable only while it's a node left unfinished, to resume it.
+                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: entered != null, current: true);
                 break;
             case MapNodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
@@ -223,7 +248,12 @@ public class MapBehaviour : MonoBehaviour
 
     private void Enter(Node node)
     {
-        if (entered != null) return;
+        if (entered != null)
+        {
+            // The node left unfinished: pick up at the room that wasn't cleared, same plan.
+            if (node == entered) LoadRoom();
+            return;
+        }
 
         entered = node;
         progress.Enter(node.Column);
@@ -236,8 +266,7 @@ public class MapBehaviour : MonoBehaviour
     {
         PlannedRoom room = rooms[roomIndex];
         roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
-        Action<WaveManager> setup = null;
-        if (room.Rewards.HasValue) setup = room.Rewards.Value.Apply;
+        Action<WaveManager> setup = room.HasSetup ? room.Apply : null;
         SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0);
     }
 
@@ -268,6 +297,15 @@ public class MapBehaviour : MonoBehaviour
         if (roomCompleted && ++roomIndex < rooms.Count)
         {
             LoadRoom();
+            return;
+        }
+
+        // Leaving before the node's last room is cleared (pause > Return to map) neither passes the
+        // node nor restarts it: it stays current on the map, and clicking it resumes the same room.
+        if (!roomCompleted)
+        {
+            SceneController.Instance.UnloadLevel();
+            Refresh();
             return;
         }
 
