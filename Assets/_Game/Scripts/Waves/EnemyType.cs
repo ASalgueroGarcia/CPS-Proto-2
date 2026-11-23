@@ -4,5 +4,6 @@ public enum EnemyType
     Ranged,
     Heavy,
     MiniBoss,
-    MainBoss
+    MainBoss,
+    Spawner
 }

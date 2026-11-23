@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class FloorSpikes : MonoBehaviour
@@ -7,6 +8,8 @@ public class FloorSpikes : MonoBehaviour
     [SerializeField] private float triggerTime = 2f;
     [SerializeField] private float inactiveTime = 2f;
     [SerializeField] private float damage = 15.0f;
+    [Tooltip("Seconds between two hits on the same body while it stays on the active spikes.")]
+    [SerializeField] private float hitInterval = 0.5f;
     //[SerializeField] private GameObject spikesVisuals; // VISUALS OF THE SPYKES.
     //[SerializeField] private GameObject warningEffect;
     [SerializeField] private Renderer spikesRenderer; // Renderer para feedback visual
@@ -16,6 +19,7 @@ public class FloorSpikes : MonoBehaviour
     
     private Color _originalColor;
     private bool _isA = false;
+    private readonly Dictionary<Health, float> _nextHit = new Dictionary<Health, float>();
 
     private void Start()
     {
@@ -57,6 +61,9 @@ public class FloorSpikes : MonoBehaviour
         if (!other.CompareTag("Enemy") && !other.CompareTag("Player")) return;
         var health = other.GetComponentInParent<Health>();
         if(health==null)return;
+        // OnTriggerStay runs every physics step: without this, 15 damage becomes about 750 HP per second.
+        if (_nextHit.TryGetValue(health, out float next) && Time.time < next) return;
+        _nextHit[health] = Time.time + hitInterval;
         health.TakeDamage(damage);
     }
 }

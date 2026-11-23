@@ -32,8 +32,7 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float restRoomHeal = 40f;
 
     [Header("Node Rewards")]
-    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
-    [SerializeField] private float moreButtonsMultiplier = 1.5f;
+    // More Health / More Buttons rates live on the EncounterTable asset (Data/Rooms).
     [SerializeField] private float treasureHeal = 50f;
     [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
 
@@ -230,6 +229,9 @@ public class MapBehaviour : MonoBehaviour
             }
         }
 
+        // A node left unfinished must be resumed first: the next row shows as "later", not clickable.
+        if (entered != null) available.Clear();
+
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
@@ -260,10 +262,10 @@ public class MapBehaviour : MonoBehaviour
 
         RefreshHud();
 
-        focusTarget = firstAvailable;
-        if (firstAvailable != null && EventSystem.current != null)
+        Node selected = entered != null ? entered : firstAvailable;
+        if (selected != null && EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(firstAvailable.gameObject);
+            EventSystem.current.SetSelectedGameObject(selected.gameObject);
         }
     }
 
@@ -279,7 +281,8 @@ public class MapBehaviour : MonoBehaviour
         switch (state)
         {
             case NodeState.Current:
-                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
+                // Clickable only while it's a node left unfinished, to resume it.
+                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: entered != null, current: true);
                 break;
             case NodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
@@ -298,7 +301,12 @@ public class MapBehaviour : MonoBehaviour
 
     private void Enter(Node node)
     {
-        if (entered != null) return;
+        if (entered != null)
+        {
+            // The node left unfinished: pick up at the room that wasn't cleared, same plan.
+            if (node == entered) LoadRoom();
+            return;
+        }
 
         entered = node;
         path.Add(node.Column);
@@ -344,6 +352,15 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
+        // Leaving before the node's last room is cleared (pause > Return to map) neither passes the
+        // node nor restarts it: it stays current on the map, and clicking it resumes the same room.
+        if (!roomCompleted)
+        {
+            SceneController.Instance.UnloadLevel();
+            Refresh();
+            return;
+        }
+
         entered = null;
         SceneController.Instance.UnloadLevel();
         Refresh();
@@ -355,7 +372,6 @@ public class MapBehaviour : MonoBehaviour
         switch (node.Type)
         {
             case NodeTypeEnum.Shop:
-                shopRoomCount++;
                 rooms.Add((RoomType.Shop, null));
                 return;
             case NodeTypeEnum.Treasure:
@@ -370,22 +386,28 @@ public class MapBehaviour : MonoBehaviour
                 }
                 return;
             case NodeTypeEnum.FinalFight:
-                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
+                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss,
+                    wm => wm.SetEncounterContext(new EncounterContext(SceneIndex() + 1, EncounterNodeKind.FinalFight, false, 0))));
                 return;
         }
 
-        Action<WaveManager> rewards = node.Type switch
+        // The room's place on the map drives its enemies and rewards (WaveManager's EncounterTable).
+        EncounterNodeKind kind = node.Type switch
         {
-            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
-            _ => null
+            NodeTypeEnum.MoreHealth => EncounterNodeKind.MoreHealth,
+            NodeTypeEnum.MoreButtons => EncounterNodeKind.MoreButtons,
+            _ => EncounterNodeKind.Fight
         };
+        int scene = SceneIndex() + 1;
+        bool firstSpot = node.Row == 0;
 
         int count = Random.value < 0.5f ? 4 : 5;
         RoomType tier = BaseTier(node.Row);
         for (int i = 0; i < count; i++)
         {
-            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
+            int roomInNode = i;
+            rooms.Add((firstSpot ? tier : StepUp(tier, i / 2),
+                wm => wm.SetEncounterContext(new EncounterContext(scene, kind, firstSpot, roomInNode))));
         }
 
         if (node.Row == 0) return;
