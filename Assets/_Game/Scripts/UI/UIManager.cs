@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -25,6 +26,11 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider playerHealthSlider;
     [SerializeField] private Image healthBar;
     [SerializeField] private Image cooldown;
+    [SerializeField] private GameObject specialPrompt;
+    [SerializeField] private GameObject attackPrompt;
+    [SerializeField] private Color specialCoolingColor = new Color(0.86f, 0.86f, 0.86f);
+    [SerializeField] private Color specialReadyColor = new Color(0.98f, 0.78f, 0.3f);
+    [SerializeField] private AudioClip specialReadyClip;
     
     [Header("CANVAS REFERENCES")]
     [SerializeField] private GameObject playerUICanvas;
@@ -38,6 +44,8 @@ public class UIManager : MonoBehaviour
     private Player _playerFsm;
     private static UIManager _instance;
     private Coroutine _restartAfterDeath;
+    private bool _specialWasCooling;
+    private GameObject _lastPauseSelection;
 
     public static UIManager Instance => _instance;
 
@@ -229,6 +237,9 @@ public class UIManager : MonoBehaviour
             deathCanvas.SetActive(false);
         }
 
+        InputPromptLabel.AddTo(specialPrompt);
+        InputPromptLabel.AddTo(attackPrompt, InputPromptLabel.PadButton.West);
+
         if (pauseAction != null)
         {
             pauseAction.action.Enable();
@@ -292,6 +303,13 @@ public class UIManager : MonoBehaviour
         // the same scene has a player, so pausing keeps working there.
         if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
 
+        // Esc is also the UI Cancel: in the shop it closes the shop (as B does), it doesn't pause over it.
+        if (!_isPaused && ShopManager.Open != null && context.control != null && context.control.device is Keyboard)
+        {
+            ShopManager.Open.HideShopLogic();
+            return;
+        }
+
         if (_isPaused){
             Resume();
         }
@@ -305,7 +323,11 @@ public class UIManager : MonoBehaviour
         // Safety check: Ensure HUD stays hidden in non-gameplay scenes
         RefreshHUDVisibility();
 
-        if (_isPaused) return;
+        if (_isPaused)
+        {
+            KeepPauseFocus();
+            return;
+        }
 
         if (playerUICanvas != null && playerUICanvas.activeSelf)
         {
@@ -343,22 +365,7 @@ public class UIManager : MonoBehaviour
                 damageText.text = $"DMG: {_playerFsm.WeaponBaseDamage:F1}";
             }
 
-            if (specialCDText != null)
-            {
-                if (_playerFsm.SpecialTimer > 0)
-                {
-                    cooldown.fillAmount += _playerFsm.SpecialTimer;
-                    specialCDText.text = $"{_playerFsm.SpecialTimer:F1}s";
-                }
-                    
-
-                else
-                {
-                    specialCDText.text = "READY";
-                    cooldown.fillAmount = float.MaxValue;
-                }
-                    
-            }
+            UpdateSpecialIndicator();
 
             if (comboText != null)
             {
@@ -392,6 +399,58 @@ public class UIManager : MonoBehaviour
                 inventoryText.text = itemNames;
             }
         }
+    }
+
+    // The D-pad's automatic navigation also finds the buttons behind the pause menu (the shop, the map
+    // nodes), and A on one of them would buy or enter a room while paused. Bring focus back to the menu.
+    private void KeepPauseFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || pausePanel == null || !pausePanel.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy && selected.transform.IsChildOf(pausePanel.transform))
+        {
+            _lastPauseSelection = selected;
+            return;
+        }
+
+        GameObject back = _lastPauseSelection != null && _lastPauseSelection.activeInHierarchy ? _lastPauseSelection : null;
+        if (back == null)
+        {
+            foreach (Selectable selectable in pausePanel.GetComponentsInChildren<Selectable>())
+            {
+                if (selectable.IsInteractable()) { back = selectable.gameObject; break; }
+            }
+        }
+
+        if (back != null) events.SetSelectedGameObject(back);
+    }
+
+    // GDD, HUD states: empty when just used, fills bottom to top, gold until used, one sound when ready.
+    private void UpdateSpecialIndicator()
+    {
+        float remaining = _playerFsm.SpecialTimer;
+        float total = _playerFsm.SpecialCooldown;
+        bool cooling = remaining > 0f;
+
+        if (cooldown != null)
+        {
+            cooldown.fillAmount = cooling && total > 0f ? 1f - Mathf.Clamp01(remaining / total) : 1f;
+            cooldown.color = cooling ? specialCoolingColor : specialReadyColor;
+        }
+
+        if (specialCDText != null)
+        {
+            specialCDText.text = cooling ? $"{remaining:F1}s" : "READY";
+        }
+
+        if (_specialWasCooling && !cooling && specialReadyClip != null && SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySound(specialReadyClip);
+        }
+
+        _specialWasCooling = cooling;
     }
 
     public void StartGame()
@@ -438,6 +497,7 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(true);
         }
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
+        _lastPauseSelection = null;
         Time.timeScale = 0f;
         _isPaused = true;
         Player.IsPaused = _isPaused;

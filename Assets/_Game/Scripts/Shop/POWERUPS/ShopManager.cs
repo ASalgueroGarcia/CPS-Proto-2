@@ -1,5 +1,6 @@
 // SHOP-MANAGER -> NO SINGLETON IN CASE THERE ARE MORE STORES.
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using UnityEngine.Events;
@@ -31,8 +32,10 @@ public class ShopManager : MonoBehaviour
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
     public bool IsShopOpen = false;
-    public bool newItemsRequired = true;
-    public int priceOfThePowerUp;
+
+    /// <summary>The shop on screen, if any: Esc closes it instead of opening the pause menu.</summary>
+    public static ShopManager Open { get; private set; }
+
 
     private void Start()
     {
@@ -60,16 +63,59 @@ public class ShopManager : MonoBehaviour
             });
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
-        if (newItemsRequired)
+        // Its own listeners take the player back to the map; the shop must not freeze time again meanwhile.
+        if (returnMapButton != null) returnMapButton.onClick.AddListener(() => HideShopLogic());
+
+        foreach (Selectable selectable in shopPanel.GetComponentsInChildren<Selectable>(true))
         {
-            AddNewItems();
-            newItemsRequired = false;
+            selectable.gameObject.AddComponent<CancelClosesShop>().Shop = this;
         }
 
-        // Esto es lo que garantiza que el panel quede cerrado al arrancar.
         HideShopLogic();
     }
 
+    private void Update()
+    {
+        if (!IsShopOpen) return;
+
+        // The pause menu's Resume unfreezes everything while the shop is still up.
+        if (Time.timeScale > 0f)
+        {
+            Time.timeScale = 0f;
+            Player.IsPaused = true;
+        }
+
+        KeepFocus();
+    }
+
+    // Leaving the room from the pause menu destroys an open shop: it must not leave the map frozen.
+    private void OnDisable()
+    {
+        if (IsShopOpen) HideShopLogic();
+    }
+
+    // A gamepad can only move from a selected control. A mouse click on the background clears the
+    // selection, and so does the pause menu closing.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy) return;
+
+        Button first = powerUpsButtons.Length > 0 && powerUpsButtons[0] != null ? powerUpsButtons[0] : exitButton;
+        events.SetSelectedGameObject(first.gameObject);
+    }
+
+    /// <summary>The UI Cancel input (Esc, gamepad B) only reaches the selected control.</summary>
+    private class CancelClosesShop : MonoBehaviour, ICancelHandler
+    {
+        public ShopManager Shop;
+
+        public void OnCancel(BaseEventData eventData) => Shop.HideShopLogic();
+    }
+    
     public void OpenShop()
     {
         StopAllCoroutines();
@@ -118,17 +164,21 @@ public class ShopManager : MonoBehaviour
             itemPriceTexts[i].text = "$" + _currentPowerUps[i].price.ToString();
             powerUpImage[i].sprite = _currentPowerUps[i].powerUpIcon;
         }
-        if (lobbyShop != null)
-        {
-            lobbyShop.RefreshPreview(_currentPowerUps);
-        }
+        
+        Time.timeScale = 0f;
+        Player.IsPaused = true;
+        Open = this;
+        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+        KeepFocus();
     }
 
     public void HideShopLogic()
     {
         StopAllCoroutines();
-        shopPanel.SetActive(false);
-        returnMapButton.gameObject.SetActive(false);
+        if (IsShopOpen) Player.IsPaused = false;
+        if (Open == this) Open = null;
+        if (shopPanel != null) shopPanel.SetActive(false);
+        if (returnMapButton != null) returnMapButton.gameObject.SetActive(false);
         IsShopOpen = false;
         Time.timeScale = 1f;
     }
