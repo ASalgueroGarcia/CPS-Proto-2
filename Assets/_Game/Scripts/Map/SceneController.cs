@@ -59,7 +59,10 @@ public class SceneController : MonoBehaviour
 
     public void UnloadLevel()
     {
-        SceneManager.UnloadSceneAsync(CurrentLevelScene);
+        if (SceneManager.GetSceneByName(CurrentLevelScene).isLoaded)
+        {
+            SceneManager.UnloadSceneAsync(CurrentLevelScene);
+        }
         SetMapVisible(true);
         Time.timeScale = 1f;
         if (spawnedInstance) Destroy(spawnedInstance);
