@@ -370,7 +370,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"{_playerStats.CurrentCoins} �";
+                coinsText.text = $"{_playerStats.CurrentCoins} Buttons";
             }
 
             if (inventoryText != null)
