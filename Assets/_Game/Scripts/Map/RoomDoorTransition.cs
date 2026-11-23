@@ -37,7 +37,11 @@ public class RoomDoorTransition : MonoBehaviour
     public void Bind(WaveManager targetWaveManager)
     {
         waveManager = targetWaveManager;
-        if (waveManager != null) waveManager.HoldUntilBegin();
+        if (waveManager == null) return;
+
+        waveManager.HoldUntilBegin();
+        // Keeps the room's no-spawn zone on this door, wherever the door or the room sits.
+        waveManager.SetDoorPosition(transform.position);
     }
 
     private void OnEnable()
@@ -74,7 +78,13 @@ public class RoomDoorTransition : MonoBehaviour
         if (player != null) Lock(false);
 
         if (waveManager != null) waveManager.Begin();
-        else OpenExit();
+        else
+        {
+            // A room without waves (the shop): the intro leaves the player on the exit mark, so the exit
+            // only opens once they've stepped off, or standing still would walk them straight out.
+            while (player != null && !leaving && (player.transform.position - mark.transform.position).sqrMagnitude < markRadius * markRadius * 4f) yield return null;
+            OpenExit();
+        }
     }
 
     private void OpenExit()
@@ -178,6 +188,7 @@ public class RoomDoorTransition : MonoBehaviour
         if (controller != null) controller.enabled = false;
         player.transform.position = new Vector3(position.x, player.transform.position.y, position.z);
         if (controller != null) controller.enabled = true;
+        foreach (ITeleportListener listener in player.GetComponentsInChildren<ITeleportListener>()) listener.OnTeleported(); // e.g. the scarf's cloth
     }
 
     private void BuildDoor()
