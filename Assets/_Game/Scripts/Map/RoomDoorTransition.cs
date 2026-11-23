@@ -37,7 +37,11 @@ public class RoomDoorTransition : MonoBehaviour
     public void Bind(WaveManager targetWaveManager)
     {
         waveManager = targetWaveManager;
-        if (waveManager != null) waveManager.HoldUntilBegin();
+        if (waveManager == null) return;
+
+        waveManager.HoldUntilBegin();
+        // Keeps the room's no-spawn zone on this door, wherever the door or the room sits.
+        waveManager.SetDoorPosition(transform.position);
     }
 
     private void OnEnable()

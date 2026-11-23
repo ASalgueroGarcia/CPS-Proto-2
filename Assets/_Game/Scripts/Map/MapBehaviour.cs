@@ -32,8 +32,7 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float restRoomHeal = 40f;
 
     [Header("Node Rewards")]
-    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
-    [SerializeField] private float moreButtonsMultiplier = 1.5f;
+    // More Health / More Buttons rates live on the EncounterTable asset (Data/Rooms).
     [SerializeField] private float treasureHeal = 50f;
     [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
 
@@ -348,22 +347,28 @@ public class MapBehaviour : MonoBehaviour
                 }
                 return;
             case NodeTypeEnum.FinalFight:
-                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
+                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss,
+                    wm => wm.SetEncounterContext(new EncounterContext(SceneIndex() + 1, EncounterNodeKind.FinalFight, false, 0))));
                 return;
         }
 
-        Action<WaveManager> rewards = node.Type switch
+        // The room's place on the map drives its enemies and rewards (WaveManager's EncounterTable).
+        EncounterNodeKind kind = node.Type switch
         {
-            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
-            _ => null
+            NodeTypeEnum.MoreHealth => EncounterNodeKind.MoreHealth,
+            NodeTypeEnum.MoreButtons => EncounterNodeKind.MoreButtons,
+            _ => EncounterNodeKind.Fight
         };
+        int scene = SceneIndex() + 1;
+        bool firstSpot = node.Row == 0;
 
         int count = Random.value < 0.5f ? 4 : 5;
         RoomType tier = BaseTier(node.Row);
         for (int i = 0; i < count; i++)
         {
-            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
+            int roomInNode = i;
+            rooms.Add((firstSpot ? tier : StepUp(tier, i / 2),
+                wm => wm.SetEncounterContext(new EncounterContext(scene, kind, firstSpot, roomInNode))));
         }
 
         if (node.Row == 0) return;
