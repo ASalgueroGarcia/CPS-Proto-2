@@ -51,6 +51,7 @@ public class MapBehaviour : MonoBehaviour
     private TMP_Text inspect;
 
     private Node entered;
+    private Node focusTarget;
     private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
     private int roomIndex;
     private bool roomCompleted;
@@ -75,6 +76,26 @@ public class MapBehaviour : MonoBehaviour
     private void Start()
     {
         if (map == null) CreateMap();
+    }
+
+    private void Update()
+    {
+        KeepFocus();
+    }
+
+    // A gamepad can only move from a selected node, and the selection gets lost: Refresh runs while the
+    // room's EventSystem is still unloading, the pause menu's Resume button is gone once it closes, and
+    // a mouse click on the background clears it.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || focusTarget == null || entered != null || Player.IsPaused) return;
+        if (!nodeArea.gameObject.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        bool focusIsUsable = selected != null && selected.activeInHierarchy
+                             && selected.TryGetComponent(out Selectable selectable) && selectable.interactable;
+        if (!focusIsUsable) events.SetSelectedGameObject(focusTarget.gameObject);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
