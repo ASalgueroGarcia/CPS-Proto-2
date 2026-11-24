@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -25,6 +26,11 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider playerHealthSlider;
     [SerializeField] private Image healthBar;
     [SerializeField] private Image cooldown;
+    [SerializeField] private GameObject specialPrompt;
+    [SerializeField] private GameObject attackPrompt;
+    [SerializeField] private Color specialCoolingColor = new Color(0.86f, 0.86f, 0.86f);
+    [SerializeField] private Color specialReadyColor = new Color(0.98f, 0.78f, 0.3f);
+    [SerializeField] private AudioClip specialReadyClip;
     
     [Header("CANVAS REFERENCES")]
     [SerializeField] private GameObject playerUICanvas;
@@ -35,8 +41,11 @@ public class UIManager : MonoBehaviour
     private bool _isPaused = false;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
-    private PlayerFSM _playerFsm;
+    private Player _playerFsm;
     private static UIManager _instance;
+    private Coroutine _restartAfterDeath;
+    private bool _specialWasCooling;
+    private GameObject _lastPauseSelection;
 
     public static UIManager Instance => _instance;
 
@@ -89,7 +98,7 @@ public class UIManager : MonoBehaviour
         RefreshHUDVisibility();
 
         // Refresh references when a new scene is loaded
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = PlayerStatsManager.Instance;
         
         // Unsubscribe from old health component if any
@@ -163,7 +172,7 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
-        _playerFsm = FindFirstObjectByType<PlayerFSM>();
+        _playerFsm = FindFirstObjectByType<Player>();
         _playerStats = FindFirstObjectByType<PlayerStatsManager>();
 
         if (playerUICanvas == null) playerUICanvas = FindChildByName(transform, "PlayerUICanvas");
@@ -228,6 +237,9 @@ public class UIManager : MonoBehaviour
             deathCanvas.SetActive(false);
         }
 
+        InputPromptLabel.AddTo(specialPrompt);
+        InputPromptLabel.AddTo(attackPrompt, InputPromptLabel.PadButton.West);
+
         if (pauseAction != null)
         {
             pauseAction.action.Enable();
@@ -258,6 +270,7 @@ public class UIManager : MonoBehaviour
 
     // Removed EnsureUIElementsExist method to allow designers to modify UI in Canvases
 
+    // No longer raised on room clear: RoomDoorTransition walks the player out through the door instead.
     public void ShowEoLCanvas()
     {
         if (eolCanvas != null)
@@ -268,6 +281,10 @@ public class UIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        // A duplicate (the UI copy in a scene loaded again, e.g. back to the title) destroys itself in
+        // Awake: it never subscribed, and disabling the shared pause action here would kill pausing.
+        if (_instance != this) return;
+
         if (pauseAction != null)
         {
             pauseAction.action.performed -= OnPausePressed;
@@ -282,6 +299,17 @@ public class UIManager : MonoBehaviour
 
     private void OnPausePressed(InputAction.CallbackContext context)
     {
+        // The title screen has nothing to pause - there Esc is the menus' "back" (Cancel). A lobby in
+        // the same scene has a player, so pausing keeps working there.
+        if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
+
+        // Esc is also the UI Cancel: in the shop it closes the shop (as B does), it doesn't pause over it.
+        if (!_isPaused && ShopManager.Open != null && context.control != null && context.control.device is Keyboard)
+        {
+            ShopManager.Open.HideShopLogic();
+            return;
+        }
+
         if (_isPaused){
             Resume();
         }
@@ -295,7 +323,11 @@ public class UIManager : MonoBehaviour
         // Safety check: Ensure HUD stays hidden in non-gameplay scenes
         RefreshHUDVisibility();
 
-        if (_isPaused) return;
+        if (_isPaused)
+        {
+            KeepPauseFocus();
+            return;
+        }
 
         if (playerUICanvas != null && playerUICanvas.activeSelf)
         {
@@ -307,7 +339,7 @@ public class UIManager : MonoBehaviour
     {
         if (_playerHealth == null)
         {
-            _playerFsm = FindFirstObjectByType<PlayerFSM>();
+            _playerFsm = FindFirstObjectByType<Player>();
             if (_playerFsm != null)
             {
                 _playerHealth = _playerFsm.GetComponent<Health>();
@@ -330,29 +362,14 @@ public class UIManager : MonoBehaviour
 
             if (damageText != null)
             {
-                damageText.text = $"DMG: {_playerFsm.weaponBaseDamage:F1}";
+                damageText.text = $"DMG: {_playerFsm.WeaponBaseDamage:F1}";
             }
 
-            if (specialCDText != null)
-            {
-                if (_playerFsm.specialTimer > 0)
-                {
-                    cooldown.fillAmount += _playerFsm.specialTimer;
-                    specialCDText.text = $"{_playerFsm.specialTimer:F1}s";
-                }
-                    
-
-                else
-                {
-                    specialCDText.text = "READY";
-                    cooldown.fillAmount = float.MaxValue;
-                }
-                    
-            }
+            UpdateSpecialIndicator();
 
             if (comboText != null)
             {
-                comboText.text = $"{_playerFsm.comboStep}";
+                comboText.text = $"{_playerFsm.ComboStep}";
             }
         }
 
@@ -360,7 +377,7 @@ public class UIManager : MonoBehaviour
         {
             if (coinsText != null)
             {
-                coinsText.text = $"{_playerStats.CurrentCoins} �";
+                coinsText.text = $"{_playerStats.CurrentCoins} Buttons";
             }
 
             if (inventoryText != null)
@@ -384,11 +401,74 @@ public class UIManager : MonoBehaviour
         }
     }
 
+    // The D-pad's automatic navigation also finds the buttons behind the pause menu (the shop, the map
+    // nodes), and A on one of them would buy or enter a room while paused. Bring focus back to the menu.
+    private void KeepPauseFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || pausePanel == null || !pausePanel.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy && selected.transform.IsChildOf(pausePanel.transform))
+        {
+            _lastPauseSelection = selected;
+            return;
+        }
+
+        GameObject back = _lastPauseSelection != null && _lastPauseSelection.activeInHierarchy ? _lastPauseSelection : null;
+        if (back == null)
+        {
+            foreach (Selectable selectable in pausePanel.GetComponentsInChildren<Selectable>())
+            {
+                if (selectable.IsInteractable()) { back = selectable.gameObject; break; }
+            }
+        }
+
+        if (back != null) events.SetSelectedGameObject(back);
+    }
+
+    // GDD, HUD states: empty when just used, fills bottom to top, gold until used, one sound when ready.
+    private void UpdateSpecialIndicator()
+    {
+        float remaining = _playerFsm.SpecialTimer;
+        float total = _playerFsm.SpecialCooldown;
+        bool cooling = remaining > 0f;
+
+        if (cooldown != null)
+        {
+            cooldown.fillAmount = cooling && total > 0f ? 1f - Mathf.Clamp01(remaining / total) : 1f;
+            cooldown.color = cooling ? specialCoolingColor : specialReadyColor;
+        }
+
+        if (specialCDText != null)
+        {
+            specialCDText.text = cooling ? $"{remaining:F1}s" : "READY";
+        }
+
+        if (_specialWasCooling && !cooling && specialReadyClip != null && SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySound(specialReadyClip);
+        }
+
+        _specialWasCooling = cooling;
+    }
+
     public void StartGame()
     {
+        // A new run replaces whatever was still on screen: a restart waiting after a death (a won boss
+        // can be continued meanwhile, which would start two runs) or a pause menu opened during it.
+        if (_restartAfterDeath != null)
+        {
+            StopCoroutine(_restartAfterDeath);
+            _restartAfterDeath = null;
+        }
+
+        if (deathCanvas != null) deathCanvas.SetActive(false);
+        if (_isPaused) Resume();
+
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
 
         if (mainMenuCanvas != null) mainMenuCanvas.gameObject.SetActive(false);
         
@@ -400,6 +480,7 @@ public class UIManager : MonoBehaviour
         if (_playerStats != null) _playerStats.ResetAllThePlayerStats();
         
         RefreshHUDVisibility();
+        Services.Run?.BeginRun(ActProgress.SelectedAct);
         SceneManager.LoadScene("_MapScene");
     }
 
@@ -416,9 +497,10 @@ public class UIManager : MonoBehaviour
             pausePanel.SetActive(true);
         }
         if (inGamePauseButton != null) inGamePauseButton.gameObject.SetActive(false);
+        _lastPauseSelection = null;
         Time.timeScale = 0f;
         _isPaused = true;
-        PlayerFSM.IsPaused = _isPaused;
+        Player.IsPaused = _isPaused;
     }
 
     public void Resume()
@@ -432,14 +514,14 @@ public class UIManager : MonoBehaviour
         
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
     }
     
     public void ReturnToMap()
     {
         Time.timeScale = 1f;
         _isPaused = false;
-        PlayerFSM.IsPaused = false;
+        Player.IsPaused = false;
         if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
     }
 
@@ -451,15 +533,17 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        Services.Run?.EndRun(RunOutcome.Death);
         gameObject.SetActive(true); 
         if (deathCanvas != null) deathCanvas.gameObject.SetActive(true);
-        StartCoroutine(StartGameWithDelay(2f));
+        if (_restartAfterDeath != null) StopCoroutine(_restartAfterDeath);
+        _restartAfterDeath = StartCoroutine(StartGameWithDelay(2f));
     }
 
     private IEnumerator StartGameWithDelay(float delay)
     {
         yield return new WaitForSecondsRealtime(delay);
-        if (deathCanvas != null) deathCanvas.SetActive(false);
+        _restartAfterDeath = null;
         StartGame();
     }
 }

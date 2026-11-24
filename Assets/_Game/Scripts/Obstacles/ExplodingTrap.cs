@@ -4,11 +4,11 @@ using UnityEngine;
 public class ExplodingTrap : MonoBehaviour
 {
     [Header("DAMAGE SETTINGS")]
-    [SerializeField] private float damageToPlayer = 20f;
-    [SerializeField] private float damageToEnemy = 20f;
+    [SerializeField] private float damageToPlayer = 40f;
+    [SerializeField] private float damageToEnemy = 50f;
 
     [Header("EXPLODING TRAP SETTINGS")]
-    [SerializeField] private float explosionRadius = 20.0f;
+    [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
     [SerializeField] private float knockbackEffect = 10.0f;
 
@@ -40,7 +40,6 @@ public class ExplodingTrap : MonoBehaviour
         }
     }
 
-    // Coroutine
     IEnumerator ExplodeC()
     {
         if (trapRender != null){
@@ -56,7 +55,7 @@ public class ExplodingTrap : MonoBehaviour
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);
             ef.Play();
-            SoundManager.Instance.PlaySound(explosionClip);
+            if (SoundManager.Instance != null && explosionClip != null) SoundManager.Instance.PlaySound(explosionClip);
             Destroy(ef.gameObject,expTime);
         }
 
@@ -68,7 +67,7 @@ public class ExplodingTrap : MonoBehaviour
             if (hits[i].CompareTag("Player"))
             {
                 hits[i].GetComponent<Health>()?.TakeDamage(damageToPlayer);
-                var playerController = hits[i].GetComponent<PlayerFSM>();
+                var playerController = hits[i].GetComponent<Player>();
                 if (playerController != null)
                 {
                     playerController.ApplyKnockback(dir.normalized, knockbackEffect, 0.2f);

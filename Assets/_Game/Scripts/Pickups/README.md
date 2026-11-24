@@ -1,4 +1,4 @@
 ﻿# Scripts / Pickups
-Pickups (Coin, HealthPickup) and EnemySpawner.
+Pickups (Coin, HealthPickup, PickupDropAnimation: the no-Rigidbody drop from above) and EnemySpawner.
 Not here: player stat effects (Shop/PlayerStatsManager).
 Owner: Dima.

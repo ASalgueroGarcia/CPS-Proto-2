@@ -1,4 +1,4 @@
-﻿﻿# Spectracle
+﻿# Spectracle
 Top-down arena roguelite prototype. Unity **6000.3.5f2**.
 
 ## Open the project
@@ -13,7 +13,7 @@ Unity Hub -> Unity 6000.3.5f2 -> Add project from disk -> this folder.
 1. Never commit to `main` directly. Push all changes to `dev` where it will be reviewed and accepted/rejected.
 2. Open a PR (draft until ready). CODEOWNERS requests review from the folder owner.
 3. Unity `.meta` files always commit together with their asset - move files inside Unity, or move file + .meta together.
-4. Rebase on the latest `main` before asking for review.
+4. Rebase on the latest `dev` before asking for review.
 
 ## Naming Conventions
 [Type of PR] Commit Message

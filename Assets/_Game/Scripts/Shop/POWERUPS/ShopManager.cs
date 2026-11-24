@@ -1,9 +1,10 @@
 // SHOP-MANAGER -> NO SINGLETON IN CASE THERE ARE MORE STORES.
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
-using Unity.VisualScripting;
 using TMPro;
 
 public class ShopManager : MonoBehaviour
@@ -13,6 +14,7 @@ public class ShopManager : MonoBehaviour
     [SerializeField] private Button exitButton; // If the player do not want to buy any item.
     [SerializeField] private Button returnMapButton;
     [SerializeField] private GameObject shopPanel;
+    [SerializeField] private ShopLobbyTablePreview lobbyShop;
 
     [Header("UI ELEMENTS PER ITEM")]
     [SerializeField] private TextMeshProUGUI[] itemNameTexts = new TextMeshProUGUI[3];
@@ -23,13 +25,16 @@ public class ShopManager : MonoBehaviour
 
     [Header("SFX Settings")]
     [SerializeField] private AudioClip purchaseClip;
-
+    [SerializeField] private AudioClip deniedPurchaseClip;
     private PlayerStatsManager _playerStatsManager;
     private readonly PowerUpData[] _currentPowerUps = new PowerUpData[3];
+    public UnityEvent OnNotEnoughCoins;
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
-    private UIManager _uiManager;
     public bool IsShopOpen = false;
+
+    /// <summary>The shop on screen, if any: Esc closes it instead of opening the pause menu.</summary>
+    public static ShopManager Open { get; private set; }
 
 
     private void Start()
@@ -37,7 +42,6 @@ public class ShopManager : MonoBehaviour
         // 1. Find the playerStatsManager.
         _playerStatsManager = PlayerStatsManager.Instance;
         _canvasG = shopPanel.GetComponent<CanvasGroup>();
-        _uiManager = FindFirstObjectByType<UIManager>();
 
         if(returnMapButton != null)
         {
@@ -50,14 +54,66 @@ public class ShopManager : MonoBehaviour
         _panelRect = shopPanel.GetComponent<RectTransform>();
 
         // 2. Conect the buttont to -> selectPower.
-        for(int j = 0; j < powerUpsButtons.Length; j++)
+        for (int j = 0; j < powerUpsButtons.Length; j++)
         {
             int f = j;
             powerUpsButtons[j].onClick.AddListener(() => PowerUpSelect(f));
-            powerUpsButtons[j].onClick.AddListener(() => SoundManager.Instance.PlaySound(purchaseClip));
+            powerUpsButtons[j].onClick.AddListener(() => {
+                if (SoundManager.Instance != null && purchaseClip != null) SoundManager.Instance.PlaySound(purchaseClip);
+            });
         }
         exitButton.onClick.AddListener(() => HideShopLogic());
+        // Its own listeners take the player back to the map; the shop must not freeze time again meanwhile.
+        if (returnMapButton != null) returnMapButton.onClick.AddListener(() => HideShopLogic());
+
+        foreach (Selectable selectable in shopPanel.GetComponentsInChildren<Selectable>(true))
+        {
+            selectable.gameObject.AddComponent<CancelClosesShop>().Shop = this;
+        }
+
         HideShopLogic();
+    }
+
+    private void Update()
+    {
+        if (!IsShopOpen) return;
+
+        // The pause menu's Resume unfreezes everything while the shop is still up.
+        if (Time.timeScale > 0f)
+        {
+            Time.timeScale = 0f;
+            Player.IsPaused = true;
+        }
+
+        KeepFocus();
+    }
+
+    // Leaving the room from the pause menu destroys an open shop: it must not leave the map frozen.
+    private void OnDisable()
+    {
+        if (IsShopOpen) HideShopLogic();
+    }
+
+    // A gamepad can only move from a selected control. A mouse click on the background clears the
+    // selection, and so does the pause menu closing.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        if (selected != null && selected.activeInHierarchy) return;
+
+        Button first = powerUpsButtons.Length > 0 && powerUpsButtons[0] != null ? powerUpsButtons[0] : exitButton;
+        events.SetSelectedGameObject(first.gameObject);
+    }
+
+    /// <summary>The UI Cancel input (Esc, gamepad B) only reaches the selected control.</summary>
+    private class CancelClosesShop : MonoBehaviour, ICancelHandler
+    {
+        public ShopManager Shop;
+
+        public void OnCancel(BaseEventData eventData) => Shop.HideShopLogic();
     }
     
     public void OpenShop()
@@ -66,7 +122,18 @@ public class ShopManager : MonoBehaviour
         shopPanel.SetActive(true);
         IsShopOpen = true;
         returnMapButton.gameObject.SetActive(true);
-    
+
+        if (newItemsRequired)
+        {
+            AddNewItems();
+            newItemsRequired = false;
+        }
+
+        Time.timeScale = 0f;
+    }
+
+    private void AddNewItems(){
+
         //to check if the player has the item already ---
         List<PowerUpData> availablePowerUps = new List<PowerUpData>();
         foreach(PowerUpData p in powerUpsA)
@@ -99,13 +166,19 @@ public class ShopManager : MonoBehaviour
         }
         
         Time.timeScale = 0f;
+        Player.IsPaused = true;
+        Open = this;
+        if (EventSystem.current != null) EventSystem.current.SetSelectedGameObject(null);
+        KeepFocus();
     }
 
     public void HideShopLogic()
     {
         StopAllCoroutines();
-        shopPanel.SetActive(false);
-        returnMapButton.gameObject.SetActive(false);
+        if (IsShopOpen) Player.IsPaused = false;
+        if (Open == this) Open = null;
+        if (shopPanel != null) shopPanel.SetActive(false);
+        if (returnMapButton != null) returnMapButton.gameObject.SetActive(false);
         IsShopOpen = false;
         Time.timeScale = 1f;
     }
@@ -113,11 +186,20 @@ public class ShopManager : MonoBehaviour
     public void PowerUpSelect(int l)
     {
         PowerUpData selectedPowerUp = _currentPowerUps[l];
-        // APPLY THE POWERUP.
-        if (_playerStatsManager != null && selectedPowerUp != null)
+        if (_playerStatsManager == null || selectedPowerUp == null) return; // empty slot: nothing happens.
+
+        // 1. PAY FIRST. Not enough coins -> nothing is applied and the shop stays open.
+        if (!_playerStatsManager.tryToBuy(selectedPowerUp.price))
         {
-            _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+            if(deniedPurchaseClip != null) SoundManager.Instance.PlaySound(deniedPurchaseClip);
+            OnNotEnoughCoins?.Invoke();
+            return;
         }
+
+        // 2. Paid -> sound + effect + close.
+        SoundManager.Instance.PlaySound(purchaseClip);
+        _playerStatsManager.ApplyPowerUpEffect(selectedPowerUp);
+        newItemsRequired = true;
         HideShopLogic();
     }
 }
