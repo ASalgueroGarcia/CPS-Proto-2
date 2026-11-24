@@ -18,6 +18,10 @@ public class MainMenuInstaller : MonoBehaviour
     [Tooltip("IConfirmDialog - yes / no for deleting a slot.")]
     [SerializeField] private MonoBehaviour confirmDialog;
 
+    [Header("Optional")]
+    [Tooltip("ICameraFlight - played after a save slot is picked, before the game enters the hub. Empty = no flight.")]
+    [SerializeField] private MonoBehaviour hubEntryFlight;
+
     private readonly List<System.IDisposable> _presenters = new List<System.IDisposable>();
 
     private void Start()
@@ -34,7 +38,10 @@ public class MainMenuInstaller : MonoBehaviour
         var confirm = Require<IConfirmDialog>(confirmDialog, nameof(confirmDialog));
         if (menu == null || slots == null || settings == null || confirm == null) return;
 
-        var slotPresenter = new SlotSelectPresenter(slots, confirm, Services.Save, Services.Flow);
+        IGameFlow slotFlow = Services.Flow;
+        if (hubEntryFlight is ICameraFlight flight && slotFlow != null) slotFlow = new HubEntryFlow(slotFlow, flight);
+
+        var slotPresenter = new SlotSelectPresenter(slots, confirm, Services.Save, slotFlow);
         var settingsPresenter = new SettingsPresenter(settings, Services.Settings);
         var mainPresenter = new MainMenuPresenter(menu, slotPresenter, settingsPresenter, Services.Flow);
         _presenters.Add(slotPresenter);
@@ -62,6 +69,7 @@ public class MainMenuInstaller : MonoBehaviour
         slotSelectView = FindImplementation<ISlotSelectView>(slotSelectView);
         settingsView = FindImplementation<ISettingsView>(settingsView);
         confirmDialog = FindImplementation<IConfirmDialog>(confirmDialog);
+        hubEntryFlight = FindImplementation<ICameraFlight>(hubEntryFlight);
     }
 
     private T Require<T>(MonoBehaviour component, string field) where T : class
