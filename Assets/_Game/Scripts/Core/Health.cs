@@ -18,8 +18,8 @@ public class Health : MonoBehaviour
     public UnityEvent<Vector3, float> OnKnockbackReceived; // (source, force)
 
     [Header("Settings")]
-    [Tooltip("If true, the entity will be invulnerable to damage. Editor-only, use GrantInvulnerability() to set invulnerability at runtime.")]
-    private bool isInvulnerable = false;
+    [Tooltip("If true, the entity is always invulnerable to damage. Configured in the Inspector; use GrantInvulnerability() for timed i-frames and SetStateInvulnerability() for state-driven ones.")]
+    [SerializeField] private bool isInvulnerable = false;
     public bool useInternalKnockback = true;
 
     [Header("Visual Feedback")]
@@ -78,7 +78,7 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(float amount, Vector3 knockbackSource = default, float knockbackForce = 0f)
     {
-        if (IsInvulnerable || _invulnerableUntil > 0 || isDying) return;
+        if (IsInvulnerable || isDying) return;
 
         SetHealth(_currentHealth - amount);
 
@@ -212,7 +212,9 @@ public class Health : MonoBehaviour
 
     public bool IsInvulnerable
     {
-        get => isInvulnerable && (_isInvulnerableByState || _invulnerableUntil <= 0);
+        // Three independent sources: the Inspector flag, a state toggle (dash, burrow)
+        // and the timed i-frames granted after a hit.
+        get => isInvulnerable || _isInvulnerableByState || Time.time < _invulnerableUntil;
     }
 
     public float maxHealth
