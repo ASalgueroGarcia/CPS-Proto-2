@@ -5,9 +5,18 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class MapBehaviour : MonoBehaviour
 {
+    private enum NodeState
+    {
+        Current,
+        Available,
+        Later,
+        Closed
+    }
+
     [Header("Layout")]
     [SerializeField] private RectTransform nodeArea;
     [SerializeField] private RectTransform lineHolder;
@@ -16,9 +25,16 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float nodeSize = 64f;
     [SerializeField] private Vector2 areaPadding = new Vector2(0.15f, 0.18f);
 
-    [Header("Tuning")]
-    [Tooltip("Generation and room numbers. Edit the asset in Data/Map.")]
-    [SerializeField] private MapConfig config;
+    [Header("Rooms")]
+    [SerializeField] private RoomType[] rowTiers;
+    [Range(0f, 1f)] [SerializeField] private float restRoomChance = 0.25f;
+    [Range(0f, 1f)] [SerializeField] private float shopRoomChance = 0.15f;
+    [SerializeField] private float restRoomHeal = 40f;
+
+    [Header("Node Rewards")]
+    // More Health / More Buttons rates live on the EncounterTable asset (Data/Rooms).
+    [SerializeField] private float treasureHeal = 50f;
+    [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
 
     [Header("Colors")]
     [SerializeField] private Color gold = new Color(1f, 0.78f, 0.22f);
@@ -28,18 +44,19 @@ public class MapBehaviour : MonoBehaviour
     private MapGrid map;
     private readonly Node[,] nodes = new Node[MapGrid.Rows, MapGrid.Columns];
     private readonly List<(Image image, int row, int from, int to)> lines = new List<(Image, int, int, int)>();
-    private MapProgress progress;
+    private readonly List<int> path = new List<int>();
 
     private TMP_Text header;
     private TMP_Text hud;
     private TMP_Text inspect;
 
     private Node entered;
-    private readonly System.Random rng = new System.Random();
-    private MapRoomPlanner planner;
-    private List<PlannedRoom> rooms = new List<PlannedRoom>();
+    private Node focusTarget;
+    private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
     private int roomIndex;
     private bool roomCompleted;
+    private const int MaxShopsPerScene = 2;
+    private int shopRoomCount;
 
     public bool HasNextRoom => entered != null && entered.Type != NodeTypeEnum.FinalFight
                                && roomCompleted && roomIndex + 1 < rooms.Count;
@@ -59,6 +76,26 @@ public class MapBehaviour : MonoBehaviour
     private void Start()
     {
         if (map == null) CreateMap();
+    }
+
+    private void Update()
+    {
+        KeepFocus();
+    }
+
+    // A gamepad can only move from a selected node, and the selection gets lost: Refresh runs while the
+    // room's EventSystem is still unloading, the pause menu's Resume button is gone once it closes, and
+    // a mouse click on the background clears it.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || focusTarget == null || entered != null || Player.IsPaused) return;
+        if (!nodeArea.gameObject.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        bool focusIsUsable = selected != null && selected.activeInHierarchy
+                             && selected.TryGetComponent(out Selectable selectable) && selectable.interactable;
+        if (!focusIsUsable) events.SetSelectedGameObject(focusTarget.gameObject);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -82,10 +119,7 @@ public class MapBehaviour : MonoBehaviour
         if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
         Clear();
 
-        if (config == null) config = ScriptableObject.CreateInstance<MapConfig>();
-        map = MapGenerator.Generate(rng, config.generation);
-        planner = new MapRoomPlanner(config.rooms, rng);
-        progress = new MapProgress(map);
+        map = MapGenerator.Generate(new System.Random(Random.Range(int.MinValue, int.MaxValue)));
         BuildHud();
         PlaceLineHolder();
 
@@ -125,7 +159,9 @@ public class MapBehaviour : MonoBehaviour
         }
         lines.Clear();
 
+        path.Clear();
         entered = null;
+        shopRoomCount = 0;
     }
 
     private void PlaceLineHolder()
@@ -167,6 +203,35 @@ public class MapBehaviour : MonoBehaviour
 
     private void Refresh()
     {
+        HashSet<(int, int)> available = new HashSet<(int, int)>();
+        if (path.Count == 0)
+        {
+            available.Add((0, 0));
+        }
+        else
+        {
+            int row = path.Count - 1;
+            foreach (int child in map.Children(row, path[row]))
+            {
+                available.Add((row + 1, child));
+            }
+        }
+
+        HashSet<(int, int)> reachable = new HashSet<(int, int)>(available);
+        for (int row = path.Count; row < MapGrid.LastRow; row++)
+        {
+            foreach (var (from, to) in map.EdgesFrom(row))
+            {
+                if (reachable.Contains((row, from)))
+                {
+                    reachable.Add((row + 1, to));
+                }
+            }
+        }
+
+        // A node left unfinished must be resumed first: the next row shows as "later", not clickable.
+        if (entered != null) available.Clear();
+
         Node firstAvailable = null;
         for (int row = 0; row < MapGrid.Rows; row++)
         {
@@ -175,9 +240,13 @@ public class MapBehaviour : MonoBehaviour
                 Node node = nodes[row, column];
                 if (node == null) continue;
 
-                MapNodeState state = progress.StateOf(row, column);
+                NodeState state = OnPath(row, column) ? (row == path.Count - 1 ? NodeState.Current : NodeState.Closed)
+                    : available.Contains((row, column)) ? NodeState.Available
+                    : reachable.Contains((row, column)) ? NodeState.Later
+                    : NodeState.Closed;
+
                 ApplyState(node, state);
-                if (state == MapNodeState.Available && firstAvailable == null)
+                if (state == NodeState.Available && firstAvailable == null)
                 {
                     firstAvailable = node;
                 }
@@ -186,30 +255,39 @@ public class MapBehaviour : MonoBehaviour
 
         foreach (var (image, row, from, to) in lines)
         {
-            image.color = progress.IsTraversed(row, from, to) ? gold : progress.IsAhead(row, from, to) ? grey : dimmed;
+            bool traversed = OnPath(row, from) && OnPath(row + 1, to);
+            bool ahead = (OnPath(row, from) || reachable.Contains((row, from))) && reachable.Contains((row + 1, to));
+            image.color = traversed ? gold : ahead ? grey : dimmed;
         }
 
         RefreshHud();
 
-        if (firstAvailable != null && EventSystem.current != null)
+        Node selected = entered != null ? entered : firstAvailable;
+        if (selected != null && EventSystem.current != null)
         {
-            EventSystem.current.SetSelectedGameObject(firstAvailable.gameObject);
+            EventSystem.current.SetSelectedGameObject(selected.gameObject);
         }
     }
 
-    private void ApplyState(Node node, MapNodeState state)
+    private bool OnPath(int row, int column)
+    {
+        return row < path.Count && path[row] == column;
+    }
+
+    private void ApplyState(Node node, NodeState state)
     {
         Color roomColor = Node.GetRoomColor(node.Type);
 
         switch (state)
         {
-            case MapNodeState.Current:
-                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: false, current: true);
+            case NodeState.Current:
+                // Clickable only while it's a node left unfinished, to resume it.
+                node.SetLook(roomColor, Color.white, gold, showRing: true, interactable: entered != null, current: true);
                 break;
-            case MapNodeState.Available:
+            case NodeState.Available:
                 node.SetLook(roomColor, Color.white, Color.white, showRing: true, interactable: true, current: false);
                 break;
-            case MapNodeState.Later:
+            case NodeState.Later:
                 Color laterFill = new Color(roomColor.r * 0.45f, roomColor.g * 0.45f, roomColor.b * 0.45f, 0.95f);
                 node.SetLook(laterFill, roomColor, roomColor, showRing: true, interactable: false, current: false);
                 break;
@@ -223,22 +301,25 @@ public class MapBehaviour : MonoBehaviour
 
     private void Enter(Node node)
     {
-        if (entered != null) return;
+        if (entered != null)
+        {
+            // The node left unfinished: pick up at the room that wasn't cleared, same plan.
+            if (node == entered) LoadRoom();
+            return;
+        }
 
         entered = node;
-        progress.Enter(node.Column);
-        rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1);
+        path.Add(node.Column);
+        PlanRooms(node);
         roomIndex = 0;
         LoadRoom();
     }
 
     private void LoadRoom()
     {
-        PlannedRoom room = rooms[roomIndex];
-        roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
-        Action<WaveManager> setup = null;
-        if (room.Rewards.HasValue) setup = room.Rewards.Value.Apply;
-        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0);
+        var (room, setup) = rooms[roomIndex];
+        roomCompleted = room == RoomType.Shop || room == RoomType.Treasure;
+        SceneController.Instance.LoadLevel(room, setup, entered.Row, roomIndex == 0);
     }
 
     public void LeaveRoom()
@@ -259,7 +340,7 @@ public class MapBehaviour : MonoBehaviour
                 return;
             }
 
-            progress.StepBack();
+            path.RemoveAt(path.Count - 1);
             SceneController.Instance.UnloadLevel();
             Refresh();
             return;
@@ -271,9 +352,89 @@ public class MapBehaviour : MonoBehaviour
             return;
         }
 
+        // Leaving before the node's last room is cleared (pause > Return to map) neither passes the
+        // node nor restarts it: it stays current on the map, and clicking it resumes the same room.
+        if (!roomCompleted)
+        {
+            SceneController.Instance.UnloadLevel();
+            Refresh();
+            return;
+        }
+
         entered = null;
         SceneController.Instance.UnloadLevel();
         Refresh();
+    }
+
+    private void PlanRooms(Node node)
+    {
+        rooms.Clear();
+        switch (node.Type)
+        {
+            case NodeTypeEnum.Shop:
+                rooms.Add((RoomType.Shop, null));
+                return;
+            case NodeTypeEnum.Treasure:
+                int buttons = treasureButtons[Mathf.Clamp(SceneIndex(), 0, treasureButtons.Length - 1)];
+                if (Random.value < 0.5f)
+                {
+                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: treasureHeal)));
+                }
+                else
+                {
+                    rooms.Add((RoomType.Treasure, wm => wm.SetRewards(currency: buttons, healthDropChance: 0f)));
+                }
+                return;
+            case NodeTypeEnum.FinalFight:
+                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss,
+                    wm => wm.SetEncounterContext(new EncounterContext(SceneIndex() + 1, EncounterNodeKind.FinalFight, false, 0))));
+                return;
+        }
+
+        // The room's place on the map drives its enemies and rewards (WaveManager's EncounterTable).
+        EncounterNodeKind kind = node.Type switch
+        {
+            NodeTypeEnum.MoreHealth => EncounterNodeKind.MoreHealth,
+            NodeTypeEnum.MoreButtons => EncounterNodeKind.MoreButtons,
+            _ => EncounterNodeKind.Fight
+        };
+        int scene = SceneIndex() + 1;
+        bool firstSpot = node.Row == 0;
+
+        int count = Random.value < 0.5f ? 4 : 5;
+        RoomType tier = BaseTier(node.Row);
+        for (int i = 0; i < count; i++)
+        {
+            int roomInNode = i;
+            rooms.Add((firstSpot ? tier : StepUp(tier, i / 2),
+                wm => wm.SetEncounterContext(new EncounterContext(scene, kind, firstSpot, roomInNode))));
+        }
+
+        if (node.Row == 0) return;
+
+        float roll = Random.value;
+        int middle = Random.Range(1, count - 1);
+        if (roll < restRoomChance)
+        {
+            rooms[middle] = (RoomType.Treasure, wm => wm.SetRewards(currency: 0, healthDropChance: 1f, healAmount: restRoomHeal));
+        }
+        else if (shopRoomCount < MaxShopsPerScene && roll < restRoomChance + shopRoomChance)
+        {
+            shopRoomCount++;
+            rooms[middle] = (RoomType.Shop, null);
+        }
+    }
+
+    private RoomType BaseTier(int row)
+    {
+        if (rowTiers != null && row < rowTiers.Length) return rowTiers[row];
+        if (row <= 2) return RoomType.Entrance;
+        return row <= 4 ? RoomType.Medium : RoomType.MediumHard;
+    }
+
+    private static RoomType StepUp(RoomType tier, int steps)
+    {
+        return (RoomType)Mathf.Min((int)tier + steps, (int)RoomType.Hard);
     }
 
     private static int SceneIndex()
