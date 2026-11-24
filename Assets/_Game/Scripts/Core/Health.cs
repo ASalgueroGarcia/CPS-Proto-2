@@ -18,7 +18,8 @@ public class Health : MonoBehaviour
     public UnityEvent<Vector3, float> OnKnockbackReceived; // (source, force)
 
     [Header("Settings")]
-    public bool isInvulnerable = false;
+    [Tooltip("If true, the entity will be invulnerable to damage. Editor-only, use GrantInvulnerability() to set invulnerability at runtime.")]
+    private bool isInvulnerable = false;
     public bool useInternalKnockback = true;
 
     [Header("Visual Feedback")]
@@ -79,7 +80,7 @@ public class Health : MonoBehaviour
 
     public void TakeDamage(float amount, Vector3 knockbackSource = default, float knockbackForce = 0f)
     {
-        if (isInvulnerable || isDying) return;
+        if (IsInvulnerable || _invulnerableUntil > 0 || isDying) return;
 
         SetHealth(_currentHealth - amount);
 
@@ -190,6 +191,18 @@ public class Health : MonoBehaviour
     }
 
 #endregion
+#region Invulnerability
+    public void GrantInvulnerability(float seconds)
+    {
+        if (seconds <= 0f) return;
+        _invulnerableUntil = Mathf.Max(_invulnerableUntil, Time.time + seconds);
+    }
+
+    public void SetStateInvulnerability(bool value)
+    {
+        _isInvulnerableByState = value;
+    }
+#endregion
 #region Death
 
     private void Die()
@@ -209,6 +222,11 @@ public class Health : MonoBehaviour
 
 #endregion
 #region Properties
+
+    public bool IsInvulnerable
+    {
+        get => isInvulnerable && (_isInvulnerableByState || _invulnerableUntil <= 0);
+    }
 
     public float maxHealth
     {

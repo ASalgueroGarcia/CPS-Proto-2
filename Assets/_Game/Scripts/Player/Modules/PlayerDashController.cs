@@ -52,7 +52,7 @@ public class PlayerDashController : MonoBehaviour
         if (Animator != null) Animator.SetBool(IsDashingHash, true);
 
         if (PlayerHealth != null)
-            PlayerHealth.isInvulnerable = true;
+            PlayerHealth.SetStateInvulnerability(true);
 
         int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
         if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(_player.gameObject.layer, enemyLayerIndex, true);
@@ -79,8 +79,11 @@ public class PlayerDashController : MonoBehaviour
 
         if (Animator != null) Animator.SetBool(IsDashingHash, false);
 
+        // The dash velocity must not carry over: the player goes back to the movement ramp.
+        if (_player.Locomotion != null) _player.Locomotion.ClearMoveOverride();
+
         if (PlayerHealth != null)
-            PlayerHealth.isInvulnerable = false;
+            PlayerHealth.SetStateInvulnerability(false);
 
         int enemyLayerIndex = LayerMask.NameToLayer("Enemy");
         if (enemyLayerIndex != -1) Physics.IgnoreLayerCollision(_player.gameObject.layer, enemyLayerIndex, false);
