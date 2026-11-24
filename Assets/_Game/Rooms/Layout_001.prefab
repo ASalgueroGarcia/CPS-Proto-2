@@ -81,7 +81,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WaveManager
   enemyConfigs:
   - type: 0
-    prefab: {fileID: 3063489068592993335, guid: c51cf0c3c0904c60a6b6ba7782b0ef7e, type: 3}
+    prefab: {fileID: 3063489068592993335, guid: dde234ff46154d04197abed409f45121, type: 3}
     cost: 1
   - type: 1
     prefab: {fileID: 8195882128523390324, guid: 50bcb89052d4caf47b00190ccc357fcf, type: 3}
@@ -98,6 +98,7 @@ MonoBehaviour:
   currentRoomType: 2
   config: {fileID: 0}
   roomConfigLibrary: {fileID: 11400000, guid: a316e269279cf774e9750af478a6b2a1, type: 2}
+  encounterTable: {fileID: 11400000, guid: 9c520d64d200435a80842a5c07aa5a77, type: 2}
   coinPrefab: {fileID: 3818632576292648780, guid: 513c0e0d9b6b74a4a96a1c998e1b1085, type: 3}
   healthDropPrefab: {fileID: 1029841036860267814, guid: 2a4903f2ea387e64194ffc217115c01e, type: 3}
 --- !u!1 &9009455214830951866
@@ -227,6 +228,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!1001 &2232128449148435628
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -311,6 +313,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!1001 &2455500325728294989
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -452,6 +455,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &7052461871973753619 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -536,6 +540,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &8585674811479514254 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -625,6 +630,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!1001 &6595137345130773101
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -709,6 +715,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!1001 &7016228732277152502
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -788,6 +795,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &2770543267120673505 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -872,6 +880,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &2440535494239492568 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -956,6 +965,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &3199901485879933585 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -1040,6 +1050,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &3206331771379233575 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -1124,6 +1135,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &4391399008889835487 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}
@@ -1208,6 +1220,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Brekeable_Objects
   hp: 2
+  hitImpactClip: {fileID: 0}
 --- !u!4 &4127051916017049896 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5128567224479983639, guid: cf2ec36384270bb45a78a568cf37d075, type: 3}

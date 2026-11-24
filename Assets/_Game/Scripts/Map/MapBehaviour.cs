@@ -32,8 +32,7 @@ public class MapBehaviour : MonoBehaviour
     [SerializeField] private float restRoomHeal = 40f;
 
     [Header("Node Rewards")]
-    [Range(0f, 1f)] [SerializeField] private float moreHealthDropChance = 0.45f;
-    [SerializeField] private float moreButtonsMultiplier = 1.5f;
+    // More Health / More Buttons rates live on the EncounterTable asset (Data/Rooms).
     [SerializeField] private float treasureHeal = 50f;
     [SerializeField] private int[] treasureButtons = { 10, 12, 14 };
 
@@ -52,6 +51,7 @@ public class MapBehaviour : MonoBehaviour
     private TMP_Text inspect;
 
     private Node entered;
+    private Node focusTarget;
     private readonly List<(RoomType room, Action<WaveManager> setup)> rooms = new List<(RoomType, Action<WaveManager>)>();
     private int roomIndex;
     private bool roomCompleted;
@@ -76,6 +76,26 @@ public class MapBehaviour : MonoBehaviour
     private void Start()
     {
         if (map == null) CreateMap();
+    }
+
+    private void Update()
+    {
+        KeepFocus();
+    }
+
+    // A gamepad can only move from a selected node, and the selection gets lost: Refresh runs while the
+    // room's EventSystem is still unloading, the pause menu's Resume button is gone once it closes, and
+    // a mouse click on the background clears it.
+    private void KeepFocus()
+    {
+        EventSystem events = EventSystem.current;
+        if (events == null || focusTarget == null || entered != null || Player.IsPaused) return;
+        if (!nodeArea.gameObject.activeInHierarchy) return;
+
+        GameObject selected = events.currentSelectedGameObject;
+        bool focusIsUsable = selected != null && selected.activeInHierarchy
+                             && selected.TryGetComponent(out Selectable selectable) && selectable.interactable;
+        if (!focusIsUsable) events.SetSelectedGameObject(focusTarget.gameObject);
     }
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -366,22 +386,28 @@ public class MapBehaviour : MonoBehaviour
                 }
                 return;
             case NodeTypeEnum.FinalFight:
-                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss, null));
+                rooms.Add((SceneIndex() >= ProgressRules.ScenesPerAct - 1 ? RoomType.Boss : RoomType.MiniBoss,
+                    wm => wm.SetEncounterContext(new EncounterContext(SceneIndex() + 1, EncounterNodeKind.FinalFight, false, 0))));
                 return;
         }
 
-        Action<WaveManager> rewards = node.Type switch
+        // The room's place on the map drives its enemies and rewards (WaveManager's EncounterTable).
+        EncounterNodeKind kind = node.Type switch
         {
-            NodeTypeEnum.MoreHealth => wm => wm.SetRewards(healthDropChance: moreHealthDropChance),
-            NodeTypeEnum.MoreButtons => wm => wm.SetRewards(currencyMultiplier: moreButtonsMultiplier),
-            _ => null
+            NodeTypeEnum.MoreHealth => EncounterNodeKind.MoreHealth,
+            NodeTypeEnum.MoreButtons => EncounterNodeKind.MoreButtons,
+            _ => EncounterNodeKind.Fight
         };
+        int scene = SceneIndex() + 1;
+        bool firstSpot = node.Row == 0;
 
         int count = Random.value < 0.5f ? 4 : 5;
         RoomType tier = BaseTier(node.Row);
         for (int i = 0; i < count; i++)
         {
-            rooms.Add((node.Row == 0 ? tier : StepUp(tier, i / 2), rewards));
+            int roomInNode = i;
+            rooms.Add((firstSpot ? tier : StepUp(tier, i / 2),
+                wm => wm.SetEncounterContext(new EncounterContext(scene, kind, firstSpot, roomInNode))));
         }
 
         if (node.Row == 0) return;

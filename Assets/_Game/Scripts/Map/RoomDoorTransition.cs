@@ -33,11 +33,16 @@ public class RoomDoorTransition : MonoBehaviour
     private GameObject mark; // Floor glowing exit button
     private bool exitOpen;
     private bool leaving;
+    private bool steppedOffMark;
 
     public void Bind(WaveManager targetWaveManager)
     {
         waveManager = targetWaveManager;
-        if (waveManager != null) waveManager.HoldUntilBegin();
+        if (waveManager == null) return;
+
+        waveManager.HoldUntilBegin();
+        // Keeps the room's no-spawn zone on this door, wherever the door or the room sits.
+        waveManager.SetDoorPosition(transform.position);
     }
 
     private void OnEnable()
@@ -74,7 +79,13 @@ public class RoomDoorTransition : MonoBehaviour
         if (player != null) Lock(false);
 
         if (waveManager != null) waveManager.Begin();
-        else OpenExit();
+        else
+        {
+            // A room without waves (the shop): the intro leaves the player on the exit mark, so the exit
+            // only opens once they've stepped off, or standing still would walk them straight out.
+            while (player != null && !leaving && (player.transform.position - mark.transform.position).sqrMagnitude < markRadius * markRadius * 4f) yield return null;
+            OpenExit();
+        }
     }
 
     private void OpenExit()
@@ -94,8 +105,20 @@ public class RoomDoorTransition : MonoBehaviour
     // This is a placeholder until room layouts match Notion specifications.
     private void OnTriggerStay(Collider other)
     {
-        if (!mark.activeSelf || leaving || other.GetComponentInParent<Player>() == null) return;
+        // The exit mark sits where the walk-in ends, so it only counts once the player has stepped off it.
+        if (!mark.activeSelf || leaving || !steppedOffMark || !IsPlayerBody(other)) return;
         StartCoroutine(Leave());
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // Only the body counts: the player's weapon hitboxes are triggers too and swing in and out while standing still.
+        if (IsPlayerBody(other)) steppedOffMark = true;
+    }
+
+    private static bool IsPlayerBody(Collider other)
+    {
+        return other is CharacterController && other.GetComponentInParent<Player>() != null;
     }
 
     private IEnumerator Leave()
@@ -178,6 +201,7 @@ public class RoomDoorTransition : MonoBehaviour
         if (controller != null) controller.enabled = false;
         player.transform.position = new Vector3(position.x, player.transform.position.y, position.z);
         if (controller != null) controller.enabled = true;
+        foreach (ITeleportListener listener in player.GetComponentsInChildren<ITeleportListener>()) listener.OnTeleported(); // e.g. the scarf's cloth
     }
 
     private void BuildDoor()
