@@ -1,19 +1,45 @@
-ID;Type;Speaker;EN;ES;Next_ID;;
-BARK_MERCHANT_WAKE_01;Bark;Merchant;Good morning! ;�Buenos d�as!;;;
-CONV_INTRO_01;Conv;Narrator;Once upon a time...;Erase una vez�;CONV_INTRO_02;;
-CHOICE_SARAH_SHOP_01;Choice;Sarah;What are you selling?;�Qu� es lo que vendes?;;;
-BARK_MERCHANT_WAKE_02;Bark;Merchant;How are you feeling?;�C�mo te encuentras hoy?;;;
-BARK_MERCHANT_WAKE_03;Bark;Merchant;Have a good day!;�Ten un buen dia!;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
-;;;;;;;
+ID,Type,Speaker,EN,ES,Next_ID
+BARK_LOBBY_WAKE_01,Bark,Merchant,"Back on your feet, Sarah?","¿Ya estás en pie, Sarah?"
+BARK_LOBBY_WAKE_02,Bark,Merchant,"Curtain falls, curtain rises.","Cae el telón, sube el telón."
+BARK_LOBBY_WAKE_03,Bark,Merchant,Rough rehearsal out there?,¿Duro ensayo ahí fuera?
+BARK_LOBBY_WAKE_04,Bark,Merchant,The stage isn't done with you.,El escenario aún no acaba contigo.
+BARK_LOBBY_WAKE_05,Bark,Merchant,Still breathing. Good.,Sigues respirando. Bien.
+BARK_LOBBY_WAKE_06,Bark,Merchant,Take a breath before Act Two.,Respira antes del segundo acto.
+BARK_LOBBY_WAKE_07,Bark,Merchant,"You missed your cue again.","Volviste a fallar tu entrada."
+BARK_LOBBY_WAKE_08,Bark,Merchant,"Another tragic ending, eh?","¿Otro final trágico, eh?"
+BARK_LOBBY_WAKE_09,Bark,Merchant,"Dust yourself off, kid.","Sacúdete el polvo, muchacha."
+BARK_LOBBY_WAKE_10,Bark,Merchant,The bedroll missed you.,El petate te echaba de menos.
+BARK_KIOSK_GREET_01,Bark,Merchant,Step right up to the kiosk!,¡Acércate al quiosco!
+BARK_KIOSK_GREET_02,Bark,Merchant,Fresh props for your next run.,Utilería nueva para tu función.
+BARK_KIOSK_GREET_03,Bark,Merchant,Need an edge backstage?,¿Necesitas ventaja tras bastidores?
+BARK_KIOSK_GREET_04,Bark,Merchant,"Welcome back to the booth.","Bienvenido de nuevo al puesto."
+BARK_KIOSK_GREET_05,Bark,Merchant,"Everything's tuned and ready.","Todo está afinado y listo."
+BARK_KIOSK_GREET_06,Bark,Merchant,Browse while the lights hold.,Mira mientras aguanten las luces.
+BARK_KIOSK_COMMENT_01,Bark,Merchant,No refunds after the overture.,Sin reembolsos tras la obertura.
+BARK_KIOSK_COMMENT_02,Bark,Merchant,I polished that one myself.,Ese lo pulí yo mismo.
+BARK_KIOSK_COMMENT_03,Bark,Merchant,"Take your time, no rush.","Tómate tu tiempo, sin prisa."
+BARK_KIOSK_COMMENT_04,Bark,Merchant,Found it under seat twelve.,Lo hallé bajo la butaca doce.
+BARK_KIOSK_COMMENT_05,Bark,Merchant,"Quality craft, theater grade.","Buena pieza, calidad de teatro."
+BARK_KIOSK_COMMENT_06,Bark,Merchant,The spotlights hum tonight.,Los focos zumban esta noche.
+BARK_KIOSK_COMMENT_07,Bark,Merchant,"Buy smart, survive longer.","Compra bien, sobrevive más."
+BARK_KIOSK_COMMENT_08,Bark,Merchant,A fine eye for detail.,Tienes buen ojo para el detalle.
+BARK_SHOP_GREET_01,Bark,Merchant,"Quick stop between scenes?","¿Parada rápida entre escenas?"
+BARK_SHOP_GREET_02,Bark,Merchant,Caught me mid-intermission!,¡Me pillas en el intermedio!
+BARK_SHOP_GREET_03,Bark,Merchant,"Supplies before the next act.","Provisiones antes del próximo acto."
+BARK_SHOP_GREET_04,Bark,Merchant,Grab what you need and run.,Toma lo que necesites y corre.
+BARK_SHOP_GREET_05,Bark,Merchant,"Rare goods, tight schedule.","Artículos raros y poco tiempo."
+BARK_SHOP_GREET_06,Bark,Merchant,"Keep the pace, Sarah!","¡Mantén el ritmo, Sarah!"
+CONV_LOBBY_A_01,Conversation,Merchant,"You look pale, Sarah. Did the puppets give you trouble?","Estás pálida, Sarah. ¿Te dieron problemas las marionetas?",CONV_LOBBY_A_02
+CONV_LOBBY_A_02,Conversation,Sarah,They move faster once the stage lights dim.,Se mueven más rápido en cuanto bajan las luces.,CONV_LOBBY_A_03
+CONV_LOBBY_A_03,Conversation,Merchant,Then stay in the spotlight. Talk to me if you need gear.,Entonces quédate bajo el foco. Háblame si necesitas equipo.
+CONV_LOBBY_B_01,Conversation,Sarah,How long have you been running this lobby?,¿Cuánto tiempo llevas llevando este vestíbulo?,CONV_LOBBY_B_02
+CONV_LOBBY_B_02,Conversation,Merchant,"Since the first play opened. Nobody remembers the script anymore.",Desde el primer estreno. Ya nadie recuerda el guion.,CONV_LOBBY_B_03
+CONV_LOBBY_B_03,Conversation,Sarah,"Then I'll just have to improvise my way out.","Entonces tendré que improvisar mi salida."
+CONV_LORE_01,Conversation,Merchant,"See these velvet curtains? They used to sew them with silver thread.","¿Ves estas cortinas de terciopelo? Antes las cosían con hilo de plata.",CONV_LORE_02
+CONV_LORE_02,Conversation,Sarah,Why would a
+CONV_DEAL_01,Conversation,Merchant,A bold bargain: trade half your vitality for double power?,Un trato audaz: ¿cambias mitad de tu vitalidad por el doble de fuerza?,CHOICE_DEAL_ACCEPT|CHOICE_DEAL_REFUSE
+CHOICE_DEAL_ACCEPT,Choice,Sarah,Deal. Cut the strings.,Trato hecho. Corta los hilos.,CONV_DEAL_YES_01
+CHOICE_DEAL_REFUSE,Choice,Sarah,No thanks. I'll keep my blood.,"No, gracias. Prefiero mi sangre.",CONV_DEAL_NO_01
+,,,,
+,,,,,
+,,,

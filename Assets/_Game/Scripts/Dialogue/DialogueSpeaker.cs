@@ -2,37 +2,57 @@ using UnityEngine;
 using DG.Tweening;
 using TMPro;
 using System.Collections;
+using System.Collections.Generic;
 
 public class DialogueSpeaker : MonoBehaviour
 {
-    [Header("Data")]
-    [SerializeField] private DialogueDatabase database;
-    [SerializeField] private BarkPool barkPool;
+    [Header("Speaker Settings")]
+    [SerializeField] private Speaker speakerType;
+    [SerializeField] private DialoguePool barkPool;
+    [Tooltip("IDs of the dialogue entries that will be used as barks for this speaker. Empty for NPCs with only barks")]
+    [SerializeField] private DialoguePool conversationBarkPool;
 
-    [Header("Settings")]
-    [SerializeField] private Transform dialoguePosition;
+
+    [Header("Scene and Prefab References")]
+    [SerializeField] private Transform barkDialoguePosition;
+    [SerializeField] private Transform conversationPosition;
     [SerializeField] private BarkSignView barkSignViewPrefab;
-    [SerializeField] private Transform player;
     [SerializeField] private float playerDistanceThreshold = 5f;
     [SerializeField] private float barkHoldDuration = 4f;
     [SerializeField] private bool triggerOnProximity = true;
     
-    private ShuffleBag<string> _idBag = new ShuffleBag<string>();
+    private ShuffleBag<string> _barkBag = new ShuffleBag<string>();
+    private ShuffleBag<string> _convBag = new ShuffleBag<string>();
+
     private BarkSignView _currentBarkInstance;
+    
     private bool _isRising = false;
     private bool _hasTrigeredThisVisit = false;
+    
     private GameLanguage currentLanguage => GameManager.Instance.CurrentLanguage;
-
-
+    private Transform player => GameManager.Instance.PlayerTransform;
 
     private void Start()
     {
-        if(barkPool == null || barkPool.linesIDs.Count == 0) return;
+        var tracker = GameManager.Instance.DialogueSeenTracker;
 
-        RefillBag(GameManager.Instance.DialogueSeenTracker);
+        if (barkPool != null && barkPool.linesIDs.Count != 0)
+            RefillBag(_barkBag, barkPool.linesIDs, tracker);
+            
+        if(HasConversation)
+            RefillBag(_convBag, conversationBarkPool.linesIDs, tracker);
 
         GameManager.Instance.OnRoomExited += InterruptBark;
         GameManager.Instance.OnCombatStarted += InterruptBark;
+    }
+
+    private void OnDestroy()
+    {
+        if(GameManager.Instance != null)
+        {
+            GameManager.Instance.OnRoomExited -= InterruptBark;
+            GameManager.Instance.OnCombatStarted -= InterruptBark;
+        }
     }
 
     private void Update()
@@ -54,23 +74,26 @@ public class DialogueSpeaker : MonoBehaviour
 
     }
 
-    private void TriggerBark()
+    public void TriggerBark()
     {
-        if(_currentBarkInstance != null || database == null || barkPool.linesIDs.Count == 0 || !GameManager.Instance.CanTriggerDialogue) return;
+        if (_currentBarkInstance != null || barkPool == null || barkPool.linesIDs.Count == 0) return;
+        if (!GameManager.Instance.CanTriggerDialogue) return;
         
-        var seenTracker = GameManager.Instance.DialogueSeenTracker;
-
-        if(_idBag.Count == 0)
-            RefillBag(seenTracker);
-
         _hasTrigeredThisVisit = true;
         _isRising = false;
 
-        string nextId = _idBag.GetNext();
-        seenTracker.MarkAsSeen(nextId); 
-        string lineText = database.GetText(nextId, currentLanguage);
+        var seenTracker = GameManager.Instance.DialogueSeenTracker;
 
-        _currentBarkInstance = Instantiate(barkSignViewPrefab, dialoguePosition.position, Quaternion.identity);
+        if (_barkBag.Count == 0)
+            RefillBag(_barkBag, barkPool.linesIDs, seenTracker);
+
+
+        string nextId = _barkBag.GetNext();
+        seenTracker.MarkAsSeen(nextId); 
+        
+        string lineText = GameManager.Instance.DialogueDatabase.GetText(nextId, currentLanguage);
+
+        _currentBarkInstance = Instantiate(barkSignViewPrefab, barkDialoguePosition.position, Quaternion.identity);
         _currentBarkInstance.PlayBark(lineText, barkHoldDuration, () =>
         {
             _currentBarkInstance = null;
@@ -90,24 +113,31 @@ public class DialogueSpeaker : MonoBehaviour
         });
     }
 
-    private void RefillBag(DialogueSeenTracker seenTracker)
+    public void Interact()
     {
-        _idBag.Clear();
-        _idBag = new ShuffleBag<string>();
+        if(!HasConversation) return;
+        if(!GameManager.Instance.CanTriggerDialogue) return;
 
-        foreach (string id in barkPool.linesIDs)
-        {
+        InterruptBark();
+
+        var seenTracker = GameManager.Instance.DialogueSeenTracker;
+
+        if (_convBag.Count == 0)
+            RefillBag(_convBag, conversationBarkPool.linesIDs, seenTracker);
+
+        string startId = _convBag.GetNext();
+        DialogueManager.Instance.StartConversation(startId);
+    }
+
+    private void RefillBag(ShuffleBag<string> bag, List<string> sourceIDs, DialogueSeenTracker seenTracker)
+    {
+        foreach (string id in sourceIDs)
             if(!seenTracker.HasSeen(id))
-                _idBag.Add(id);
-        }
+                bag.Add(id);
  
-        if(_idBag.Count == 0)
-        {
+        if(bag.Count == 0)
             foreach (string id in barkPool.linesIDs)
-            {
-                _idBag.Add(id);
-            }
-        }
+                bag.Add(id);
     }
 
     private bool IsPlayerInRange()
@@ -120,5 +150,8 @@ public class DialogueSpeaker : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, playerDistanceThreshold);
     }
+
+    public Speaker SpeakerType => speakerType;
+    public bool HasConversation => conversationBarkPool != null && conversationBarkPool.linesIDs.Count > 0;
 }
 

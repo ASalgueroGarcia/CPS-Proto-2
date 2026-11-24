@@ -11,7 +11,7 @@ public enum GameLanguage
 public enum DialogueLineType
 {
     Bark,
-    Conv,
+    Conversation,
     Choice
 }
 

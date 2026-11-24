@@ -10,7 +10,7 @@ public class DialogueImporterWindow : EditorWindow
     private const int MAX_LINES_BARK = 1;
     private const int MAX_LINES_CONVERSATION = 3;
     private const int MIN_FONT_SIZE = 28;
-    private const char CSV_SEPARATOR = ';';
+    private const char CSV_SEPARATOR = ',';
     
     [SerializeField] private TextAsset csvFile;
     [SerializeField] private DialogueDatabase db;

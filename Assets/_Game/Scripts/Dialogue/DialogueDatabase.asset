@@ -13,33 +13,244 @@ MonoBehaviour:
   m_Name: DialogueDatabase
   m_EditorClassIdentifier: Assembly-CSharp::DialogueDatabase
   entries:
-  - id: BARK_MERCHANT_WAKE_01
+  - id: BARK_LOBBY_WAKE_01
     type: 0
     speaker: 0
-    textEN: 'Good morning! '
-    textES: "\uFFFDBuenos d\uFFFDas!"
+    textEN: Back on your feet, Sarah?
+    textES: "\xBFYa est\xE1s en pie, Sarah?"
     nextId: 
-  - id: CONV_INTRO_01
+  - id: BARK_LOBBY_WAKE_02
+    type: 0
+    speaker: 0
+    textEN: Curtain falls, curtain rises.
+    textES: "Cae el tel\xF3n, sube el tel\xF3n."
+    nextId: 
+  - id: BARK_LOBBY_WAKE_03
+    type: 0
+    speaker: 0
+    textEN: Rough rehearsal out there?
+    textES: "\xBFDuro ensayo ah\xED fuera?"
+    nextId: 
+  - id: BARK_LOBBY_WAKE_04
+    type: 0
+    speaker: 0
+    textEN: The stage isn't done with you.
+    textES: "El escenario a\xFAn no acaba contigo."
+    nextId: 
+  - id: BARK_LOBBY_WAKE_05
+    type: 0
+    speaker: 0
+    textEN: Still breathing. Good.
+    textES: Sigues respirando. Bien.
+    nextId: 
+  - id: BARK_LOBBY_WAKE_06
+    type: 0
+    speaker: 0
+    textEN: Take a breath before Act Two.
+    textES: Respira antes del segundo acto.
+    nextId: 
+  - id: BARK_LOBBY_WAKE_07
+    type: 0
+    speaker: 0
+    textEN: You missed your cue again.
+    textES: Volviste a fallar tu entrada.
+    nextId: 
+  - id: BARK_LOBBY_WAKE_08
+    type: 0
+    speaker: 0
+    textEN: Another tragic ending, eh?
+    textES: "\xBFOtro final tr\xE1gico, eh?"
+    nextId: 
+  - id: BARK_LOBBY_WAKE_09
+    type: 0
+    speaker: 0
+    textEN: Dust yourself off, kid.
+    textES: "Sac\xFAdete el polvo, muchacha."
+    nextId: 
+  - id: BARK_LOBBY_WAKE_10
+    type: 0
+    speaker: 0
+    textEN: The bedroll missed you.
+    textES: El petate te echaba de menos.
+    nextId: 
+  - id: BARK_KIOSK_GREET_01
+    type: 0
+    speaker: 0
+    textEN: Step right up to the kiosk!
+    textES: "\xA1Ac\xE9rcate al quiosco!"
+    nextId: 
+  - id: BARK_KIOSK_GREET_02
+    type: 0
+    speaker: 0
+    textEN: Fresh props for your next run.
+    textES: "Utiler\xEDa nueva para tu funci\xF3n."
+    nextId: 
+  - id: BARK_KIOSK_GREET_03
+    type: 0
+    speaker: 0
+    textEN: Need an edge backstage?
+    textES: "\xBFNecesitas ventaja tras bastidores?"
+    nextId: 
+  - id: BARK_KIOSK_GREET_04
+    type: 0
+    speaker: 0
+    textEN: Welcome back to the booth.
+    textES: Bienvenido de nuevo al puesto.
+    nextId: 
+  - id: BARK_KIOSK_GREET_05
+    type: 0
+    speaker: 0
+    textEN: Everything's tuned and ready.
+    textES: "Todo est\xE1 afinado y listo."
+    nextId: 
+  - id: BARK_KIOSK_GREET_06
+    type: 0
+    speaker: 0
+    textEN: Browse while the lights hold.
+    textES: Mira mientras aguanten las luces.
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_01
+    type: 0
+    speaker: 0
+    textEN: No refunds after the overture.
+    textES: Sin reembolsos tras la obertura.
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_02
+    type: 0
+    speaker: 0
+    textEN: I polished that one myself.
+    textES: "Ese lo pul\xED yo mismo."
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_03
+    type: 0
+    speaker: 0
+    textEN: Take your time, no rush.
+    textES: "T\xF3mate tu tiempo, sin prisa."
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_04
+    type: 0
+    speaker: 0
+    textEN: Found it under seat twelve.
+    textES: "Lo hall\xE9 bajo la butaca doce."
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_05
+    type: 0
+    speaker: 0
+    textEN: Quality craft, theater grade.
+    textES: Buena pieza, calidad de teatro.
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_06
+    type: 0
+    speaker: 0
+    textEN: The spotlights hum tonight.
+    textES: Los focos zumban esta noche.
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_07
+    type: 0
+    speaker: 0
+    textEN: Buy smart, survive longer.
+    textES: "Compra bien, sobrevive m\xE1s."
+    nextId: 
+  - id: BARK_KIOSK_COMMENT_08
+    type: 0
+    speaker: 0
+    textEN: A fine eye for detail.
+    textES: Tienes buen ojo para el detalle.
+    nextId: 
+  - id: BARK_SHOP_GREET_01
+    type: 0
+    speaker: 0
+    textEN: Quick stop between scenes?
+    textES: "\xBFParada r\xE1pida entre escenas?"
+    nextId: 
+  - id: BARK_SHOP_GREET_02
+    type: 0
+    speaker: 0
+    textEN: Caught me mid-intermission!
+    textES: "\xA1Me pillas en el intermedio!"
+    nextId: 
+  - id: BARK_SHOP_GREET_03
+    type: 0
+    speaker: 0
+    textEN: Supplies before the next act.
+    textES: "Provisiones antes del pr\xF3ximo acto."
+    nextId: 
+  - id: BARK_SHOP_GREET_04
+    type: 0
+    speaker: 0
+    textEN: Grab what you need and run.
+    textES: Toma lo que necesites y corre.
+    nextId: 
+  - id: BARK_SHOP_GREET_05
+    type: 0
+    speaker: 0
+    textEN: Rare goods, tight schedule.
+    textES: "Art\xEDculos raros y poco tiempo."
+    nextId: 
+  - id: BARK_SHOP_GREET_06
+    type: 0
+    speaker: 0
+    textEN: Keep the pace, Sarah!
+    textES: "\xA1Mant\xE9n el ritmo, Sarah!"
+    nextId: 
+  - id: CONV_LOBBY_A_01
     type: 1
-    speaker: 2
-    textEN: Once upon a time...
-    textES: "Erase una vez\uFFFD"
-    nextId: CONV_INTRO_02
-  - id: CHOICE_SARAH_SHOP_01
+    speaker: 0
+    textEN: You look pale, Sarah. Did the puppets give you trouble?
+    textES: "Est\xE1s p\xE1lida, Sarah. \xBFTe dieron problemas las marionetas?"
+    nextId: CONV_LOBBY_A_02
+  - id: CONV_LOBBY_A_02
+    type: 1
+    speaker: 1
+    textEN: They move faster once the stage lights dim.
+    textES: "Se mueven m\xE1s r\xE1pido en cuanto bajan las luces."
+    nextId: CONV_LOBBY_A_03
+  - id: CONV_LOBBY_A_03
+    type: 1
+    speaker: 0
+    textEN: Then stay in the spotlight. Talk to me if you need gear.
+    textES: "Entonces qu\xE9date bajo el foco. H\xE1blame si necesitas equipo."
+    nextId: 
+  - id: CONV_LOBBY_B_01
+    type: 1
+    speaker: 1
+    textEN: How long have you been running this lobby?
+    textES: "\xBFCu\xE1nto tiempo llevas llevando este vest\xEDbulo?"
+    nextId: CONV_LOBBY_B_02
+  - id: CONV_LOBBY_B_02
+    type: 1
+    speaker: 0
+    textEN: Since the first play opened. Nobody remembers the script anymore.
+    textES: Desde el primer estreno. Ya nadie recuerda el guion.
+    nextId: CONV_LOBBY_B_03
+  - id: CONV_LOBBY_B_03
+    type: 1
+    speaker: 1
+    textEN: Then I'll just have to improvise my way out.
+    textES: "Entonces tendr\xE9 que improvisar mi salida."
+    nextId: 
+  - id: CONV_LORE_01
+    type: 1
+    speaker: 0
+    textEN: See these velvet curtains? They used to sew them with silver thread.
+    textES: "\xBFVes estas cortinas de terciopelo? Antes las cos\xEDan con hilo de
+      plata."
+    nextId: CONV_LORE_02
+  - id: CONV_DEAL_01
+    type: 1
+    speaker: 0
+    textEN: 'A bold bargain: trade half your vitality for double power?'
+    textES: "Un trato audaz: \xBFcambias mitad de tu vitalidad por el doble de fuerza?"
+    nextId: CHOICE_DEAL_ACCEPT|CHOICE_DEAL_REFUSE
+  - id: CHOICE_DEAL_ACCEPT
     type: 2
     speaker: 1
-    textEN: What are you selling?
-    textES: "\uFFFDQu\uFFFD es lo que vendes?"
-    nextId: 
-  - id: BARK_MERCHANT_WAKE_02
-    type: 0
-    speaker: 0
-    textEN: How are you feeling?
-    textES: "\uFFFDC\uFFFDmo te encuentras hoy?"
-    nextId: 
-  - id: BARK_MERCHANT_WAKE_03
-    type: 0
-    speaker: 0
-    textEN: Have a good day!
-    textES: "\uFFFDTen un buen dia!"
-    nextId: 
+    textEN: Deal. Cut the strings.
+    textES: Trato hecho. Corta los hilos.
+    nextId: CONV_DEAL_YES_01
+  - id: CHOICE_DEAL_REFUSE
+    type: 2
+    speaker: 1
+    textEN: No thanks. I'll keep my blood.
+    textES: No, gracias. Prefiero mi sangre.
+    nextId: CONV_DEAL_NO_01

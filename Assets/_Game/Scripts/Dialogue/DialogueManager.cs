@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class DialogueManager : MonoBehaviour
@@ -27,14 +28,18 @@ public class DialogueManager : MonoBehaviour
     public event Action<DialogueEntry, string> OnLineStarted;
     public event Action OnCompleteLineInstantly; // Triggered when the player presses the input to complete the line instantly
     public event Action<float> OnSkipProgressChanged; // 0.0 to 1.0 for the progress of skipping
-    public event Action OnConvesationEnding; // Triggered when the conversation is ending (sign rising)
+    public event Action OnConversationEnding; // Triggered when the conversation is ending (sign rising)
     public event Action OnConversationEnded; // Triggered when the conversation has ended (sign risen)
+    public event Action<List<DialogueEntry>> OnChoicesPresented; // Triggered when choices are presented to the player
+    public event Action<int> OnChoiceSelectionChanged; // Triggered when the player changes the selected choice
+    public event Action<string> OnChoiceSelected; // Triggered when the player selects a choice (choiceId)
 
     public ConversationState CurrentState { get; private set; } = ConversationState.Inactive;
 
     private DialogueEntry _currentEntry;
-    private Speaker _lastSpeaker;
-    private bool _hasLastSpeaker;
+    private int _selectedChoiceIndex = 0;
+    private readonly List<DialogueEntry> _currentChoices = new List<DialogueEntry>();
+    private readonly HashSet<Speaker> _droppedSpeakers = new HashSet<Speaker>();
     private bool _isHoldingSkip;
     private float _skipTimer;
     private bool _hasActiveChoices;
@@ -70,7 +75,7 @@ public class DialogueManager : MonoBehaviour
 
         GameManager.Instance.SetGameState(GameState.Dialogue);
 
-        _hasLastSpeaker = false;
+        _droppedSpeakers.Clear();
         _isHoldingSkip = false;
         _skipTimer = 0f;
         _hasActiveChoices = false;
@@ -86,9 +91,7 @@ public class DialogueManager : MonoBehaviour
         
         string localizedText = GameManager.Instance.DialogueDatabase.GetText(entry.id, GameManager.Instance.CurrentLanguage);
 
-        bool needsDrop = !_hasLastSpeaker || _lastSpeaker != entry.speaker;
-        _lastSpeaker = entry.speaker;
-        _hasLastSpeaker = true;
+        bool needsDrop = _droppedSpeakers.Add(entry.speaker);
 
         OnLineStarted?.Invoke(entry, localizedText);
 
@@ -120,6 +123,27 @@ public class DialogueManager : MonoBehaviour
             BeginEndConversation();
             return;
         }
+
+        if(_currentEntry.nextId.Contains("|"))
+        {
+            string[] choiceIds = _currentEntry.nextId.Split('|');
+            _currentChoices.Clear();
+
+            foreach(string rawId in choiceIds)
+            {
+                string cleanId = rawId.Trim();
+                DialogueEntry choiceEntry = GameManager.Instance.DialogueDatabase.GetEntry(cleanId);
+                
+                if(choiceEntry != null)
+                    _currentChoices.Add(choiceEntry);
+            }
+
+            if(_currentChoices.Count > 0)
+            {
+                PresentChoices();
+                return;
+            }
+        }
         
         DialogueEntry nextEntry = GameManager.Instance.DialogueDatabase.GetEntry(_currentEntry.nextId);
         if(nextEntry == null)
@@ -129,6 +153,23 @@ public class DialogueManager : MonoBehaviour
         }
 
         LoadLine(nextEntry);
+    }
+
+    private void PresentChoices()
+    {
+        _hasActiveChoices = true;
+        _selectedChoiceIndex = 0;
+
+        OnSkipInputCanceled(); // Cancel any skip input when choices are presented
+
+        bool needsDrop = _droppedSpeakers.Add(Speaker.Sarah);
+        OnChoicesPresented?.Invoke(_currentChoices);
+        OnChoiceSelectionChanged?.Invoke(_selectedChoiceIndex);
+
+        if(needsDrop)
+            EnterDroppingState();
+        else
+            CurrentState = ConversationState.Waiting;
     }
 
     private void BeginEndConversation()
@@ -141,7 +182,7 @@ public class DialogueManager : MonoBehaviour
         OnSkipProgressChanged?.Invoke(0f);
 
         DialogueAudioEvents.TriggerBarkSignRise();
-        OnConvesationEnding?.Invoke();
+        OnConversationEnding?.Invoke();
 
         if (!waitForAnimationCallbacks)
             RestartTransitionTimer(fallbackAnimDuration, NotifySignsRisen);
@@ -155,8 +196,12 @@ public class DialogueManager : MonoBehaviour
 
     public void NotifySignLanded()
     {
-        if(CurrentState != ConversationState.Dropping) return;
-        EnterPrintingState();
+        if (CurrentState != ConversationState.Dropping) return;
+
+        if (_hasActiveChoices)
+            CurrentState = ConversationState.Waiting;
+        else
+            EnterPrintingState();
     }
 
     public void NotifySignsRisen()
@@ -210,6 +255,69 @@ public class DialogueManager : MonoBehaviour
         OnSkipProgressChanged?.Invoke(0f);
     }
 
+    /// <summary>
+    /// Handles navigation input for choice selection.
+    /// </summary>
+    /// <param name="direction"> The direction to navigate (1 for next, -1 for previous).</param>
+    public void OnNavigationChoiceInput(int direction)
+    {
+        if (!IsConversationActive || !_hasActiveChoices) return;
+        if (CurrentState == ConversationState.Dropping || CurrentState == ConversationState.Rising) return;
+        if (GameManager.Instance != null && GameManager.Instance.CurrentGameState == GameState.Paused) return;
+
+        int count = _currentChoices.Count;
+        if (count == 0) return;
+
+        int newIndex = (_selectedChoiceIndex + direction + count) % count;
+        
+        if(newIndex != _selectedChoiceIndex)
+        {
+            _selectedChoiceIndex = newIndex;
+            DialogueAudioEvents.TriggerChoiceMoved();
+            OnChoiceSelectionChanged?.Invoke(_selectedChoiceIndex);
+        }
+    }
+
+    public void SetSelectedChoiceIndex(int index)
+    {
+        if (!IsConversationActive || !_hasActiveChoices) return;
+        if (CurrentState == ConversationState.Dropping || CurrentState == ConversationState.Rising) return;
+        if (index < 0 || index >= _currentChoices.Count || index == _selectedChoiceIndex) return;
+
+        _selectedChoiceIndex = index;
+        DialogueAudioEvents.TriggerChoiceMoved();
+        OnChoiceSelectionChanged?.Invoke(_selectedChoiceIndex);
+    }
+
+    public void OnConfirmChoiceInput()
+    {
+        if (!IsConversationActive || !_hasActiveChoices) return;
+        if (CurrentState == ConversationState.Dropping || CurrentState == ConversationState.Rising) return;
+        if (GameManager.Instance != null && GameManager.Instance.CurrentGameState == GameState.Paused) return;
+
+        DialogueEntry chosen = _currentChoices[_selectedChoiceIndex];
+        _hasActiveChoices = false;
+        _currentChoices.Clear();
+
+        GameManager.Instance.DialogueSeenTracker.MarkAsSeen(chosen.id);
+        DialogueAudioEvents.TriggerChoiceConfirmed();
+        OnChoiceSelected?.Invoke(chosen.id);
+
+        if (string.IsNullOrEmpty(chosen.nextId)) {
+            BeginEndConversation();
+            return;
+        }
+
+        DialogueEntry nextEntry = GameManager.Instance.DialogueDatabase.GetEntry(chosen.nextId);
+        
+        if (nextEntry == null) {
+            BeginEndConversation();
+            return;
+        }
+
+        LoadLine(nextEntry);
+    }
+
     private void UpdateHoldSkip()
     {
         if(!_isHoldingSkip  || _hasActiveChoices || CurrentState == ConversationState.Rising)
@@ -226,7 +334,7 @@ public class DialogueManager : MonoBehaviour
         float progress = Mathf.Clamp01(_skipTimer / skipHoldDuration); 
         OnSkipProgressChanged?.Invoke(progress);
 
-        if(progress >= skipHoldDuration)
+        if(progress >= 1f)
             ExecuteSkip();
     }
 

@@ -14,6 +14,7 @@ public class GameManager : MonoBehaviour
     [Header("Global Dialogue Settings")]
     [SerializeField] private DialogueDatabase dialogueDatabase;
     [SerializeField] private GameLanguage currentLanguage = GameLanguage.EN;
+    [SerializeField] private Transform player;
 
     public static GameManager Instance { get; private set; }
 
@@ -38,6 +39,12 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         DialogueSeenTracker = new DialogueSeenTracker();
+    }
+
+    private void Start()
+    {
+        if(player == null)
+            player = FindFirstObjectByType<Player>().transform;
     }
 
     public void SetGameState(GameState newState)
@@ -72,6 +79,11 @@ public class GameManager : MonoBehaviour
         OnLanguageChanged?.Invoke(newLanguage);
     }
 
+    public void SetPlayer(Player player)
+    {
+        this.player = player.transform;
+    }
+
     
     public void NotifyRoomExited()
     {
@@ -82,4 +94,6 @@ public class GameManager : MonoBehaviour
     public GameLanguage CurrentLanguage => currentLanguage;
     public DialogueSeenTracker DialogueSeenTracker { get; private set; }
     public bool CanTriggerDialogue => CurrentGameState == GameState.Gameplay;
+    public Player Player => player != null ? player.GetComponent<Player>() : null;
+    public Transform PlayerTransform => player != null ? player : null;
 }
