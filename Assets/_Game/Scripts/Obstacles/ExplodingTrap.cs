@@ -10,11 +10,11 @@ public class ExplodingTrap : MonoBehaviour
     private const float LiftFactor = 0.25f;
 
     [Header("DAMAGE SETTINGS")]
-    [SerializeField] private float damageToPlayer = 20f;
-    [SerializeField] private float damageToEnemy = 20f;
+    [SerializeField] private float damageToPlayer = 40f;
+    [SerializeField] private float damageToEnemy = 50f;
 
     [Header("EXPLODING TRAP SETTINGS")]
-    [SerializeField] private float explosionRadius = 20.0f;
+    [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
     [SerializeField] private float knockbackEffect = 10.0f;
 
@@ -46,7 +46,6 @@ public class ExplodingTrap : MonoBehaviour
         }
     }
 
-    // Coroutine
     IEnumerator ExplodeC()
     {
         if (trapRender != null){
