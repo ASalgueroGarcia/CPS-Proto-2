@@ -36,6 +36,8 @@ public class PlayerDashController : MonoBehaviour
 
     public void StartDash(Vector3 moveDirection)
     {
+        _player.PitFall?.RecordSafePositionBeforeDash();
+
         _dashDirection = moveDirection != Vector3.zero ? moveDirection : _player.transform.forward;
         _dashTimer = _player.dashDuration;
         _dashDirection.y = 0;

@@ -13,12 +13,14 @@ public readonly struct PlayerModules
     public readonly PlayerLocomotion Locomotion;
     public readonly PlayerDashController Dash;
     public readonly PlayerWeaponController Weapon;
+    public readonly PlayerPitFallController PitFall;
 
-    public PlayerModules(PlayerLocomotion locomotion, PlayerDashController dash, PlayerWeaponController weapon)
+    public PlayerModules(PlayerLocomotion locomotion, PlayerDashController dash, PlayerWeaponController weapon, PlayerPitFallController pitFall = null)
     {
         Locomotion = locomotion;
         Dash = dash;
         Weapon = weapon;
+        PitFall = pitFall;
     }
 }
 
@@ -114,10 +116,12 @@ public class Player : MonoBehaviour
         Locomotion = gameObject.GetOrAddComponent<PlayerLocomotion>();
         Dash = gameObject.GetOrAddComponent<PlayerDashController>();
         Weapon = gameObject.GetOrAddComponent<PlayerWeaponController>();
+        PitFall = gameObject.GetOrAddComponent<PlayerPitFallController>();
 
         Locomotion.Initialize(this);
         Dash.Initialize(this);
         Weapon.Initialize(this);
+        PitFall.Initialize(this);
 
         // Push stats from PlayerData ScriptableObject into Health.
         if (playerHealth == null) playerHealth = GetComponent<Health>();
@@ -154,6 +158,7 @@ public class Player : MonoBehaviour
         _currentStateInstance?.Tick();
 
         Locomotion.Tick();
+        PitFall?.Tick();
     }
 
     private void OnEnable()
@@ -375,8 +380,9 @@ public class Player : MonoBehaviour
     public PlayerLocomotion Locomotion { get; private set; }
     public PlayerDashController Dash { get; private set; }
     public PlayerWeaponController Weapon { get; private set; }
+    public PlayerPitFallController PitFall { get; private set; }
 
-    public PlayerModules Modules => new PlayerModules(Locomotion, Dash, Weapon);
+    public PlayerModules Modules => new PlayerModules(Locomotion, Dash, Weapon, PitFall);
 
     public float GetPlayerDamage() => Weapon != null ? Weapon.GetPlayerDamage() : 0f;
 

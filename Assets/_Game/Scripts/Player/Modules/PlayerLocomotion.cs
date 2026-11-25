@@ -33,6 +33,8 @@ public class PlayerLocomotion : MonoBehaviour
 
     public void Tick()
     {
+        if (Controller == null || !Controller.enabled) return;
+
         float gravity = _player.gravity;
         Player.PlayerState state = _player.currentState;
 
