@@ -32,6 +32,7 @@ public class ShopManager : MonoBehaviour
     private CanvasGroup _canvasG;
     private RectTransform _panelRect;
     public bool IsShopOpen = false;
+    public bool newItemsRequired = true;
 
     /// <summary>The shop on screen, if any: Esc closes it instead of opening the pause menu.</summary>
     public static ShopManager Open { get; private set; }
