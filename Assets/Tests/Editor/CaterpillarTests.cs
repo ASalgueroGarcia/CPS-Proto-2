@@ -10,8 +10,10 @@ using UnityEngine;
 public class CaterpillarTests
 {
     private const string SettingsAssetPath = "Assets/_Game/Data/Enemies/CaterpillarSettings.asset";
+    private const string HeavyPrefabPath = "Assets/_Game/Prefabs/Enemies/Enemy_Heavy.prefab";
     private const float Tolerance = 0.0001f;
 
+    private readonly List<GameObject> createdObjects = new List<GameObject>();
     private CaterpillarSettings settings;
 
     [SetUp]
@@ -23,6 +25,13 @@ public class CaterpillarTests
     [TearDown]
     public void TearDown()
     {
+        for (int i = createdObjects.Count - 1; i >= 0; i--)
+        {
+            if (createdObjects[i] != null)
+                Object.DestroyImmediate(createdObjects[i]);
+        }
+        createdObjects.Clear();
+
         if (settings != null)
             Object.DestroyImmediate(settings);
     }
@@ -350,6 +359,186 @@ public class CaterpillarTests
         }
 
         Assert.That(MaxDistanceFromChord(smoothed), Is.GreaterThan(0.15f));
+    }
+
+    [Test]
+    public void Runtime_setup_builds_matching_sphere_chain_and_two_eyes()
+    {
+        CaterpillarAttack attack = CreateRuntimeCaterpillar(out CaterpillarSegmentVisuals visuals, out Health health);
+
+        Assert.That(visuals.Segments.Count, Is.EqualTo(settings.segmentCount));
+        Assert.That(visuals.EyeRenderers.Count, Is.EqualTo(2));
+        Assert.That(visuals.HeadHitbox, Is.Not.Null);
+        Assert.That(visuals.HeadHitbox.IsActive, Is.True);
+        Assert.That(visuals.BodyColliders.Count, Is.EqualTo(settings.segmentCount - 1));
+        for (int i = 0; i < visuals.BodyColliders.Count; i++)
+            Assert.That(visuals.BodyColliders[i].enabled, Is.True, $"body collider {i}");
+
+        Assert.That(health.maxHealth, Is.EqualTo(40f).Within(Tolerance));
+        Assert.That(health.currentHealth, Is.EqualTo(40f).Within(Tolerance));
+
+        settings.segmentCount = 8;
+        attack.Initialize(settings);
+        Assert.That(visuals.Segments.Count, Is.EqualTo(8));
+        Assert.That(visuals.BodyColliders.Count, Is.EqualTo(7));
+    }
+
+    [Test]
+    public void Windup_swaps_eye_materials_rears_front_segments_and_shows_slam_telegraph()
+    {
+        CaterpillarAttack attack = CreateRuntimeCaterpillar(out CaterpillarSegmentVisuals visuals, out _);
+
+        Assert.That(visuals.AreEyesAlert, Is.False);
+        Assert.That(visuals.EyeRenderers[0].sharedMaterial, Is.SameAs(visuals.CalmEyeMaterial));
+        Assert.That(visuals.EyeRenderers[1].sharedMaterial, Is.SameAs(visuals.CalmEyeMaterial));
+        Assert.That(visuals.IsTelegraphVisible, Is.False);
+
+        Vector3 player = new Vector3(0f, 0f, 3f);
+        attack.Step(player, 0f);
+        attack.Step(player, 0.6f);
+
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Windup));
+        Assert.That(visuals.AreEyesAlert, Is.True);
+        Assert.That(visuals.EyeRenderers[0].sharedMaterial, Is.SameAs(visuals.AlertEyeMaterial));
+        Assert.That(visuals.EyeRenderers[1].sharedMaterial, Is.SameAs(visuals.AlertEyeMaterial));
+        Assert.That(visuals.AlertEyeMaterial, Is.Not.SameAs(visuals.CalmEyeMaterial));
+
+        Assert.That(visuals.Segments[0].position.y, Is.GreaterThan(settings.headRadius + 0.3f));
+        Assert.That(visuals.Segments[visuals.Segments.Count - 1].position.y, Is.EqualTo(settings.segmentRadius).Within(0.05f));
+
+        Assert.That(visuals.IsTelegraphVisible, Is.True);
+        Assert.That(visuals.TelegraphCenter.z, Is.EqualTo(settings.slamCenterOffset).Within(0.05f));
+    }
+
+    [Test]
+    public void Split_enables_only_head_collider_disables_body_colliders_and_routes_head_damage()
+    {
+        CaterpillarAttack attack = CreateRuntimeCaterpillar(out CaterpillarSegmentVisuals visuals, out Health health);
+        Vector3 player = new Vector3(0f, 0f, 3f);
+
+        AdvanceAttackToSplit(attack, player);
+
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Split));
+        Assert.That(visuals.HeadHitbox.IsActive, Is.True);
+        Assert.That(visuals.HeadHitbox.HitCollider.enabled, Is.True);
+        Assert.That(visuals.IsTelegraphVisible, Is.False);
+
+        for (int i = 0; i < visuals.BodyColliders.Count; i++)
+            Assert.That(visuals.BodyColliders[i].enabled, Is.False, $"body collider {i} must disable during Split");
+
+        Assert.That(attack.TryApplyPieceDamage(15f, isHeadPiece: false), Is.False);
+        Assert.That(health.currentHealth, Is.EqualTo(40f).Within(Tolerance));
+
+        Assert.That(visuals.HeadHitbox.TryApplyDamage(15f), Is.True);
+        Assert.That(health.currentHealth, Is.EqualTo(25f).Within(Tolerance));
+    }
+
+    [Test]
+    public void Reform_restores_calm_eyes_and_reenables_body_colliders()
+    {
+        CaterpillarAttack attack = CreateRuntimeCaterpillar(out CaterpillarSegmentVisuals visuals, out _);
+        Vector3 player = new Vector3(0f, 0f, 3f);
+
+        AdvanceAttackToSplit(attack, player);
+        attack.Step(player, 1.8f);
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Reform));
+
+        attack.Step(player, 0.25f);
+        for (int i = 0; i < visuals.BodyColliders.Count; i++)
+            Assert.That(visuals.BodyColliders[i].enabled, Is.True, $"body collider {i} should re-enable after Split");
+
+        attack.Step(player, 0.25f);
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Hold));
+        Assert.That(visuals.AreEyesAlert, Is.False);
+        Assert.That(visuals.EyeRenderers[0].sharedMaterial, Is.SameAs(visuals.CalmEyeMaterial));
+        Assert.That(visuals.EyeRenderers[1].sharedMaterial, Is.SameAs(visuals.CalmEyeMaterial));
+    }
+
+    [Test]
+    public void Split_death_detaches_and_retains_scattered_spheres_under_room_parent()
+    {
+        var roomParent = new GameObject("RoomParent");
+        createdObjects.Add(roomParent);
+
+        CaterpillarAttack attack = CreateRuntimeCaterpillar(out CaterpillarSegmentVisuals visuals, out Health health, roomParent.transform);
+        Vector3 player = new Vector3(0f, 0f, 3f);
+
+        AdvanceAttackToSplit(attack, player);
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Split));
+
+        health.SetHealth(0f);
+        health.OnDeath.Invoke();
+
+        Assert.That(attack.CurrentPhase, Is.EqualTo(CaterpillarPhase.Dead));
+        Assert.That(attack.StateMachine.DiedWhileSplit, Is.True);
+
+        GameObject remains = attack.DetachedRemainsRoot;
+        Assert.That(remains, Is.Not.Null);
+        createdObjects.Add(remains);
+        Assert.That(remains.transform.parent, Is.SameAs(roomParent.transform));
+        Assert.That(remains.transform.childCount, Is.EqualTo(settings.segmentCount));
+
+        foreach (SphereCollider col in remains.GetComponentsInChildren<SphereCollider>(true))
+            Assert.That(col.enabled, Is.False);
+
+        Object.DestroyImmediate(attack.gameObject);
+        Assert.That(remains != null, Is.True);
+        Assert.That(remains.transform.childCount, Is.EqualTo(settings.segmentCount));
+    }
+
+    [Test]
+    public void Enemy_heavy_prefab_uses_caterpillar_attack_and_modular_sphere_segments()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(HeavyPrefabPath);
+        Assert.That(prefab, Is.Not.Null, $"Failed to load {HeavyPrefabPath}");
+
+        CaterpillarAttack attack = prefab.GetComponent<CaterpillarAttack>();
+        CaterpillarSegmentVisuals visuals = prefab.GetComponent<CaterpillarSegmentVisuals>();
+        Enemy enemy = prefab.GetComponent<Enemy>();
+
+        Assert.That(attack, Is.Not.Null);
+        Assert.That(visuals, Is.Not.Null);
+        Assert.That(enemy, Is.Not.Null);
+        Assert.That(prefab.GetComponent<MeleeAttack>(), Is.Null);
+        Assert.That(attack.Settings, Is.Not.Null);
+        Assert.That(prefab.GetComponentInChildren<SkinnedMeshRenderer>(true), Is.Null);
+
+        Transform visualsRoot = prefab.transform.Find("Visuals");
+        Assert.That(visualsRoot, Is.Not.Null);
+        Transform head = visualsRoot.Find("HeadSegment");
+        Assert.That(head, Is.Not.Null);
+        Assert.That(head.GetComponent<CaterpillarHeadHitbox>(), Is.Not.Null);
+        Assert.That(head.Find("EyeLeft"), Is.Not.Null);
+        Assert.That(head.Find("EyeRight"), Is.Not.Null);
+
+        for (int i = 1; i < attack.Settings.segmentCount; i++)
+            Assert.That(visualsRoot.Find($"BodySegment_{i}"), Is.Not.Null, $"Missing BodySegment_{i}");
+    }
+
+    private CaterpillarAttack CreateRuntimeCaterpillar(
+        out CaterpillarSegmentVisuals visuals,
+        out Health health,
+        Transform parent = null)
+    {
+        var go = new GameObject("TestCaterpillar");
+        if (parent != null)
+            go.transform.SetParent(parent, false);
+        createdObjects.Add(go);
+
+        health = go.AddComponent<Health>();
+        go.AddComponent<EnemyVisualFeedback>();
+        visuals = go.AddComponent<CaterpillarSegmentVisuals>();
+        CaterpillarAttack attack = go.AddComponent<CaterpillarAttack>();
+        attack.Initialize(settings);
+        return attack;
+    }
+
+    private static void AdvanceAttackToSplit(CaterpillarAttack attack, Vector3 player)
+    {
+        attack.Step(player, 0f);
+        attack.Step(player, 1.2f);
+        attack.Step(player, 0.4f);
+        attack.Step(player, 0.2f);
     }
 
     private static void AdvanceToSplit(CaterpillarStateMachine machine, Vector3 origin, Vector3 player)
