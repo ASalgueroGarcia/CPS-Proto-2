@@ -1,17 +1,21 @@
 # CODEOWNERS — auto-requests review from the folder owner (matches Docs/RepoLayout.md §7)
 # PRs touching these paths ask the owner to review. Everyone: ask first for Settings/ and ThirdParty/.
 
-# Dima — player, enemies, waves, pickups, core, enemy data, character art
+# Dima + Mario — player and enemies; Dima — waves, pickups, core, character art
 /Assets/_Game/Scripts/Player/        @puntusovdima @mariozetus
-/Assets/_Game/Scripts/Enemies/      @puntusovdima
+/Assets/_Game/Scripts/Enemies/      @puntusovdima @mariozetus
 /Assets/_Game/Scripts/Waves/        @puntusovdima
 /Assets/_Game/Scripts/Pickups/      @puntusovdima
 /Assets/_Game/Scripts/Core/         @puntusovdima
-/Assets/_Game/Data/Enemies/         @puntusovdima
+/Assets/_Game/Data/Enemies/         @puntusovdima @mariozetus
 /Assets/_Game/Prefabs/Player/       @puntusovdima
-/Assets/_Game/Prefabs/Enemies/      @puntusovdima
+/Assets/_Game/Prefabs/Enemies/      @puntusovdima @mariozetus
 /Assets/_Game/Prefabs/Pickups/      @puntusovdima
 /Assets/_Game/Art/Characters/       @puntusovdima
+/Assets/_Game/Art/Characters/Enemies/ @puntusovdima @mariozetus
+
+# Mario — dialog system (folder may be added later)
+/Assets/_Game/Scripts/Dialog/       @mariozetus
 
 # Antonio — map, audio, scenes, map art
 /Assets/_Game/Scripts/Map/          @ASalgueroGarcia
@@ -32,9 +36,3 @@
 
 # Dima + Ivan — menu logic behind the view interfaces (the Canvas views stay in UI/)
 /Assets/_Game/Scripts/Menus/        @puntusovdima @IvanOoff
-
-# Ana — rooms, environment art, obstacle prefabs
-/Assets/_Game/Rooms/                @AnaLopezLanda
-/Assets/_Game/Art/Environment/      @AnaLopezLanda
-/Assets/_Game/Prefabs/Obstacles/    @AnaLopezLanda
-/Assets/_Game/Scripts/Environment/  @AnaLopezLanda
