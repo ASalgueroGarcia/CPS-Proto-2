@@ -697,8 +697,8 @@ AudioSource:
   m_Enabled: 1
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 588540542686796347, guid: 79d973aabc9e29a4eb6922709da4bfa7, type: 2}
-  m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 0}
+  m_audioClip: {fileID: 8300000, guid: b3c1716dcc2ec1b45b31be908331186e, type: 3}
+  m_Resource: {fileID: 8300000, guid: b3c1716dcc2ec1b45b31be908331186e, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
@@ -1679,6 +1679,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2056552797}
   - component: {fileID: 2056552798}
+  - component: {fileID: 2056552799}
   m_Layer: 0
   m_Name: '@SoundManager'
   m_TagString: Untagged
@@ -1720,7 +1721,31 @@ MonoBehaviour:
   pitchMax: 1.1
   sfxSource: {fileID: 1766630422}
   musicSource: {fileID: 594543969}
-  music: {fileID: 0}
+  music: {fileID: 8300000, guid: b3c1716dcc2ec1b45b31be908331186e, type: 3}
+--- !u!114 &2056552799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2056552796}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ece42e3b0dbc59543977bb040e344db7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Spectracle.Core::AudioManager
+  musicSource: {fileID: 0}
+  sfxSource: {fileID: 0}
+  poolSize: 10
+  masterGroup: {fileID: 24300002, guid: 79d973aabc9e29a4eb6922709da4bfa7, type: 2}
+  musicGroup: {fileID: 588540542686796347, guid: 79d973aabc9e29a4eb6922709da4bfa7, type: 2}
+  sfxGroup: {fileID: 6997829055853237731, guid: 79d973aabc9e29a4eb6922709da4bfa7, type: 2}
+  tuning: {fileID: 11400000, guid: ee3c94afb16141f6a29a13bb0e39dd8b, type: 2}
+  soundLibraries: []
+  sounds: []
+  masterVolume: 1
+  musicVolume: 1
+  sfxVolume: 1
 --- !u!1001 &7915033527410436539
 PrefabInstance:
   m_ObjectHideFlags: 0
