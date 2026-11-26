@@ -13,14 +13,22 @@ public class MainMenuPresenter : IDisposable
     private readonly SlotSelectPresenter _slots;
     private readonly SettingsPresenter _settings;
     private readonly IGameFlow _flow;
+    private readonly Action<bool> menuDistortionSetter;
     private bool _busy = true;
+    private bool menuDistortionActive;
 
-    public MainMenuPresenter(IMainMenuView view, SlotSelectPresenter slots, SettingsPresenter settings, IGameFlow flow)
+    public MainMenuPresenter(
+        IMainMenuView view,
+        SlotSelectPresenter slots,
+        SettingsPresenter settings,
+        IGameFlow flow,
+        Action<bool> menuDistortionSetter = null)
     {
         _view = view;
         _slots = slots;
         _settings = settings;
         _flow = flow;
+        this.menuDistortionSetter = menuDistortionSetter ?? SetDefaultMenuDistortion;
 
         _view.ResumeRequested += OnResume;
         _view.SettingsRequested += OnSettings;
@@ -32,6 +40,11 @@ public class MainMenuPresenter : IDisposable
         _view.ResumeRequested -= OnResume;
         _view.SettingsRequested -= OnSettings;
         _view.ExitRequested -= OnExit;
+
+        if (menuDistortionActive)
+        {
+            SetMenuDistortion(false);
+        }
     }
 
     /// <summary>Shows the title screen; it takes input once the view says it's up.</summary>
@@ -52,7 +65,30 @@ public class MainMenuPresenter : IDisposable
     {
         if (_busy) return;
         _busy = true;
-        _view.Hide(() => _settings.Open(Open));
+        _view.Hide(() =>
+        {
+            SetMenuDistortion(true);
+            _settings.Open(() =>
+            {
+                SetMenuDistortion(false);
+                Open();
+            });
+        });
+    }
+
+    private void SetMenuDistortion(bool active)
+    {
+        if (menuDistortionActive == active)
+            return;
+
+        menuDistortionActive = active;
+        menuDistortionSetter?.Invoke(active);
+    }
+
+    private static void SetDefaultMenuDistortion(bool active)
+    {
+        if (SoundManager.Instance != null)
+            SoundManager.Instance.SetMenuDistortion(active);
     }
 
     private void OnExit()

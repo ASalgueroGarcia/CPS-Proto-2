@@ -261,6 +261,36 @@ public class MenuPresenterTests
     }
 
     [Test]
+    public void SettingsFromMainMenu_TogglesMenuDistortion_OnOpenCloseAndDispose()
+    {
+        _main.Dispose();
+
+        var distortionLog = new List<bool>();
+        var customMain = new MainMenuPresenter(_menuView, _slots, _settingsPresenter, _flow, distortionLog.Add);
+        try
+        {
+            customMain.Open();
+            _menuView.SettingsRequested?.Invoke();
+
+            CollectionAssert.AreEqual(new[] { true }, distortionLog, "Opening settings from the main menu enables menu distortion.");
+
+            _settingsView.BackRequested?.Invoke();
+
+            CollectionAssert.AreEqual(new[] { true, false }, distortionLog, "Leaving settings restores normal music.");
+
+            // Disposing while settings is still open must also clear distortion cleanly.
+            _menuView.SettingsRequested?.Invoke();
+            CollectionAssert.AreEqual(new[] { true, false, true }, distortionLog);
+        }
+        finally
+        {
+            customMain.Dispose();
+        }
+
+        CollectionAssert.AreEqual(new[] { true, false, true, false }, distortionLog);
+    }
+
+    [Test]
     public void AfterDispose_TheViewsNoLongerDriveAnything()
     {
         _main.Dispose();

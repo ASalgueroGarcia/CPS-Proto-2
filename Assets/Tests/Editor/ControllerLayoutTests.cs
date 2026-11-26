@@ -1,18 +1,23 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 /// <summary>
 /// EditMode tests for GDD controller bindings, ControllerPresetCatalog lookup and fallbacks,
 /// ControllerRebindService preset/per-key overrides, InputDeviceTracker family detection,
-/// and SoundManager audio consolidation.
+/// live ControllerVisualizerView highlight mapping, KeybindsPanel preset cycling,
+/// pause menu button flow, and SoundManager audio consolidation.
 /// </summary>
 public class ControllerLayoutTests
 {
     private const string CatalogAssetPath = "Assets/_Game/Data/Settings/ControllerPresetCatalog.asset";
     private const string InputActionsAssetPath = "Assets/_Game/Settings/InputSystem_Actions.inputactions";
+    private const string SettingsMenuPrefabPath = "Assets/_Game/Prefabs/UI/SettingsMenu.prefab";
+    private const string UiPrefabPath = "Assets/_Game/Prefabs/UI/UI.prefab";
     private const float Tolerance = 0.0001f;
 
     private TempSaveFolder tempFolder;
@@ -20,6 +25,7 @@ public class ControllerLayoutTests
     private InputActionAsset runtimeActions;
     private ControllerPresetCatalog runtimeCatalog;
     private GameObject testHost;
+    private GameObject spawnedPrefab;
 
     [SetUp]
     public void SetUp()
@@ -40,8 +46,16 @@ public class ControllerLayoutTests
     [TearDown]
     public void TearDown()
     {
+        if (spawnedPrefab != null)
+            UnityEngine.Object.DestroyImmediate(spawnedPrefab);
+
         if (testHost != null)
             UnityEngine.Object.DestroyImmediate(testHost);
+
+        if (InputDeviceTracker.Instance != null)
+            UnityEngine.Object.DestroyImmediate(InputDeviceTracker.Instance.gameObject);
+
+        KeybindsPanel.ResetSharedServiceForTests();
 
         if (runtimeActions != null)
             UnityEngine.Object.DestroyImmediate(runtimeActions);
@@ -49,6 +63,8 @@ public class ControllerLayoutTests
         if (runtimeCatalog != null)
             UnityEngine.Object.DestroyImmediate(runtimeCatalog);
 
+        Time.timeScale = 1f;
+        Services.ResetForTests();
         tempFolder?.Dispose();
     }
 
@@ -321,5 +337,201 @@ public class ControllerLayoutTests
         Assert.That(sound.IsPauseNoiseActive, Is.False);
         Assert.That(sound.CurrentLowpassHz, Is.EqualTo(AudioFilter.OpenLowpassHz).Within(0.1f));
         Assert.That(sound.CurrentHighpassHz, Is.EqualTo(AudioFilter.OpenHighpassHz).Within(0.1f));
+    }
+
+    [Test]
+    public void Controller_visualizer_maps_bindings_highlights_controls_and_moves_left_stick_nub()
+    {
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/leftStick"), Is.EqualTo(ControllerVisualControl.LeftStick));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/dpad/up"), Is.EqualTo(ControllerVisualControl.Dpad));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/buttonSouth"), Is.EqualTo(ControllerVisualControl.ButtonSouth));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/buttonEast"), Is.EqualTo(ControllerVisualControl.ButtonEast));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/buttonWest"), Is.EqualTo(ControllerVisualControl.ButtonWest));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/buttonNorth"), Is.EqualTo(ControllerVisualControl.ButtonNorth));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/leftShoulder"), Is.EqualTo(ControllerVisualControl.LeftShoulder));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/rightShoulder"), Is.EqualTo(ControllerVisualControl.RightShoulder));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/leftTrigger"), Is.EqualTo(ControllerVisualControl.LeftTrigger));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/rightTrigger"), Is.EqualTo(ControllerVisualControl.RightTrigger));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl("<Gamepad>/start"), Is.EqualTo(ControllerVisualControl.Start));
+        Assert.That(ControllerVisualizerView.MapBindingPathToControl(string.Empty), Is.EqualTo(ControllerVisualControl.None));
+
+        Assert.That(ControllerVisualizerView.FormatShortFaceGlyph(ControllerVisualControl.ButtonSouth, GamepadFamily.PlayStation), Is.EqualTo("X"));
+        Assert.That(ControllerVisualizerView.FormatShortFaceGlyph(ControllerVisualControl.ButtonSouth, GamepadFamily.Xbox), Is.EqualTo("A"));
+        Assert.That(ControllerVisualizerView.FormatShortFaceGlyph(ControllerVisualControl.RightTrigger, GamepadFamily.PlayStation), Is.EqualTo("R2"));
+        Assert.That(ControllerVisualizerView.FormatShortFaceGlyph(ControllerVisualControl.RightTrigger, GamepadFamily.Xbox), Is.EqualTo("RT"));
+
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SettingsMenuPrefabPath);
+        Assert.That(prefab, Is.Not.Null, $"Missing {SettingsMenuPrefabPath}");
+        spawnedPrefab = UnityEngine.Object.Instantiate(prefab);
+
+        ControllerVisualizerView visualizer = spawnedPrefab.GetComponentInChildren<ControllerVisualizerView>(true);
+        Assert.That(visualizer, Is.Not.Null);
+
+        using var service = new ControllerRebindService(runtimeActions, runtimeCatalog, settingsService);
+        service.ApplyPreset("classic");
+        visualizer.RefreshBindings(service, GamepadFamily.PlayStation);
+
+        var input = new ControllerVisualInputState
+        {
+            leftStick = new Vector2(0.8f, -0.6f),
+            buttonSouth = true,
+            rightTrigger = 0.85f
+        };
+        visualizer.ApplyInputState(input);
+
+        Assert.That(visualizer.LeftStickNubOffset.x, Is.GreaterThan(0f));
+        Assert.That(visualizer.LeftStickNubOffset.y, Is.LessThan(0f));
+        Assert.That(visualizer.IsControlHighlighted(ControllerVisualControl.LeftStick), Is.True);
+        Assert.That(visualizer.IsControlHighlighted(ControllerVisualControl.ButtonSouth), Is.True);
+        Assert.That(visualizer.IsControlHighlighted(ControllerVisualControl.RightTrigger), Is.True);
+        Assert.That(visualizer.IsActionHighlighted("Move"), Is.True);
+        Assert.That(visualizer.IsActionHighlighted("Attack"), Is.True);
+        Assert.That(visualizer.IsActionHighlighted("Special"), Is.False, "Classic binds Special to North, not Right Trigger.");
+
+        // Switching to Action (Shoulders) moves Special to Right Trigger and Attack to West.
+        service.ApplyPreset("action");
+        visualizer.RefreshBindings(service, GamepadFamily.Xbox);
+        visualizer.ApplyInputState(input);
+
+        Assert.That(visualizer.GetMappedControlForAction("Special"), Is.EqualTo(ControllerVisualControl.RightTrigger));
+        Assert.That(visualizer.GetMappedControlForAction("Attack"), Is.EqualTo(ControllerVisualControl.ButtonWest));
+        Assert.That(visualizer.IsActionHighlighted("Special"), Is.True);
+        Assert.That(visualizer.IsActionHighlighted("Attack"), Is.False);
+    }
+
+    [Test]
+    public void Keybinds_panel_cycles_modular_presets_transitions_to_custom_and_auto_detects_device()
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(SettingsMenuPrefabPath);
+        Assert.That(prefab, Is.Not.Null, $"Missing {SettingsMenuPrefabPath}");
+        spawnedPrefab = UnityEngine.Object.Instantiate(prefab);
+
+        KeybindsPanel panel = spawnedPrefab.GetComponent<KeybindsPanel>();
+        Assert.That(panel, Is.Not.Null);
+
+        testHost = new GameObject("KeybindsTrackerHost");
+        InputDeviceTracker tracker = testHost.AddComponent<InputDeviceTracker>();
+
+        using var service = new ControllerRebindService(runtimeActions, runtimeCatalog, settingsService);
+        panel.Initialize(service, tracker, runtimeCatalog);
+
+        // Starts in Keyboard/Mouse mode until gamepad activity arrives.
+        Assert.That(panel.IsGamepadSchemeActive, Is.False);
+
+        // Switching tracker to PlayStation gamepad activates gamepad scheme and glyphs.
+        tracker.SetActiveDevice(InputDeviceKind.Gamepad, GamepadFamily.PlayStation);
+        Assert.That(panel.IsGamepadSchemeActive, Is.True);
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Classic (GDD)"));
+
+        // Cycling forward moves through catalog presets and wraps around cleanly.
+        panel.SelectNextPreset();
+        Assert.That(service.ActivePresetId, Is.EqualTo("action"));
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Action (Shoulders)"));
+
+        panel.SelectNextPreset();
+        Assert.That(service.ActivePresetId, Is.EqualTo("classic"));
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Classic (GDD)"));
+
+        // Adding a third preset to the catalog updates cycling modularly without code changes.
+        var expanded = new List<ControllerPreset>(runtimeCatalog.Presets)
+        {
+            new ControllerPreset
+            {
+                id = "southpaw",
+                displayName = "Southpaw Custom",
+                bindings = new List<ControllerActionBinding>
+                {
+                    new ControllerActionBinding("Attack", "<Gamepad>/leftTrigger", "Normal Attack")
+                }
+            }
+        };
+        runtimeCatalog.SetPresets(expanded);
+
+        panel.SelectPreviousPreset();
+        Assert.That(service.ActivePresetId, Is.EqualTo("southpaw"));
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Southpaw Custom"));
+
+        // Per-action rebind override transitions preset label to Custom and updates PlayStation/Xbox glyphs.
+        Assert.That(service.ApplyActionOverride("Attack", "<Gamepad>/leftShoulder"), Is.True);
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Custom"));
+        Assert.That(FindRow(panel, "Attack").bindingLabel.text, Is.EqualTo("L1"));
+
+        tracker.SetActiveDevice(InputDeviceKind.Gamepad, GamepadFamily.Xbox);
+        Assert.That(FindRow(panel, "Attack").bindingLabel.text, Is.EqualTo("LB"));
+
+        // Cycling forward from Custom returns cleanly to the first catalog preset.
+        panel.SelectNextPreset();
+        Assert.That(service.ActivePresetId, Is.EqualTo("classic"));
+        Assert.That(panel.ActivePresetDisplayName, Is.EqualTo("Classic (GDD)"));
+    }
+
+    [Test]
+    public void Pause_menu_has_only_resume_options_main_menu_and_drives_settings_flow()
+    {
+        GameObject uiPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(UiPrefabPath);
+        Assert.That(uiPrefab, Is.Not.Null, $"Missing {UiPrefabPath}");
+        spawnedPrefab = UnityEngine.Object.Instantiate(uiPrefab);
+
+        Transform buttonList = spawnedPrefab.transform.Find("PausePanel/Panel/Signs/ButtonList");
+        Assert.That(buttonList, Is.Not.Null, "PausePanel button list is missing.");
+        Assert.That(buttonList.childCount, Is.EqualTo(3), "Pause menu must contain only Resume, Options and Main Menu.");
+        Assert.That(buttonList.GetChild(0).name, Is.EqualTo("ResumeBtn"));
+        Assert.That(buttonList.GetChild(1).name, Is.EqualTo("OptionsBtn"));
+        Assert.That(buttonList.GetChild(2).name, Is.EqualTo("MainMenuBtn"));
+        Assert.That(buttonList.Find("ReturnToMapBtn"), Is.Null, "Return to Map must not exist in the pause menu.");
+
+        UIManager uiManager = spawnedPrefab.GetComponent<UIManager>();
+        Assert.That(uiManager, Is.Not.Null);
+        SettingsCanvasView settingsView = spawnedPrefab.GetComponentInChildren<SettingsCanvasView>(true);
+        Assert.That(settingsView, Is.Not.Null);
+
+        testHost = new GameObject("PauseTrackerHost");
+        InputDeviceTracker tracker = testHost.AddComponent<InputDeviceTracker>();
+        using var service = new ControllerRebindService(runtimeActions, runtimeCatalog, settingsService);
+        KeybindsPanel keybinds = settingsView.GetComponent<KeybindsPanel>();
+        Assert.That(keybinds, Is.Not.Null);
+        keybinds.Initialize(service, tracker, runtimeCatalog);
+
+        var save = new SaveService(tempFolder.Store);
+        var fakeFlow = new FakePauseFlow();
+        Services.Install(save, settingsService, new RunSession(save));
+        Services.RegisterFlow(fakeFlow);
+
+        uiManager.Pause();
+        Assert.That(uiManager.IsPaused, Is.True);
+        Assert.That(uiManager.IsSettingsOpen, Is.False);
+
+        uiManager.OpenSettings();
+        Assert.That(uiManager.IsSettingsOpen, Is.True);
+
+        settingsView.Back();
+        Assert.That(uiManager.IsSettingsOpen, Is.False);
+        Assert.That(uiManager.IsPaused, Is.True, "Closing settings returns to the pause menu.");
+
+        uiManager.ReturnToMainMenu();
+        Assert.That(fakeFlow.MainMenuCalls, Is.EqualTo(1));
+
+        uiManager.Resume();
+        Assert.That(uiManager.IsPaused, Is.False);
+    }
+
+    private static RebindActionRow FindRow(KeybindsPanel panel, string actionName)
+    {
+        for (int i = 0; i < panel.RebindRows.Count; i++)
+        {
+            if (string.Equals(panel.RebindRows[i].actionName, actionName, System.StringComparison.OrdinalIgnoreCase))
+                return panel.RebindRows[i];
+        }
+
+        Assert.Fail($"Rebind row '{actionName}' not found on KeybindsPanel.");
+        return null;
+    }
+
+    private sealed class FakePauseFlow : IGameFlow
+    {
+        public int MainMenuCalls { get; private set; }
+        public void EnterHub() { }
+        public void EnterMainMenu() => MainMenuCalls++;
+        public void Quit() { }
     }
 }

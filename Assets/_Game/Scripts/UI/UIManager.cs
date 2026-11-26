@@ -13,7 +13,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject pausePanel;
     [SerializeField] private InputActionReference pauseAction;
     [SerializeField] private Button inGamePauseButton;
-    [SerializeField] private Button returnToMapBtn;
+    [Tooltip("ISettingsView opened by the pause menu's Options button.")]
+    [SerializeField] private MonoBehaviour settingsView;
 
     [Header("PLAYER UI")]
     [SerializeField] private TextMeshProUGUI healthText;
@@ -39,6 +40,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject eolCanvas;
     
     private bool _isPaused = false;
+    private SettingsPresenter settingsPresenter;
+    private bool settingsOpen;
     private Health _playerHealth;
     private PlayerStatsManager _playerStats;
     private Player _playerFsm;
@@ -48,6 +51,8 @@ public class UIManager : MonoBehaviour
     private GameObject _lastPauseSelection;
 
     public static UIManager Instance => _instance;
+    public bool IsPaused => _isPaused;
+    public bool IsSettingsOpen => settingsOpen;
 
     private void Awake()
     {
@@ -295,6 +300,9 @@ public class UIManager : MonoBehaviour
         {
             _playerHealth.OnHealthChanged.RemoveListener(OnPlayerHealthChanged);
         }
+
+        settingsPresenter?.Dispose();
+        settingsPresenter = null;
     }
 
     private void OnPausePressed(InputAction.CallbackContext context)
@@ -302,6 +310,9 @@ public class UIManager : MonoBehaviour
         // The title screen has nothing to pause - there Esc is the menus' "back" (Cancel). A lobby in
         // the same scene has a player, so pausing keeps working there.
         if (SceneManager.GetActiveScene().name == "MainMenu" && GameObject.FindWithTag("Player") == null) return;
+
+        // With the settings open, Esc is their Back (Cancel), not Resume.
+        if (settingsOpen) return;
 
         // Esc is also the UI Cancel: in the shop it closes the shop (as B does), it doesn't pause over it.
         if (!_isPaused && ShopManager.Open != null && context.control != null && context.control.device is Keyboard)
@@ -405,6 +416,8 @@ public class UIManager : MonoBehaviour
     // nodes), and A on one of them would buy or enter a room while paused. Bring focus back to the menu.
     private void KeepPauseFocus()
     {
+        if (settingsOpen) return;
+
         EventSystem events = EventSystem.current;
         if (events == null || pausePanel == null || !pausePanel.activeInHierarchy) return;
 
@@ -491,8 +504,6 @@ public class UIManager : MonoBehaviour
 
     public void Pause()
     {
-        if (returnToMapBtn != null) returnToMapBtn.gameObject.SetActive(SceneManager.GetActiveScene().name != "MainMenu");
-
         if (pausePanel != null){
             pausePanel.SetActive(true);
         }
@@ -506,7 +517,14 @@ public class UIManager : MonoBehaviour
 
     private static void SetPauseNoise(bool on)
     {
-        if (AudioManager.Instance != null) AudioManager.Instance.SetPauseNoise(on);
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.SetPauseNoise(on);
+        }
+        else if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.SetPauseNoise(on);
+        }
     }
 
     public void Resume()
@@ -522,15 +540,47 @@ public class UIManager : MonoBehaviour
         _isPaused = false;
         Player.IsPaused = false;
         SetPauseNoise(false);
+
+        // Resumed from outside (a room load) with the settings still open: put them away.
+        if (settingsOpen && settingsView is ISettingsView view)
+        {
+            settingsOpen = false;
+            view.Hide();
+        }
     }
 
-    public void ReturnToMap()
+    /// <summary>Pause menu "Options": opens the settings menu over the pause menu. Back returns to it.</summary>
+    public void OpenSettings()
     {
+        if (settingsOpen || !(settingsView is ISettingsView view) || Services.Settings == null)
+            return;
+
+        settingsPresenter ??= new SettingsPresenter(view, Services.Settings);
+        settingsOpen = true;
+        EventSystem events = EventSystem.current;
+        GameObject pressed = events != null ? events.currentSelectedGameObject : null;
+        settingsPresenter.Open(() =>
+        {
+            settingsOpen = false;
+            if (events != null && pressed != null && pressed.activeInHierarchy)
+            {
+                events.SetSelectedGameObject(pressed);
+            }
+        });
+    }
+
+    /// <summary>Pause menu "Main Menu": abandons the active run and returns to the title screen.</summary>
+    public void ReturnToMainMenu()
+    {
+        if (Services.Flow != null)
+        {
+            Services.Flow.EnterMainMenu();
+            return;
+        }
+
+        Resume();
         Time.timeScale = 1f;
-        _isPaused = false;
-        Player.IsPaused = false;
-        SetPauseNoise(false);
-        if (SceneController.Instance != null) SceneController.Instance.UnloadLevel();
+        SceneManager.LoadScene("MainMenu");
     }
 
     public void ShowDeathScreen()
