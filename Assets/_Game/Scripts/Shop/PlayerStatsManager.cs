@@ -91,10 +91,10 @@ public class PlayerStatsManager : MonoBehaviour
             playerController.WeaponBaseDamage = currentNormalDamage;
             playerController.BaseCritChance = currentCritChance;
 
-            if (healthPlayer != null)
+            // HP carries over between rooms (GDD). A stored 0 (dead) is never carried into a room.
+            if (healthPlayer != null && currentHealth > 0f)
             {
-                healthPlayer.maxHealth = maxHealth;
-                healthPlayer.currentHealth = currentHealth;
+                healthPlayer.RestoreHealth(currentHealth, maxHealth);
             }
             Debug.Log("PlayerStatsManager: Applied persistent stats to new player.");
         }
@@ -126,6 +126,25 @@ public class PlayerStatsManager : MonoBehaviour
         Debug.Log($"Coins collected: {amount}. Total: {currentCoins}");
     }
 
+    public bool CanBuy(int itemValue)
+    {
+        if(currentCoins >= itemValue)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public bool tryToBuy(int itemValue)
+    {
+        if(currentCoins < itemValue)
+        {
+            return false;
+        }
+
+        currentCoins -= itemValue;
+        return true;
+    }
     public void Heal(float amount)
     {
         if (healthPlayer != null)
@@ -214,14 +233,20 @@ public class PlayerStatsManager : MonoBehaviour
     public void ResetAllThePlayerStats()
     {
         _hasStats = false;
+        currentHealth = 0f; // the map shows "-- / --" until the next room's player is captured
+        maxHealth = 0f;
         currentCriticalDamage = 25.0f;
         currentSpecialDamage = 20.0f;
         currentAttackSpeed = 1.0f;
         currentCoins = 0;
         inventoryItems = 0;
         listOfInventoryItems.Clear();
-        
-        // Try  to bind immediately if player exists
-        BindToPlayer();
+
+        // Let go of the old run's player instead of re-capturing it: after a boss win it is still
+        // alive and damaged here, and its HP would leak into the next run. The next room's player
+        // is captured fresh when it loads (UIManager.OnSceneLoaded -> BindToPlayer).
+        if (healthPlayer != null) healthPlayer.OnHealthChanged.RemoveListener(SyncHealth);
+        healthPlayer = null;
+        playerController = null;
     }
 }
