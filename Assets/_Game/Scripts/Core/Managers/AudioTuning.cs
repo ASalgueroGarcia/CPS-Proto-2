@@ -24,4 +24,13 @@ public class AudioTuning : ScriptableObject
     [Range(300f, 22000f)] public float pauseLowpassHz = 1800f;
     [Tooltip("While paused the music keeps nothing below this frequency. Higher = thinner, smaller speaker.")]
     [Range(10f, 2000f)] public float pauseHighpassHz = 450f;
+
+    [Header("Settings menu distortion")]
+    [Tooltip("While the settings menu is open the music keeps nothing above this frequency.")]
+    [Range(300f, 22000f)] public float menuLowpassHz = 2400f;
+    [Tooltip("While the settings menu is open the music keeps nothing below this frequency.")]
+    [Range(10f, 2000f)] public float menuHighpassHz = 320f;
+    [Range(0f, 1f)] public float menuNoiseVolume = 0.12f;
+    [Tooltip("Fade in and out for settings menu distortion, in real seconds.")]
+    [Min(0f)] public float menuDistortionFadeSeconds = 0.35f;
 }

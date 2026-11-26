@@ -3,9 +3,9 @@ using System.IO;
 using UnityEngine;
 
 /// <summary>
-/// Loads, changes and writes settings.json. Changes apply live through the events (sound and
-/// screen listen to them); the file is written when the player leaves the menu, not on every
-/// slider tick.
+/// Loads, changes and writes settings.json. Changes apply live through the events (sound,
+/// screen and controls listen to them); the file is written when the player leaves the menu,
+/// not on every slider tick.
 /// </summary>
 public class SettingsService
 {
@@ -20,6 +20,9 @@ public class SettingsService
 
     /// <summary>Resolution or window mode changed - the screen gets resized.</summary>
     public event Action<SettingsData> DisplayChanged;
+
+    /// <summary>Controller preset or custom binding overrides changed.</summary>
+    public event Action<SettingsData> ControlsChanged;
 
     public SettingsData Data { get; private set; } = new SettingsData();
 
@@ -84,6 +87,23 @@ public class SettingsService
         Data.fullscreenMode = (int)mode;
         _dirty = true;
         DisplayChanged?.Invoke(Data);
+    }
+
+    public void SetControllerPreset(string presetId, string overridesJson = "")
+    {
+        string normalizedPreset = SettingsData.NormalizePresetId(presetId);
+        string normalizedOverrides = overridesJson ?? string.Empty;
+
+        if (string.Equals(Data.controllerPresetId, normalizedPreset, StringComparison.Ordinal)
+            && string.Equals(Data.bindingOverridesJson, normalizedOverrides, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Data.controllerPresetId = normalizedPreset;
+        Data.bindingOverridesJson = normalizedOverrides;
+        _dirty = true;
+        ControlsChanged?.Invoke(Data);
     }
 
     public void SetLastSlot(int slot)

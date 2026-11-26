@@ -5,9 +5,9 @@ using UnityEngine;
 using UnityEngine.Audio;
 
 /// <summary>
-/// Plays named sounds from SoundLibrary assets and controls the mix at runtime:
-/// music pitch, music speed, SFX pitch and the pause noise layer.
-/// Pitch and speed go through MasterAudioMixer, so they also affect sounds played by SoundManager.
+/// Runtime mix and named SoundLibrary backend coordinated behind SoundManager:
+/// music pitch, music speed, SFX pitch, pause vinyl noise and settings-menu distortion.
+/// Pitch, speed and filter parameters route through MasterAudioMixer, affecting all active sources.
 /// </summary>
 public class AudioManager : MonoBehaviour
 {
@@ -44,12 +44,12 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioMixerGroup sfxGroup;
 
     [Header("Tuning")]
-    [Tooltip("Pitch and speed limits and the pause noise. Edit the asset in Data/Audio.")]
+    [Tooltip("Pitch and speed limits and the pause/menu distortion tuning. Edit the asset in Data/Audio.")]
     [SerializeField] private AudioTuning tuning;
 
     [Header("Sound Library")]
     [SerializeField] private SoundLibrary[] soundLibraries;
-    [SerializeField] private Sound[] sounds; // Mantener para compatibilidad
+    [SerializeField] private Sound[] sounds;
 
     [Header("Volume Settings")]
     [Range(0f, 1f)] [SerializeField] private float masterVolume = 1f;
@@ -60,54 +60,103 @@ public class AudioManager : MonoBehaviour
     private List<AudioSource> audioSourcePool;
     private Queue<AudioSource> availableSources;
 
-    private Sound _currentMusicSound;
+    private Sound currentMusicSound;
     private Coroutine musicFade;
 
     private AudioSource noiseSource;
+    private AudioMixer fallbackMixer;
+    private AudioTuning runtimeCreatedTuning;
+    private bool initialized;
+    private bool pauseNoiseActive;
+    private bool menuDistortionActive;
+    private float activeLowpassHz = 1800f;
+    private float activeHighpassHz = 450f;
+
     private TweenedValue musicPitch = new TweenedValue(1f);
     private TweenedValue musicSpeed = new TweenedValue(1f);
     private TweenedValue sfxPitch = new TweenedValue(1f);
     private TweenedValue noiseVolume = new TweenedValue(0f);
-    private TweenedValue pauseMuffle = new TweenedValue(0f);
+    private TweenedValue filterAmount = new TweenedValue(0f);
 
     public float MusicPitch => musicPitch.Current;
     public float MusicSpeed => musicSpeed.Current;
     public float SfxPitch => sfxPitch.Current;
+    public bool IsPauseNoiseActive => pauseNoiseActive;
+    public bool IsMenuDistortionActive => menuDistortionActive;
     public bool IsPauseNoiseAudible => noiseSource != null && noiseSource.isPlaying;
+    public float FilterAmount => filterAmount.Current;
+    public float CurrentLowpassHz => AudioFilter.Cutoff(AudioFilter.OpenLowpassHz, activeLowpassHz, filterAmount.Current);
+    public float CurrentHighpassHz => AudioFilter.Cutoff(AudioFilter.OpenHighpassHz, activeHighpassHz, filterAmount.Current);
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
-            InitializeSoundManager();
+            if (Application.isPlaying)
+                DontDestroyOnLoad(gameObject);
+
+            EnsureInitialized();
         }
-        else
+        else if (Instance != this)
         {
-            // Only this component: it can share its GameObject with other managers.
+            // Only this component: it can share its GameObject with SoundManager.
             Destroy(this);
         }
     }
 
-    private void InitializeSoundManager()
+    private void OnDestroy()
     {
-        if (tuning == null) tuning = ScriptableObject.CreateInstance<AudioTuning>();
+        if (Instance == this)
+            Instance = null;
+
+        if (runtimeCreatedTuning != null)
+        {
+            if (Application.isPlaying)
+                Destroy(runtimeCreatedTuning);
+            else
+                DestroyImmediate(runtimeCreatedTuning);
+
+            runtimeCreatedTuning = null;
+        }
+    }
+
+    public void SetFallbackMixer(AudioMixer mixer)
+    {
+        if (mixer != null)
+            fallbackMixer = mixer;
+    }
+
+    public void EnsureInitialized()
+    {
+        if (initialized)
+            return;
+
+        initialized = true;
+
+        if (tuning == null)
+        {
+            runtimeCreatedTuning = ScriptableObject.CreateInstance<AudioTuning>();
+            tuning = runtimeCreatedTuning;
+        }
+
+        activeLowpassHz = tuning.pauseLowpassHz;
+        activeHighpassHz = tuning.pauseHighpassHz;
+
         soundDictionary = new Dictionary<string, Sound>(StringComparer.Ordinal);
 
-        // Cargar sonidos desde SoundLibraries (ScriptableObjects)
         if (soundLibraries != null)
         {
-            foreach (var library in soundLibraries)
+            foreach (SoundLibrary library in soundLibraries)
             {
-                if (library == null || library.Sounds == null) continue;
+                if (library == null || library.Sounds == null)
+                    continue;
 
-                foreach (var libSound in library.Sounds)
+                foreach (SoundLibrary.Sound libSound in library.Sounds)
                 {
-                    if (libSound == null) continue;
-                    if (string.IsNullOrWhiteSpace(libSound.name)) continue;
+                    if (libSound == null || string.IsNullOrWhiteSpace(libSound.name))
+                        continue;
 
-                    // Convertir SoundLibrary.Sound a AudioManager.Sound
                     var sound = new Sound
                     {
                         name = libSound.name,
@@ -122,30 +171,30 @@ public class AudioManager : MonoBehaviour
                     if (!soundDictionary.ContainsKey(sound.name))
                         soundDictionary.Add(sound.name, sound);
                     else
-                        Debug.LogWarning($"[AudioManager] Sonido duplicado encontrado: '{sound.name}' - usando el primero");
+                        Debug.LogWarning($"[AudioManager] Duplicate sound '{sound.name}' - keeping first entry.");
                 }
             }
         }
 
-        // Cargar sonidos del array tradicional (compatibilidad con versiones antiguas)
         if (sounds != null)
         {
-            foreach (var s in sounds)
+            foreach (Sound s in sounds)
             {
-                if (s == null) continue;
-                if (string.IsNullOrWhiteSpace(s.name)) continue;
+                if (s == null || string.IsNullOrWhiteSpace(s.name))
+                    continue;
+
                 if (!soundDictionary.ContainsKey(s.name))
                     soundDictionary.Add(s.name, s);
             }
         }
 
-        audioSourcePool = new List<AudioSource>(Mathf.Max(1, poolSize));
-        availableSources = new Queue<AudioSource>(Mathf.Max(1, poolSize));
-
         int count = Mathf.Max(1, poolSize);
+        audioSourcePool = new List<AudioSource>(count);
+        availableSources = new Queue<AudioSource>(count);
+
         for (int i = 0; i < count; i++)
         {
-            var src = NewSource(sfxGroup, false);
+            AudioSource src = NewSource(sfxGroup, false);
             audioSourcePool.Add(src);
             availableSources.Enqueue(src);
         }
@@ -160,7 +209,7 @@ public class AudioManager : MonoBehaviour
 
     private AudioSource NewSource(AudioMixerGroup group, bool loop)
     {
-        var src = gameObject.AddComponent<AudioSource>();
+        AudioSource src = gameObject.AddComponent<AudioSource>();
         src.playOnAwake = false;
         src.loop = loop;
         src.outputAudioMixerGroup = group;
@@ -169,19 +218,27 @@ public class AudioManager : MonoBehaviour
 
     private void Update()
     {
-        float dt = Time.unscaledDeltaTime;
-        bool pitchMoved = musicPitch.Step(dt) | musicSpeed.Step(dt) | sfxPitch.Step(dt);
-        if (pitchMoved) ApplyPitchAndSpeed();
-        if (noiseVolume.Step(dt)) ApplyNoise();
-        if (pauseMuffle.Step(dt)) ApplyMuffle();
+        Tick(Time.unscaledDeltaTime);
     }
 
-    #region Pitch, speed and pause noise
+    /// <summary>Steps active pitch, speed, filter and noise fades using unscaled time.</summary>
+    public void Tick(float unscaledDeltaTime)
+    {
+        EnsureInitialized();
+
+        bool pitchMoved = musicPitch.Step(unscaledDeltaTime) | musicSpeed.Step(unscaledDeltaTime) | sfxPitch.Step(unscaledDeltaTime);
+        if (pitchMoved) ApplyPitchAndSpeed();
+        if (noiseVolume.Step(unscaledDeltaTime)) ApplyNoise();
+        if (filterAmount.Step(unscaledDeltaTime)) ApplyMuffle();
+    }
+
+    #region Pitch, speed, pause noise and menu distortion
 
     /// <summary>Changes the music's pitch without changing its speed. 1 = as recorded.</summary>
     /// <param name="seconds">Time to glide there, in real seconds. 0 = at once.</param>
     public void SetMusicPitch(float pitch, float seconds = 0f)
     {
+        EnsureInitialized();
         musicPitch.MoveTo(Mathf.Clamp(pitch, tuning.minPitch, tuning.maxPitch), seconds);
     }
 
@@ -189,6 +246,7 @@ public class AudioManager : MonoBehaviour
     /// <param name="seconds">Time to glide there, in real seconds. 0 = at once.</param>
     public void SetMusicSpeed(float speed, float seconds = 0f)
     {
+        EnsureInitialized();
         musicSpeed.MoveTo(Mathf.Clamp(speed, tuning.minSpeed, tuning.maxSpeed), seconds);
     }
 
@@ -196,11 +254,13 @@ public class AudioManager : MonoBehaviour
     /// <param name="seconds">Time to glide there, in real seconds. 0 = at once.</param>
     public void SetSfxPitch(float pitch, float seconds = 0f)
     {
+        EnsureInitialized();
         sfxPitch.MoveTo(Mathf.Clamp(pitch, tuning.minPitch, tuning.maxPitch), seconds);
     }
 
     public void ResetPitchAndSpeed(float seconds = 0f)
     {
+        EnsureInitialized();
         musicPitch.MoveTo(1f, seconds);
         musicSpeed.MoveTo(1f, seconds);
         sfxPitch.MoveTo(1f, seconds);
@@ -212,14 +272,64 @@ public class AudioManager : MonoBehaviour
     /// </summary>
     public void SetPauseNoise(bool on)
     {
-        pauseMuffle.MoveTo(on ? 1f : 0f, tuning.pauseNoiseFadeSeconds);
-        if (tuning.pauseNoiseClip == null) return;
-        noiseVolume.MoveTo(on ? tuning.pauseNoiseVolume : 0f, tuning.pauseNoiseFadeSeconds);
+        EnsureInitialized();
+        pauseNoiseActive = on;
+        RefreshFilterAndNoiseTargets(tuning.pauseNoiseFadeSeconds);
+    }
+
+    /// <summary>
+    /// Settings-menu distortion: muffles the background music while the player adjusts options,
+    /// and preserves an active pause filter if Settings was opened from the Pause Menu.
+    /// </summary>
+    public void SetMenuDistortion(bool active)
+    {
+        EnsureInitialized();
+        menuDistortionActive = active;
+        RefreshFilterAndNoiseTargets(tuning.menuDistortionFadeSeconds);
+    }
+
+    private void RefreshFilterAndNoiseTargets(float releaseSeconds)
+    {
+        if (pauseNoiseActive)
+        {
+            activeLowpassHz = tuning.pauseLowpassHz;
+            activeHighpassHz = tuning.pauseHighpassHz;
+            filterAmount.MoveTo(1f, tuning.pauseNoiseFadeSeconds);
+            float targetNoise = tuning.pauseNoiseClip != null ? tuning.pauseNoiseVolume : 0f;
+            noiseVolume.MoveTo(targetNoise, tuning.pauseNoiseFadeSeconds);
+            ApplyMuffle();
+            return;
+        }
+
+        if (menuDistortionActive)
+        {
+            activeLowpassHz = tuning.menuLowpassHz;
+            activeHighpassHz = tuning.menuHighpassHz;
+            filterAmount.MoveTo(1f, tuning.menuDistortionFadeSeconds);
+            float targetNoise = tuning.pauseNoiseClip != null ? tuning.menuNoiseVolume : 0f;
+            noiseVolume.MoveTo(targetNoise, tuning.menuDistortionFadeSeconds);
+            ApplyMuffle();
+            return;
+        }
+
+        filterAmount.MoveTo(0f, releaseSeconds);
+        noiseVolume.MoveTo(0f, releaseSeconds);
+    }
+
+    private AudioMixer ResolveMixer()
+    {
+        if (musicGroup != null && musicGroup.audioMixer != null)
+            return musicGroup.audioMixer;
+
+        if (masterGroup != null && masterGroup.audioMixer != null)
+            return masterGroup.audioMixer;
+
+        return fallbackMixer;
     }
 
     private void ApplyPitchAndSpeed()
     {
-        AudioMixer mixer = musicGroup != null ? musicGroup.audioMixer : null;
+        AudioMixer mixer = ResolveMixer();
         if (mixer == null) return;
 
         mixer.SetFloat(MusicSpeedParameter, musicSpeed.Current);
@@ -229,17 +339,19 @@ public class AudioManager : MonoBehaviour
 
     private void ApplyMuffle()
     {
-        AudioMixer mixer = musicGroup != null ? musicGroup.audioMixer : null;
+        AudioMixer mixer = ResolveMixer();
         if (mixer == null) return;
 
-        mixer.SetFloat(MusicLowpassParameter, AudioFilter.Cutoff(AudioFilter.OpenLowpassHz, tuning.pauseLowpassHz, pauseMuffle.Current));
-        mixer.SetFloat(MusicHighpassParameter, AudioFilter.Cutoff(AudioFilter.OpenHighpassHz, tuning.pauseHighpassHz, pauseMuffle.Current));
+        mixer.SetFloat(MusicLowpassParameter, CurrentLowpassHz);
+        mixer.SetFloat(MusicHighpassParameter, CurrentHighpassHz);
     }
 
     private void ApplyNoise()
     {
+        if (noiseSource == null) return;
+
         noiseSource.volume = noiseVolume.Current;
-        if (noiseVolume.Current > 0f && !noiseSource.isPlaying)
+        if (noiseVolume.Current > 0f && !noiseSource.isPlaying && tuning.pauseNoiseClip != null)
         {
             noiseSource.clip = tuning.pauseNoiseClip;
             noiseSource.Play();
@@ -254,7 +366,8 @@ public class AudioManager : MonoBehaviour
 
     public void PlaySound(string soundName)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Sound " + soundName + " not found!");
             return;
@@ -266,7 +379,8 @@ public class AudioManager : MonoBehaviour
 
     public void PlayOneShotSound(string soundName)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Sound " + soundName + " not found!");
             return;
@@ -286,7 +400,8 @@ public class AudioManager : MonoBehaviour
 
     public void PlayLoopingSound(string soundName)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Sound " + soundName + " not found!");
             return;
@@ -321,7 +436,8 @@ public class AudioManager : MonoBehaviour
 
     public void PlaySoundAtPoint(string soundName, Vector3 position)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Sound " + soundName + " not found!");
             return;
@@ -334,7 +450,8 @@ public class AudioManager : MonoBehaviour
 
     public void PlayMusic(string soundName, bool fadeIn = false, float fadeDuration = 1f)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Music " + soundName + " not found!");
             return;
@@ -349,7 +466,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        _currentMusicSound = sound;
+        currentMusicSound = sound;
 
         musicSource.clip = sound.clip;
         musicSource.pitch = GetPitch(sound);
@@ -360,7 +477,8 @@ public class AudioManager : MonoBehaviour
 
     public void StopSound(string soundName)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
         {
             Debug.LogWarning("Sound " + soundName + " not found!");
             return;
@@ -376,7 +494,8 @@ public class AudioManager : MonoBehaviour
 
     public void StopAllSounds()
     {
-        foreach (var s in soundDictionary.Values)
+        EnsureInitialized();
+        foreach (Sound s in soundDictionary.Values)
         {
             if (s.source != null)
             {
@@ -393,13 +512,14 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic(bool fadeOut = false, float fadeDuration = 1f)
     {
+        EnsureInitialized();
         if (!musicSource) return;
 
         StopMusicFade();
         if (!fadeOut)
         {
             musicSource.Stop();
-            _currentMusicSound = null;
+            currentMusicSound = null;
             return;
         }
 
@@ -408,18 +528,21 @@ public class AudioManager : MonoBehaviour
 
     public void SetMasterVolume(float volume)
     {
+        EnsureInitialized();
         masterVolume = Mathf.Clamp01(volume);
         UpdateAllVolumes();
     }
 
     public void SetMusicVolume(float volume)
     {
+        EnsureInitialized();
         musicVolume = Mathf.Clamp01(volume);
         UpdateMusicVolume();
     }
 
     public void SetSFXVolume(float volume)
     {
+        EnsureInitialized();
         sfxVolume = Mathf.Clamp01(volume);
         UpdateSfxVolumes();
     }
@@ -435,17 +558,16 @@ public class AudioManager : MonoBehaviour
         if (!musicSource) return;
         if (musicSource.clip == null) return;
 
-        float baseVol = (_currentMusicSound != null) ? _currentMusicSound.volume : 1f;
+        float baseVol = currentMusicSound != null ? currentMusicSound.volume : 1f;
         musicSource.volume = baseVol * musicVolume * masterVolume;
     }
 
     private void UpdateSfxVolumes()
     {
-        foreach (var s in soundDictionary.Values)
+        foreach (Sound s in soundDictionary.Values)
         {
-            if (!s.loop) continue;
-            if (s.source == null) continue;
-            if (!s.source.isPlaying) continue;
+            if (!s.loop || s.source == null || !s.source.isPlaying)
+                continue;
 
             ApplyLoopingSoundVolume(s);
         }
@@ -459,12 +581,13 @@ public class AudioManager : MonoBehaviour
 
     private float GetPitch(Sound sound)
     {
-        float p = (sound != null) ? sound.pitch : 1f;
+        float p = sound != null ? sound.pitch : 1f;
         if (sound != null && sound.randomizePitch && sound.pitchVariation > 0f)
         {
             float v = Mathf.Clamp01(sound.pitchVariation);
             p *= UnityEngine.Random.Range(1f - v, 1f + v);
         }
+
         return Mathf.Clamp(p, 0.1f, 3f);
     }
 
@@ -473,7 +596,7 @@ public class AudioManager : MonoBehaviour
         int guard = availableSources.Count;
         while (guard-- > 0 && availableSources.Count > 0)
         {
-            var src = availableSources.Dequeue();
+            AudioSource src = availableSources.Dequeue();
             if (src != null && !src.isPlaying)
                 return src;
 
@@ -481,7 +604,7 @@ public class AudioManager : MonoBehaviour
                 availableSources.Enqueue(src);
         }
 
-        foreach (var src in audioSourcePool)
+        foreach (AudioSource src in audioSourcePool)
         {
             if (src != null && !src.isPlaying)
                 return src;
@@ -506,7 +629,7 @@ public class AudioManager : MonoBehaviour
     private void RebuildAvailableQueue()
     {
         availableSources.Clear();
-        foreach (var src in audioSourcePool)
+        foreach (AudioSource src in audioSourcePool)
         {
             if (src != null && !src.isPlaying)
                 availableSources.Enqueue(src);
@@ -539,7 +662,7 @@ public class AudioManager : MonoBehaviour
 
         musicSource.volume = 0f;
 
-        _currentMusicSound = newSound;
+        currentMusicSound = newSound;
         musicSource.clip = newSound.clip;
         musicSource.pitch = GetPitch(newSound);
         musicSource.loop = true;
@@ -577,13 +700,14 @@ public class AudioManager : MonoBehaviour
 
         musicSource.volume = 0f;
         musicSource.Stop();
-        _currentMusicSound = null;
+        currentMusicSound = null;
         musicFade = null;
     }
 
     public bool IsSoundPlaying(string soundName)
     {
-        if (!soundDictionary.TryGetValue(soundName, out Sound sound))
+        EnsureInitialized();
+        if (string.IsNullOrWhiteSpace(soundName) || !soundDictionary.TryGetValue(soundName, out Sound sound))
             return false;
 
         return sound.source != null && sound.source.isPlaying;
@@ -591,6 +715,7 @@ public class AudioManager : MonoBehaviour
 
     public bool IsMusicPlaying()
     {
+        EnsureInitialized();
         return musicSource != null && musicSource.isPlaying;
     }
 

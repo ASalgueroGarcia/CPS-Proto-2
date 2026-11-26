@@ -26,6 +26,12 @@ public class SettingsData
     /// <summary>The slot the player played last, preselected on the slot screen (-1 = none yet).</summary>
     public int lastSlot = -1;
 
+    /// <summary>Selected controller layout preset id ('classic', 'action', 'custom', or catalog entry).</summary>
+    public string controllerPresetId = ControllerPresetCatalog.DefaultPresetId;
+
+    /// <summary>Serialized controller binding overrides JSON used when controllerPresetId is 'custom'.</summary>
+    public string bindingOverridesJson = string.Empty;
+
     public FullScreenMode FullscreenMode => (FullScreenMode)fullscreenMode;
 
     public static SettingsData Parse(string json, out SaveParseResult result)
@@ -61,6 +67,19 @@ public class SettingsData
         {
             lastSlot = -1;
         }
+
+        controllerPresetId = NormalizePresetId(controllerPresetId);
+        if (bindingOverridesJson == null)
+        {
+            bindingOverridesJson = string.Empty;
+        }
+    }
+
+    public static string NormalizePresetId(string presetId)
+    {
+        return string.IsNullOrWhiteSpace(presetId)
+            ? ControllerPresetCatalog.DefaultPresetId
+            : presetId.Trim();
     }
 
     public static float ToVolume(float value) => float.IsNaN(value) ? 1f : Mathf.Clamp01(value);

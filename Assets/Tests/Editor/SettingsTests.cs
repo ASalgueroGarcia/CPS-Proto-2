@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// settings.json (GDD > Menus > Settings Menu): defaults, clamping, the GDD's resolution list,
-/// and the slider-to-decibel conversion the mixer gets.
+/// controller preset persistence, and the slider-to-decibel conversion the mixer gets.
 /// </summary>
 public class SettingsTests
 {
@@ -35,6 +35,8 @@ public class SettingsTests
         Assert.AreEqual(0, _settings.Data.resolutionWidth, "0x0 keeps the native resolution.");
         Assert.AreEqual(FullScreenMode.FullScreenWindow, _settings.Data.FullscreenMode);
         Assert.AreEqual(-1, _settings.Data.lastSlot);
+        Assert.AreEqual(ControllerPresetCatalog.DefaultPresetId, _settings.Data.controllerPresetId);
+        Assert.AreEqual(string.Empty, _settings.Data.bindingOverridesJson);
         Assert.IsFalse(_settings.Save(), "Nothing changed, nothing to write.");
         Assert.IsFalse(_folder.Exists(SettingsService.FileName));
     }
@@ -44,18 +46,22 @@ public class SettingsTests
     {
         int audioEvents = 0;
         int displayEvents = 0;
+        int controlsEvents = 0;
         _settings.AudioChanged += _ => audioEvents++;
         _settings.DisplayChanged += _ => displayEvents++;
+        _settings.ControlsChanged += _ => controlsEvents++;
 
         _settings.SetMasterVolume(0.5f);
         _settings.SetMusicVolume(0.25f);
         _settings.SetSfxVolume(0f);
         _settings.SetResolution(1920, 1080);
         _settings.SetFullscreenMode(FullScreenMode.Windowed);
+        _settings.SetControllerPreset("action");
         _settings.SetLastSlot(2);
 
         Assert.AreEqual(3, audioEvents);
         Assert.AreEqual(2, displayEvents);
+        Assert.AreEqual(1, controlsEvents);
         Assert.IsTrue(_settings.Save());
 
         SettingsData disk = Reload();
@@ -65,7 +71,64 @@ public class SettingsTests
         Assert.AreEqual(1920, disk.resolutionWidth);
         Assert.AreEqual(1080, disk.resolutionHeight);
         Assert.AreEqual(FullScreenMode.Windowed, disk.FullscreenMode);
+        Assert.AreEqual("action", disk.controllerPresetId);
+        Assert.AreEqual(string.Empty, disk.bindingOverridesJson);
         Assert.AreEqual(2, disk.lastSlot);
+    }
+
+    [Test]
+    public void ControllerOverrides_PersistCustomPreset_AndSkipRedundantEvents()
+    {
+        int controlsEvents = 0;
+        _settings.ControlsChanged += _ => controlsEvents++;
+
+        const string sampleOverrides = "{\"bindings\":[{\"action\":\"Player/Attack\",\"path\":\"<Gamepad>/leftShoulder\"}]}";
+        _settings.SetControllerPreset(ControllerPresetCatalog.CustomPresetId, sampleOverrides);
+        _settings.SetControllerPreset(ControllerPresetCatalog.CustomPresetId, sampleOverrides);
+
+        Assert.AreEqual(1, controlsEvents);
+        Assert.IsTrue(_settings.Save());
+
+        SettingsData disk = Reload();
+        Assert.AreEqual(ControllerPresetCatalog.CustomPresetId, disk.controllerPresetId);
+        Assert.AreEqual(sampleOverrides, disk.bindingOverridesJson);
+    }
+
+    [Test]
+    public void LegacyV1FileWithoutControllerFields_LoadsCleanlyWithClassicDefaults()
+    {
+        _folder.Write(
+            SettingsService.FileName,
+            "{\"version\":1,\"masterVolume\":0.6,\"musicVolume\":0.4,\"sfxVolume\":0.8,\"resolutionWidth\":1920,\"resolutionHeight\":1080,\"fullscreenMode\":1,\"lastSlot\":0}");
+
+        SettingsData disk = Reload();
+
+        Assert.AreEqual(0.6f, disk.masterVolume, 0.0001f);
+        Assert.AreEqual(0.4f, disk.musicVolume, 0.0001f);
+        Assert.AreEqual(0.8f, disk.sfxVolume, 0.0001f);
+        Assert.AreEqual(1920, disk.resolutionWidth);
+        Assert.AreEqual(1080, disk.resolutionHeight);
+        Assert.AreEqual(ControllerPresetCatalog.DefaultPresetId, disk.controllerPresetId);
+        Assert.AreEqual(string.Empty, disk.bindingOverridesJson);
+    }
+
+    [Test]
+    public void BlankOrNullControllerFields_NormalizeToClassicAndEmptyString()
+    {
+        SettingsData parsed = SettingsData.Parse("{\"version\":1,\"controllerPresetId\":\"   \"}", out SaveParseResult result);
+        Assert.AreEqual(SaveParseResult.Ok, result);
+        Assert.AreEqual(ControllerPresetCatalog.DefaultPresetId, parsed.controllerPresetId);
+        Assert.AreEqual(string.Empty, parsed.bindingOverridesJson);
+
+        var raw = new SettingsData
+        {
+            controllerPresetId = null,
+            bindingOverridesJson = null
+        };
+        raw.Normalize();
+
+        Assert.AreEqual(ControllerPresetCatalog.DefaultPresetId, raw.controllerPresetId);
+        Assert.AreEqual(string.Empty, raw.bindingOverridesJson);
     }
 
     [Test]
@@ -108,6 +171,7 @@ public class SettingsTests
         Assert.AreEqual(0, data.resolutionWidth);
         Assert.AreEqual(FullScreenMode.FullScreenWindow, data.FullscreenMode);
         Assert.AreEqual(-1, data.lastSlot);
+        Assert.AreEqual(ControllerPresetCatalog.DefaultPresetId, data.controllerPresetId);
     }
 
     [Test]
