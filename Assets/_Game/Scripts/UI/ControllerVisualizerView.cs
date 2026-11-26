@@ -223,12 +223,11 @@ public class ControllerVisualizerView : MonoBehaviour
             return ControllerVisualControl.None;
 
         string control = bindingPath.Trim();
-        int slash = control.LastIndexOf('/');
+        int slash = control.IndexOf('/');
         if (slash >= 0 && slash + 1 < control.Length)
             control = control.Substring(slash + 1);
 
-        if (control.Equals("leftStick", StringComparison.OrdinalIgnoreCase)
-            || control.Equals("leftStickPress", StringComparison.OrdinalIgnoreCase))
+        if (control.StartsWith("leftStick", StringComparison.OrdinalIgnoreCase))
         {
             return ControllerVisualControl.LeftStick;
         }
