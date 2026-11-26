@@ -21,14 +21,14 @@ public class ScissorsWeaponData : ScriptableObject
     [Tooltip("Radius of the special attack AOE sphere.")]
     public float specialRange = 5.0f;
 
-    [Tooltip("Horizontal knockback applied to enemies hit by a light attack.")]
-    public float knockBackForce = 7f;
+    [Tooltip("Knockback applied to enemies hit by a light attack. 0 means enemies are not pushed; a shop item can raise it later. The per-step value lives in the combo steps array.")]
+    public float knockBackForce = 0f;
 
     [Header("Combo")]
-    [Tooltip("Seconds without advancing the combo before it resets automatically.")]
+    [Tooltip("Grace period, in seconds. If the player does not chain the next attack within this time, the combo is lost and the next hit starts again at step 1. Measured from the last chained step, so keeping the rhythm keeps the combo alive. This is the only thing that ends a combo on its own.")]
     public float comboResetTime = 1.0f;
 
-    [Tooltip("Minimum seconds between attacks. Must be <= the combo window duration (~0.2s real time per clip); larger values make combos impossible to chain.")]
+    [Tooltip("Minimum seconds between attacks. The attack animation lasts ~0.2s real time, so a much larger value makes the attacks feel unresponsive.")]
     public float attackCooldown = 0.15f;
 
     [Tooltip("Animator.speed multiplier used while performing light/combo attacks.")]
@@ -36,6 +36,11 @@ public class ScissorsWeaponData : ScriptableObject
 
     [Tooltip("Animator.speed multiplier used while performing the special attack.")]
     public float specialAttackAnimationSpeed = 1.2f;
+
+    [Header("Attack Push")]
+    [Tooltip("How far the player is pushed forward (m) while the attack animation plays. 0 disables the push.")]
+    [Min(0f)]
+    public float lungeDistance = 0.45f;
 
     [Header("Special Attack")]
     [Tooltip("Cooldown (seconds) of the special attack once used.")]

@@ -143,7 +143,9 @@ public class Player : MonoBehaviour
         if (Weapon != null) Weapon.TickWeapon();
 
         if (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking) {
-            if (Weapon != null && Time.time - Weapon.GetPlayerLastAttackTime() > attackFailsafeSeconds)
+            // Measured against the time the state was entered, not the last attack: a combo
+            // reset clears the weapon's attack timestamp, which would trip this instantly.
+            if (Weapon != null && Time.time - _attackStateEnteredTime > attackFailsafeSeconds)
             {
                 Debug.LogWarning($"[FAILSAFE] Stuck in attack for >{attackFailsafeSeconds:F1}s. Forcing reset.");
                 Weapon.ResetCombo();
@@ -235,6 +237,7 @@ public class Player : MonoBehaviour
         currentState = newState;
         _currentStateInstance = _states[newState];
         ApplyAnimatorSpeed(newState);
+        _attackStateEnteredTime = Time.time;
         _currentStateInstance.Enter();
     }
 
@@ -244,6 +247,7 @@ public class Player : MonoBehaviour
     private void HandleHealthDamage(float dmg)
     {
         OnDamageReceived?.Invoke(dmg);
+        playerHealth.GrantInvulnerability(0.5f);
     }
 
     // Named handler so we can unsubscribe symmetrically in OnDisable.
@@ -326,11 +330,13 @@ public class Player : MonoBehaviour
     {
         Weapon?.OnAnimationEvent(evt);
 
+        // ReturnToIdle only returns the player to Idle; it must NOT clear the combo.
+        // The combo chain is ended by the weapon's own grace period (comboResetTime) or by
+        // taking damage. Resetting here used to drop every chain back to step 1 as soon as
+        // the attack animation finished, which made the grace period unreadable from the Inspector.
         if (evt == "ReturnToIdle"
-            && (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking)
-            && Time.time - Weapon.GetPlayerLastAttackTime() > 0.15f)
+            && (currentState == PlayerState.Attacking || currentState == PlayerState.SpecialAttacking))
         {
-            Weapon.ResetCombo();
             SwitchState(PlayerState.Idle);
         }
     }
@@ -365,6 +371,12 @@ public class Player : MonoBehaviour
     }
 
     public float gravity => config != null ? config.gravity : 0f;
+
+    public float acceleration => config != null ? config.acceleration : 40f;
+
+    public float deceleration => config != null ? config.deceleration : 80f;
+
+    public float lungeSpeed => config != null ? config.lungeSpeed : 8f;
 
     public float runAnimationSpeed => config != null ? config.runAnimationSpeed : 1.5f;
 

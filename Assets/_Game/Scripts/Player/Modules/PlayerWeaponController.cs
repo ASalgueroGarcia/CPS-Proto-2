@@ -41,9 +41,6 @@ public class PlayerWeaponController : MonoBehaviour
 
         if (!CurrentWeapon.CanAttack) return;
 
-        if (_player.currentState == Player.PlayerState.Attacking && !CurrentWeapon.IsComboWindowOpen)
-            return;
-
         CurrentWeapon.OnAttackInput();
         _player.SwitchState(Player.PlayerState.Attacking);
     }

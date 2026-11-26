@@ -33,23 +33,25 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
 
     // Defaults used when the Inspector _comboSteps array is empty.
     // Matches the original GetScissorsStepResult switch behavior.
+    // Knockback is 0 on the light attacks: enemies are not pushed by default, an item
+    // grants that. The heavy attack keeps its own knockback (specialKnockbackForce).
     private static readonly ScissorsComboResult[] _defaultComboSteps = new[]
     {
         new ScissorsComboResult
         {
-            DamageMultiplier = 1f, CritBonus = 0f, Knockback = 3f,
+            DamageMultiplier = 1f, CritBonus = 0f, Knockback = 0f,
             Color = Color.white, AnimState = "Attack_01",
             HitboxIndex = Hitbox12Index, UseRandomLightClip = true, AudioClip = null,
         },
         new ScissorsComboResult
         {
-            DamageMultiplier = 1.2f, CritBonus = 0f, Knockback = 5f,
+            DamageMultiplier = 1.2f, CritBonus = 0f, Knockback = 0f,
             Color = Color.yellow, AnimState = "Attack_02",
             HitboxIndex = Hitbox12Index, UseRandomLightClip = true, AudioClip = null,
         },
         new ScissorsComboResult
         {
-            DamageMultiplier = 1.5f, CritBonus = 0.25f, Knockback = 8f,
+            DamageMultiplier = 1.5f, CritBonus = 0.25f, Knockback = 0f,
             Color = Color.red, AnimState = "Attack_03",
             HitboxIndex = Hitbox3Index, UseRandomLightClip = false, AudioClip = null,
         },
@@ -62,7 +64,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     private List<Health> _hitEnemies = new List<Health>();
     private List<IBreakable> _hitBreakables = new List<IBreakable>();
     private float _specialTimer = 0f;
-    private float _lastHeavyTime = 0f;
     private bool _wasHit = false;
     private float _currentDamage;
     private float _currentCritChance;
@@ -71,6 +72,9 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
 
     private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
     private const string HeavyAttackState = "HeavyAttack";
+
+    // The heavy attack spins in place, so it travels less than a light attack.
+    private const float SpecialLungeFactor = 0.4f;
 
 #endregion
 #region Unity Lifecycle
@@ -86,7 +90,10 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _player = player;
         if (BodyRenderer != null) _originalColor = BodyRenderer.material.color;
 
-        _combo = new WeaponComboSystem(_data.comboResetTime, _data.attackCooldown, _defaultComboSteps.Length);
+        _combo = new WeaponComboSystem(
+            _data.comboResetTime,
+            _data.attackCooldown,
+            _defaultComboSteps.Length);
         _rig = new WeaponHitboxRig(
             new[] { generalAttackHitbox, hitboxAttack12, hitboxAttack3 },
             HandleHit);
@@ -154,16 +161,29 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             Debug.Log($"[COMBO] Playing {result.AnimState} (Step {step.Index})");
         }
 
+        // The attack pushes the player forward a little, along the way they are facing.
+        StartLunge();
+
         _hitEnemies.Clear();
         _hitBreakables.Clear();
 
         SetPlayerColor(result.Color);
     }
 
+    /// <summary>
+    /// Pushes the player forward along the current facing. The distance is the spec, so the
+    /// push is not tied to the animation: it finishes on its own.
+    /// </summary>
+    private void StartLunge()
+    {
+        if (_player == null || _player.Locomotion == null || _data == null) return;
+
+        _player.Locomotion.StartLunge(transform.root.forward, _data.lungeDistance);
+    }
+
     public void OnHeavyAttackInput()
     {
         _specialTimer = _data.specialCooldown;
-        _lastHeavyTime = Time.time;
 
         Renderer br = BodyRenderer;
         if (br != null) br.material.color = Color.cyan;
@@ -174,6 +194,12 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
             anim.ResetTrigger(HeavyAttackHash);
             anim.SetTrigger(HeavyAttackHash);
             anim.CrossFadeInFixedTime(HeavyAttackState, 0.05f);
+        }
+
+        // The heavy attack spins in place, so it nudges the player forward, not a full lunge.
+        if (_player != null && _player.Locomotion != null && _data != null)
+        {
+            _player.Locomotion.StartLunge(transform.root.forward, _data.lungeDistance * SpecialLungeFactor);
         }
     }
 
@@ -234,6 +260,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         _wasHit = true;
         _rig?.DisableAll();
         ResetCombo();
+        _player?.Locomotion?.StopLunge();
     }
 
     public bool ShouldResetCombo()
@@ -263,12 +290,6 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     {
         switch (evt)
         {
-            case "OpenComboWindow":
-                if (_combo != null) _combo.OpenWindow();
-                break;
-            case "CloseComboWindow":
-                if (_combo != null) _combo.CloseWindow();
-                break;
             case "EnableHitbox":
                 EnableHitboxForCombo();
                 break;
@@ -368,10 +389,13 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
         set { if (_data != null) _data.baseCritChance = value; }
     }
 
-    public bool IsComboWindowOpen => _combo != null && _combo.IsWindowOpen;
-    public float LastAttackTime => Mathf.Max(
-        _combo != null ? _combo.LastAttackTime : 0f,
-        _lastHeavyTime);
+    /// <summary>
+    /// Timestamp of the last light attack. The heavy attack is deliberately excluded: it has
+    /// its own cooldown, and folding it in here made combo bookkeeping read a stale timestamp
+    /// that reset the chain mid-combo.
+    /// </summary>
+    public float LastAttackTime => _combo != null ? _combo.LastAttackTime : 0f;
+
     public int CurrentComboStep => _combo != null ? _combo.CurrentStep : 0;
     public bool HasActiveHitbox => _rig != null && _rig.HasActiveHitbox;
     public bool CanAttack => _combo != null && _combo.CanAttack;
