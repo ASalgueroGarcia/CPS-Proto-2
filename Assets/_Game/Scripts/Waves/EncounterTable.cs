@@ -43,24 +43,26 @@ public class EncounterTable : ScriptableObject
     public List<Entry> enemies = new List<Entry>();
 
     [Header("Threat Budget (PLACEHOLDER - GDD numbers are still 'in process')")]
-    [Tooltip("Room budget of a Fight / More Health / More Buttons room, per scene: element 0 = Scene 1.")]
+    [Tooltip("Room budget of a Fight room, per scene: element 0 = Scene 1.")]
     public int[] roomBudgetPerScene = { 6, 8, 10 };
     [Tooltip("Room budget of a First Spot room, per scene: element 0 = Scene 1.")]
     public int[] firstSpotBudgetPerScene = { 4, 5, 6 };
+    [Tooltip("Room budget of an Elite room, per scene: element 0 = Scene 1.")]
+    public int[] eliteBudgetPerScene = { 10, 12, 14 };
     [Tooltip("'Rooms get harder every two rooms': budget added for every two rooms already cleared in the node.")]
     public int budgetStepPerTwoRooms = 1;
 
     [Header("Rewards")]
     [Tooltip("Room clear pays ceil(room budget * this) Buttons. GDD: half the budget.")]
     public float buttonsPerBudgetPoint = 0.5f;
-    [Tooltip("Room-clear Buttons multiplier in a More Buttons node.")]
-    public float moreButtonsMultiplier = 1.5f;
+    [Tooltip("Room-clear Buttons multiplier in an Elite node.")]
+    public float eliteButtonsMultiplier = 1.5f;
     [Tooltip("Chance (0-1) of a +20 HP drop on room clear.")]
     [Range(0f, 1f)] public float healthDropChance = 0.15f;
-    [Range(0f, 1f)] public float healthDropChanceMoreHealth = 0.45f;
+    [Range(0f, 1f)] public float healthDropChanceElite = 0.45f;
     [Tooltip("Chance (0-1) that a regular enemy kill drops 1 Button.")]
     [Range(0f, 1f)] public float killButtonChance = 0.10f;
-    [Range(0f, 1f)] public float killButtonChanceMoreButtons = 0.25f;
+    [Range(0f, 1f)] public float killButtonChanceElite = 0.25f;
     [Tooltip("Seconds after the clear before the Buttons fly to the player.")]
     [Min(0f)] public float buttonFlyDelay = 1f;
     [Tooltip("Speed (m/s) the Buttons fly to the player at.")]
@@ -70,7 +72,9 @@ public class EncounterTable : ScriptableObject
 
     public int RoomBudget(EncounterContext context)
     {
-        int[] perScene = context.isFirstSpot ? firstSpotBudgetPerScene : roomBudgetPerScene;
+        int[] perScene = context.isFirstSpot ? firstSpotBudgetPerScene
+            : context.nodeKind == EncounterNodeKind.Elite ? eliteBudgetPerScene
+            : roomBudgetPerScene;
         int baseBudget = perScene == null || perScene.Length == 0
             ? 0
             : perScene[Mathf.Clamp(context.scene - 1, 0, perScene.Length - 1)];
@@ -86,21 +90,21 @@ public class EncounterTable : ScriptableObject
         if (nodeKind == EncounterNodeKind.FinalFight) return 0;
 
         int buttons = Mathf.CeilToInt(roomBudget * buttonsPerBudgetPoint);
-        if (nodeKind == EncounterNodeKind.MoreButtons) buttons = Mathf.CeilToInt(buttons * moreButtonsMultiplier);
+        if (nodeKind == EncounterNodeKind.Elite) buttons = Mathf.CeilToInt(buttons * eliteButtonsMultiplier);
         return Mathf.Max(0, buttons);
     }
 
     public float HealthDropChance(EncounterNodeKind nodeKind) => nodeKind switch
     {
         EncounterNodeKind.FinalFight => 0f,
-        EncounterNodeKind.MoreHealth => healthDropChanceMoreHealth,
+        EncounterNodeKind.Elite => healthDropChanceElite,
         _ => healthDropChance
     };
 
     public float KillButtonChance(EncounterNodeKind nodeKind) => nodeKind switch
     {
         EncounterNodeKind.FinalFight => 0f,
-        EncounterNodeKind.MoreButtons => killButtonChanceMoreButtons,
+        EncounterNodeKind.Elite => killButtonChanceElite,
         _ => killButtonChance
     };
 

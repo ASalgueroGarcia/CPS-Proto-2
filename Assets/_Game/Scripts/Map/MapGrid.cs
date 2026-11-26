@@ -8,6 +8,7 @@ public class MapGrid
 
     private readonly bool[,] nodes = new bool[Rows, Columns];
     private readonly NodeTypeEnum[,] types = new NodeTypeEnum[Rows, Columns];
+    private readonly int[,] drawnPaths = new int[Rows, Columns];
     private readonly HashSet<(int from, int to)>[] edges = new HashSet<(int, int)>[Rows - 1];
 
     public MapGrid()
@@ -31,6 +32,16 @@ public class MapGrid
     public void SetType(int row, int column, NodeTypeEnum type)
     {
         types[row, column] = type;
+    }
+
+    public int DrawnPathsAt(int row, int column)
+    {
+        return drawnPaths[row, column];
+    }
+
+    public void AddDrawnPath(int row, int column)
+    {
+        drawnPaths[row, column]++;
     }
 
     public IEnumerable<(int from, int to)> EdgesFrom(int row)

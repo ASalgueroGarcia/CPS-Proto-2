@@ -20,6 +20,9 @@ public class RoomDoorTransition : MonoBehaviour
     // Once the room layouts and dimensions are finalized according to Notion, this feature will be fully implemented and refined.
     [Header("Exit Mark / Floor Button")]
     [SerializeField] private float markRadius = 0.6f;
+    [Min(2f)]
+    [SerializeField] private float triggerHeight = 6f;
+    [SerializeField] private float triggerCenterHeight = 2.5f;
     [SerializeField] private Color markColor = new Color(1f, 0.78f, 0.22f);
     [SerializeField] private Material markMaterial;
 
@@ -83,7 +86,7 @@ public class RoomDoorTransition : MonoBehaviour
         {
             // A room without waves (the shop): the intro leaves the player on the exit mark, so the exit
             // only opens once they've stepped off, or standing still would walk them straight out.
-            while (player != null && !leaving && (player.transform.position - mark.transform.position).sqrMagnitude < markRadius * markRadius * 4f) yield return null;
+            while (player != null && !leaving && FlatDistance(player.transform.position, mark.transform.position) < markRadius * 2f) yield return null;
             OpenExit();
         }
     }
@@ -244,9 +247,7 @@ public class RoomDoorTransition : MonoBehaviour
 
         BoxCollider zone = new GameObject("Trigger").AddComponent<BoxCollider>();
         zone.transform.SetParent(transform, false);
-        zone.transform.localPosition = mark.transform.localPosition + Vector3.up;
-        zone.size = new Vector3(markRadius * 2f, 2f, markRadius * 2f);
-        zone.isTrigger = true;
+        ConfigureExitTrigger(zone, mark.transform.localPosition);
 
         Light glow = new GameObject("Glow").AddComponent<Light>();
         glow.type = LightType.Point;
@@ -257,5 +258,13 @@ public class RoomDoorTransition : MonoBehaviour
         glow.transform.position = mark.transform.position + Vector3.up * 0.5f;
 
         mark.SetActive(false);
+    }
+
+    public void ConfigureExitTrigger(BoxCollider zone, Vector3 markLocalPosition)
+    {
+        float height = Mathf.Max(2f, triggerHeight);
+        zone.transform.localPosition = markLocalPosition + Vector3.up * triggerCenterHeight;
+        zone.size = new Vector3(markRadius * 2f, height, markRadius * 2f);
+        zone.isTrigger = true;
     }
 }

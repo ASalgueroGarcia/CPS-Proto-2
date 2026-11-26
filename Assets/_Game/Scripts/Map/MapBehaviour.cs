@@ -105,7 +105,7 @@ public class MapBehaviour : MonoBehaviour
 
         if (config == null) config = ScriptableObject.CreateInstance<MapConfig>();
         map = MapGenerator.Generate(rng, config.generation);
-        planner = new MapRoomPlanner(config.rooms, rng);
+        planner = new MapRoomPlanner(config.rooms, rng, config.generation.eliteFirstRow);
         progress = new MapProgress(map);
         BuildHud();
         PlaceLineHolder();
@@ -257,7 +257,7 @@ public class MapBehaviour : MonoBehaviour
 
         entered = node;
         progress.Enter(node.Column);
-        rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1);
+        rooms = planner.Plan(node.Type, node.Row, SceneIndex(), SceneIndex() >= ProgressRules.ScenesPerAct - 1, PlayerHealthRatio());
         roomIndex = 0;
         LoadRoom();
     }
@@ -267,7 +267,7 @@ public class MapBehaviour : MonoBehaviour
         PlannedRoom room = rooms[roomIndex];
         roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
         Action<WaveManager> setup = room.HasSetup ? room.Apply : null;
-        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0);
+        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0, room.IsElite);
     }
 
     public void LeaveRoom()
@@ -319,6 +319,12 @@ public class MapBehaviour : MonoBehaviour
         return Services.Run != null && Services.Run.IsActive ? Services.Run.Scene : 0;
     }
 
+    private static float PlayerHealthRatio()
+    {
+        var stats = PlayerStatsManager.Instance;
+        return stats != null && stats.MaxHealth > 0f ? stats.CurrentHealth / stats.MaxHealth : 1f;
+    }
+
     private void BuildHud()
     {
         if (header != null) return;
@@ -351,10 +357,11 @@ public class MapBehaviour : MonoBehaviour
         string description = node.Row == 0 ? "First Spot · 4-5 rooms" : node.Type switch
         {
             NodeTypeEnum.Combat => "Combat · 4-5 rooms",
-            NodeTypeEnum.MoreHealth => "More Health · 4-5 rooms",
-            NodeTypeEnum.MoreButtons => "More Buttons · 4-5 rooms",
+            NodeTypeEnum.Health => "Health · rest",
             NodeTypeEnum.Shop => "Shop · merchant",
             NodeTypeEnum.Treasure => "Treasure · rewards",
+            NodeTypeEnum.Elite => "Elite · high-risk fight",
+            NodeTypeEnum.Mystery => "Mystery · ?",
             NodeTypeEnum.FinalFight => "Final Fight · Boss",
             _ => ""
         };

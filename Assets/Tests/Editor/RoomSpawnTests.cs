@@ -242,10 +242,11 @@ public class RoomSpawnTests
     private EncounterTable QuietTable(GameObject prefab, int roomBudget)
     {
         EncounterTable table = SingleEntryTable(prefab, roomBudget);
+        table.eliteBudgetPerScene = new[] { roomBudget };
         table.killButtonChance = 0f;
-        table.killButtonChanceMoreButtons = 0f;
+        table.killButtonChanceElite = 0f;
         table.healthDropChance = 0f;
-        table.healthDropChanceMoreHealth = 0f;
+        table.healthDropChanceElite = 0f;
         return table;
     }
 
@@ -316,8 +317,7 @@ public class RoomSpawnTests
     }
 
     [TestCase(EncounterNodeKind.Fight, 4)]
-    [TestCase(EncounterNodeKind.MoreHealth, 4)]
-    [TestCase(EncounterNodeKind.MoreButtons, 6)]
+    [TestCase(EncounterNodeKind.Elite, 6)]
     public void Room_WithContext_PaysTheRoomClearButtons(EncounterNodeKind kind, int expected)
     {
         BuildGround();

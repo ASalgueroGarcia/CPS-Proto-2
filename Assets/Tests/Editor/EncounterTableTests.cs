@@ -157,9 +157,8 @@ public class EncounterTableTests
 
     [TestCase(7, EncounterNodeKind.Fight, 4)]
     [TestCase(8, EncounterNodeKind.Fight, 4)]
-    [TestCase(7, EncounterNodeKind.MoreHealth, 4)]
-    [TestCase(7, EncounterNodeKind.MoreButtons, 6)]
-    [TestCase(8, EncounterNodeKind.MoreButtons, 6)]
+    [TestCase(7, EncounterNodeKind.Elite, 6)]
+    [TestCase(8, EncounterNodeKind.Elite, 6)]
     public void RoomClearButtons_FollowTheGdd(int budget, EncounterNodeKind kind, int expected)
     {
         Assert.AreEqual(expected, Act1Table().RoomClearButtons(budget, kind));
@@ -170,9 +169,21 @@ public class EncounterTableTests
     {
         EncounterTable table = Act1Table();
         Assert.AreEqual(0.15f, table.HealthDropChance(EncounterNodeKind.Fight), 1e-5f);
-        Assert.AreEqual(0.45f, table.HealthDropChance(EncounterNodeKind.MoreHealth), 1e-5f);
+        Assert.AreEqual(0.45f, table.HealthDropChance(EncounterNodeKind.Elite), 1e-5f);
         Assert.AreEqual(0.10f, table.KillButtonChance(EncounterNodeKind.Fight), 1e-5f);
-        Assert.AreEqual(0.25f, table.KillButtonChance(EncounterNodeKind.MoreButtons), 1e-5f);
+        Assert.AreEqual(0.25f, table.KillButtonChance(EncounterNodeKind.Elite), 1e-5f);
+    }
+
+    [Test]
+    public void EliteBudget_ExceedsRegularFightBudgetInEveryScene()
+    {
+        EncounterTable table = Act1Table();
+        for (int scene = 1; scene <= 3; scene++)
+        {
+            int fight = table.RoomBudget(new EncounterContext(scene, EncounterNodeKind.Fight, false, 0));
+            int elite = table.RoomBudget(new EncounterContext(scene, EncounterNodeKind.Elite, false, 0));
+            Assert.Greater(elite, fight);
+        }
     }
 
     // GDD Rewards: "Final Fight - Boss Tickets". Buttons are discarded when the scene ends.
@@ -253,8 +264,8 @@ public class EncounterTableTests
     }
 
     [TestCase(0, EncounterNodeKind.Fight, 0)]
-    [TestCase(0, EncounterNodeKind.MoreButtons, 0)]
-    [TestCase(1, EncounterNodeKind.MoreButtons, 2)]
+    [TestCase(0, EncounterNodeKind.Elite, 0)]
+    [TestCase(1, EncounterNodeKind.Elite, 2)]
     public void RoomClearButtons_SmallBudgets(int budget, EncounterNodeKind kind, int expected)
     {
         Assert.AreEqual(expected, Act1Table().RoomClearButtons(budget, kind));

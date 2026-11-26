@@ -26,14 +26,16 @@ public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
         {
             case NodeTypeEnum.Combat:
                 return new Color(0.85f, 0.25f, 0.25f);
-            case NodeTypeEnum.MoreHealth:
+            case NodeTypeEnum.Health:
                 return new Color(0.25f, 0.75f, 0.40f);
-            case NodeTypeEnum.MoreButtons:
-                return new Color(0.95f, 0.75f, 0.15f);
             case NodeTypeEnum.Shop:
                 return new Color(0.20f, 0.60f, 0.95f);
             case NodeTypeEnum.Treasure:
                 return new Color(0.65f, 0.35f, 0.85f);
+            case NodeTypeEnum.Elite:
+                return new Color(0.95f, 0.50f, 0.15f);
+            case NodeTypeEnum.Mystery:
+                return new Color(0.90f, 0.78f, 0.25f);
             case NodeTypeEnum.FinalFight:
                 return new Color(0.90f, 0.15f, 0.30f);
             default:
@@ -89,14 +91,16 @@ public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
         {
             case NodeTypeEnum.Combat:
                 return "×";
-            case NodeTypeEnum.MoreHealth:
+            case NodeTypeEnum.Health:
                 return "+";
-            case NodeTypeEnum.MoreButtons:
-                return "¤";
             case NodeTypeEnum.Shop:
                 return "▲";
             case NodeTypeEnum.Treasure:
                 return "■";
+            case NodeTypeEnum.Elite:
+                return "♦";
+            case NodeTypeEnum.Mystery:
+                return "?";
             case NodeTypeEnum.FinalFight:
                 return "♣";
             default:

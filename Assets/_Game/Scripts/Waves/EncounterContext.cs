@@ -2,12 +2,11 @@
 // it to WaveManager.SetEncounterContext() right after instantiating the room, before Start().
 // GDD > Level Design > In-Run > "In-Run in Depth" (Encounters, Rewards, Fight Nodes & Rooms).
 
-/// <summary>The kind of map node a combat room belongs to. Drives reward rates.</summary>
+/// <summary>The kind of map node a combat room belongs to. Drives Threat Budget and reward rates.</summary>
 public enum EncounterNodeKind
 {
     Fight,
-    MoreHealth,
-    MoreButtons,
+    Elite,
     /// <summary>The scene's boss room. GDD Rewards: pays Boss Tickets (on the win), never Buttons or HP.</summary>
     FinalFight
 }
@@ -25,6 +24,8 @@ public struct EncounterContext
 
     /// <summary>Room inside its node, 0-based. Rooms get harder every two rooms.</summary>
     public int roomInNode;
+
+    public bool IsElite => nodeKind == EncounterNodeKind.Elite;
 
     public EncounterContext(int scene, EncounterNodeKind nodeKind, bool isFirstSpot, int roomInNode)
     {

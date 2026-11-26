@@ -1,9 +1,10 @@
 public enum NodeTypeEnum
 {
     Combat,
-    MoreHealth,
-    MoreButtons,
+    Health,
     Shop,
     Treasure,
+    Elite,
+    Mystery,
     FinalFight
 }

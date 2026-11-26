@@ -16,10 +16,13 @@ MonoBehaviour:
     pathCount: 4
     shopFirstRow: 2
     shopLastRow: 5
+    eliteFirstRow: 3
+    maxElitesPerMap: 2
     combatWeight: 40
-    moreHealthWeight: 20
-    moreButtonsWeight: 20
-    treasureWeight: 20
+    healthWeight: 20
+    treasureWeight: 15
+    mysteryWeight: 15
+    eliteWeight: 10
   rooms:
     rowTiers: 0000000000000000000000000100000001000000020000000200000002000000
     minRooms: 4
@@ -29,8 +32,14 @@ MonoBehaviour:
     shopRoomChance: 0.15
     restRoomHeal: 40
     maxShopsPerScene: 2
-    moreHealthDropChance: 0.45
-    moreButtonsMultiplier: 1.5
+    healthNodeHeal: 60
     treasureHealChance: 0.5
     treasureHeal: 50
     treasureButtons: 0a0000000c0000000e000000
+    mysteryFightWeight: 30
+    mysteryTreasureWeight: 25
+    mysteryDealWeight: 25
+    mysteryEliteWeight: 10
+    mysteryNarrativeWeight: 10
+    mysteryEliteMinHealthRatio: 0.4
+    mysteryEliteFirstRow: 3

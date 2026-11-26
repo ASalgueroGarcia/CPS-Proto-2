@@ -40,12 +40,12 @@ public class SceneController : MonoBehaviour
         if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
     }
 
-    public void LoadLevel(RoomType room, Action<WaveManager> setup = null, int mapRow = 0, bool firstOfNode = true)
+    public void LoadLevel(RoomType room, Action<WaveManager> setup = null, int mapRow = 0, bool firstOfNode = true, bool eliteLayout = false)
     {
         SetMapVisible(false);
         pendingRoom = room;
         pendingSetup = setup;
-        pendingLayout = PrefabFor(room, mapRow, firstOfNode);
+        pendingLayout = PrefabFor(room, mapRow, firstOfNode, eliteLayout);
 
         if (spawnedInstance) Destroy(spawnedInstance);
         if (SceneManager.GetSceneByName(CurrentLevelScene).isLoaded)
@@ -100,7 +100,7 @@ public class SceneController : MonoBehaviour
         if (door != null) door.Bind(waveManager);
     }
 
-    private GameObject PrefabFor(RoomType room, int mapRow, bool firstOfNode)
+    private GameObject PrefabFor(RoomType room, int mapRow, bool firstOfNode, bool eliteLayout = false)
     {
         switch (room)
         {
@@ -114,9 +114,11 @@ public class SceneController : MonoBehaviour
         }
 
         if (firstOfNode) usedInNode.Clear();
-        // GDD > Arena Layouts: only the very first room of a scene is forced calm; after that the row decides.
+        // GDD > Arena Layouts: Elite rooms use HL3; only the very first room of a scene is forced calm; else the row decides.
         bool firstOfScene = firstOfNode && mapRow == 0;
-        GameObject[] pool = firstOfScene ? hl1Layouts : mapRow <= 2 ? earlyRows : lateRows;
+        GameObject[] pool = eliteLayout && hl3Layouts != null && hl3Layouts.Length > 0
+            ? hl3Layouts
+            : firstOfScene ? hl1Layouts : mapRow <= 2 ? earlyRows : lateRows;
         GameObject layout = Draw(pool);
         usedInNode.Add(layout);
         return layout;
