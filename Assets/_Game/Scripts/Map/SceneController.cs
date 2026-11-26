@@ -16,6 +16,13 @@ public class SceneController : MonoBehaviour
     [SerializeField] private GameObject shopLevel;
     [SerializeField] private GameObject bossLevel;
 
+    [Header("Special Room Prefabs (optional)")]
+    [SerializeField] private GameObject restRoomPrefab;
+    [SerializeField] private GameObject healthRoomPrefab;
+    [SerializeField] private GameObject treasureRoomPrefab;
+    [SerializeField] private GameObject dealRoomPrefab;
+    [SerializeField] private GameObject narrativeRoomPrefab;
+
     [Header("Map References")]
     [SerializeField] private Canvas mapCanvas;
     [SerializeField] private GameObject mapCamera;
@@ -25,6 +32,8 @@ public class SceneController : MonoBehaviour
     private RoomType pendingRoom = RoomType.Medium;
     private Action<WaveManager> pendingSetup;
     private GameObject pendingLayout;
+    private SpecialRoomKind pendingSpecialRoom = SpecialRoomKind.None;
+    private RoomRewards? pendingRewards;
 
     private readonly Dictionary<GameObject[], List<GameObject>> bags = new Dictionary<GameObject[], List<GameObject>>();
     private readonly HashSet<GameObject> usedInNode = new HashSet<GameObject>();
@@ -40,12 +49,23 @@ public class SceneController : MonoBehaviour
         if (ScreenFader.Instance != null) ScreenFader.Instance.Set(0f);
     }
 
-    public void LoadLevel(RoomType room, Action<WaveManager> setup = null, int mapRow = 0, bool firstOfNode = true, bool eliteLayout = false)
+    public void LoadLevel(
+        RoomType room,
+        Action<WaveManager> setup = null,
+        int mapRow = 0,
+        bool firstOfNode = true,
+        bool eliteLayout = false,
+        SpecialRoomKind specialRoom = SpecialRoomKind.None,
+        RoomRewards? rewards = null)
     {
         SetMapVisible(false);
         pendingRoom = room;
         pendingSetup = setup;
-        pendingLayout = PrefabFor(room, mapRow, firstOfNode, eliteLayout);
+        pendingSpecialRoom = specialRoom;
+        pendingRewards = rewards;
+        pendingLayout = specialRoom != SpecialRoomKind.None
+            ? SpecialPrefabFor(specialRoom)
+            : PrefabFor(room, mapRow, firstOfNode, eliteLayout);
 
         if (spawnedInstance) Destroy(spawnedInstance);
         if (SceneManager.GetSceneByName(CurrentLevelScene).isLoaded)
@@ -87,6 +107,20 @@ public class SceneController : MonoBehaviour
         if (scene.name != CurrentLevelScene) return;
         SceneManager.sceneLoaded -= OnSceneLoaded;
 
+        if (pendingSpecialRoom != SpecialRoomKind.None)
+        {
+            spawnedInstance = pendingLayout != null
+                ? Instantiate(pendingLayout)
+                : SpecialRoomController.CreateRuntimeRoom(pendingSpecialRoom, pendingRewards);
+
+            SpecialRoomController special = spawnedInstance.GetComponentInChildren<SpecialRoomController>(true);
+            if (special != null) special.Initialize(pendingSpecialRoom, pendingRewards);
+
+            RoomDoorTransition specialDoor = FindFirstObjectByType<RoomDoorTransition>();
+            if (specialDoor != null) specialDoor.Bind(null);
+            return;
+        }
+
         spawnedInstance = Instantiate(pendingLayout);
         WaveManager waveManager = spawnedInstance.GetComponentInChildren<WaveManager>(true);
         if (waveManager != null)
@@ -95,9 +129,21 @@ public class SceneController : MonoBehaviour
             pendingSetup?.Invoke(waveManager);
         }
 
-        // NOTE: Door transition cutscenes and room connections are placeholders while layouts are being aligned with Notion specifications.
         RoomDoorTransition door = FindFirstObjectByType<RoomDoorTransition>();
         if (door != null) door.Bind(waveManager);
+    }
+
+    private GameObject SpecialPrefabFor(SpecialRoomKind kind)
+    {
+        switch (kind)
+        {
+            case SpecialRoomKind.Rest: return restRoomPrefab;
+            case SpecialRoomKind.Health: return healthRoomPrefab;
+            case SpecialRoomKind.Treasure: return treasureRoomPrefab;
+            case SpecialRoomKind.Deal: return dealRoomPrefab;
+            case SpecialRoomKind.Narrative: return narrativeRoomPrefab;
+            default: return null;
+        }
     }
 
     private GameObject PrefabFor(RoomType room, int mapRow, bool firstOfNode, bool eliteLayout = false)

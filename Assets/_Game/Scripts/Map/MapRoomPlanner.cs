@@ -41,10 +41,14 @@ public class MapRoomPlanner
             case NodeTypeEnum.Health:
                 rooms.Add(new PlannedRoom(
                     RoomType.Treasure,
-                    new RoomRewards(currency: 0, healthDropChance: 1f, healAmount: settings.healthNodeHeal)));
+                    new RoomRewards(currency: 0, healthDropChance: 1f, healAmount: settings.healthNodeHeal),
+                    specialRoom: SpecialRoomKind.Health));
                 return rooms;
             case NodeTypeEnum.Treasure:
-                rooms.Add(new PlannedRoom(RoomType.Treasure, TreasureRewards(sceneIndex)));
+                rooms.Add(new PlannedRoom(
+                    RoomType.Treasure,
+                    TreasureRewards(sceneIndex),
+                    specialRoom: SpecialRoomKind.Treasure));
                 return rooms;
             case NodeTypeEnum.Elite:
                 rooms.Add(new PlannedRoom(
@@ -82,7 +86,8 @@ public class MapRoomPlanner
         {
             rooms[middle] = new PlannedRoom(
                 RoomType.Treasure,
-                new RoomRewards(currency: 0, healthDropChance: 1f, healAmount: settings.restRoomHeal));
+                new RoomRewards(currency: 0, healthDropChance: 1f, healAmount: settings.restRoomHeal),
+                specialRoom: SpecialRoomKind.Rest);
         }
         else if (shopVisits < settings.maxShopsPerScene && roll < settings.restRoomChance + settings.shopRoomChance)
         {
@@ -102,8 +107,8 @@ public class MapRoomPlanner
     {
         return outcome switch
         {
-            MysteryOutcome.Treasure => new PlannedRoom(RoomType.Treasure, rewards: TreasureRewards(sceneIndex), mystery: outcome),
-            MysteryOutcome.Deal => new PlannedRoom(RoomType.Treasure, rewards: TreasureRewards(sceneIndex), mystery: outcome),
+            MysteryOutcome.Treasure => new PlannedRoom(RoomType.Treasure, rewards: TreasureRewards(sceneIndex), mystery: outcome, specialRoom: SpecialRoomKind.Treasure),
+            MysteryOutcome.Deal => new PlannedRoom(RoomType.Treasure, rewards: TreasureRewards(sceneIndex), mystery: outcome, specialRoom: SpecialRoomKind.Deal),
             MysteryOutcome.Elite => new PlannedRoom(
                 RoomType.Hard,
                 encounter: new EncounterContext(scene, EncounterNodeKind.Elite, false, 0),
@@ -111,7 +116,8 @@ public class MapRoomPlanner
             MysteryOutcome.Narrative => new PlannedRoom(
                 RoomType.Treasure,
                 rewards: new RoomRewards(currency: 0, healthDropChance: 0f),
-                mystery: outcome),
+                mystery: outcome,
+                specialRoom: SpecialRoomKind.Narrative),
             _ => new PlannedRoom(
                 BaseTier(row),
                 encounter: new EncounterContext(scene, EncounterNodeKind.Fight, false, 0),

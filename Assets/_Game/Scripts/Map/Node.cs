@@ -9,15 +9,21 @@ public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
 {
     private const float FillScale = 0.82f;
 
+    [Header("Prefab Visuals")]
+    [SerializeField] private Image ring;
+    [SerializeField] private Image fill;
+    [SerializeField] private TMP_Text icon;
+    [SerializeField] private TMP_Text label;
+
     public int Row { get; private set; }
     public int Column { get; private set; }
     public NodeTypeEnum Type { get; private set; }
+    public Image Ring => ring;
+    public Image Fill => fill;
+    public TMP_Text Icon => icon;
+    public TMP_Text Label => label;
 
     private Button button;
-    private Image ring;
-    private Image fill;
-    private TMP_Text icon;
-    private TMP_Text label;
     private Action<Node> onInspect;
 
     public static Color GetRoomColor(NodeTypeEnum type)
@@ -43,49 +49,7 @@ public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
         }
     }
 
-    public void Init(int row, int column, NodeTypeEnum type, Action<Node> clickCallback, Action<Node> inspectCallback)
-    {
-        Row = row;
-        Column = column;
-        Type = type;
-        onInspect = inspectCallback;
-
-        ring = GetComponent<Image>();
-        float size = ((RectTransform)transform).sizeDelta.y;
-
-        fill = AddImage("Fill", ring.sprite, size * FillScale);
-        icon = AddText("Icon", IconFor(type), size * 0.5f, Vector2.zero, new Vector2(size, size));
-        icon.alignment = TextAlignmentOptions.Midline;
-
-        label = AddText("Label", "YOU ARE HERE", size * 0.22f, new Vector2(0f, -size * 0.8f), new Vector2(size * 3f, size * 0.4f));
-        label.characterSpacing = 6f;
-
-        button = GetComponent<Button>();
-        button.transition = Selectable.Transition.None;
-        button.onClick.AddListener(() => clickCallback(this));
-    }
-
-    public void SetLook(Color fillColor, Color iconColor, Color ringColor, bool showRing, bool interactable, bool current)
-    {
-        ring.color = showRing ? ringColor : Color.clear;
-        fill.color = fillColor;
-        icon.color = iconColor;
-        label.color = ringColor;
-        label.gameObject.SetActive(current);
-        button.interactable = interactable;
-    }
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        onInspect?.Invoke(this);
-    }
-
-    public void OnSelect(BaseEventData eventData)
-    {
-        onInspect?.Invoke(this);
-    }
-
-    private static string IconFor(NodeTypeEnum type)
+    public static string IconFor(NodeTypeEnum type)
     {
         switch (type)
         {
@@ -108,32 +72,70 @@ public class Node : MonoBehaviour, IPointerEnterHandler, ISelectHandler
         }
     }
 
-    private Image AddImage(string name, Sprite sprite, float size)
+    public void Init(int row, int column, NodeTypeEnum type, Action<Node> clickCallback, Action<Node> inspectCallback)
     {
-        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-        rect.SetParent(transform, false);
-        rect.sizeDelta = Vector2.one * size;
+        Row = row;
+        Column = column;
+        Type = type;
+        onInspect = inspectCallback;
 
-        Image image = rect.gameObject.AddComponent<Image>();
-        image.sprite = sprite;
-        image.raycastTarget = false;
-        return image;
+        if (ring == null) ring = GetComponent<Image>();
+        float size = ((RectTransform)transform).sizeDelta.y;
+        if (size <= 0f) size = 64f;
+
+        if (fill != null)
+        {
+            if (fill.sprite == null && ring != null) fill.sprite = ring.sprite;
+            fill.rectTransform.sizeDelta = Vector2.one * (size * FillScale);
+            fill.raycastTarget = false;
+        }
+
+        if (icon != null)
+        {
+            icon.text = IconFor(type);
+            icon.fontSize = size * 0.5f;
+            icon.rectTransform.sizeDelta = new Vector2(size, size);
+            icon.alignment = TextAlignmentOptions.Midline;
+            icon.raycastTarget = false;
+        }
+
+        if (label != null)
+        {
+            label.text = "YOU ARE HERE";
+            label.fontSize = size * 0.22f;
+            label.characterSpacing = 6f;
+            label.rectTransform.anchoredPosition = new Vector2(0f, -size * 0.8f);
+            label.rectTransform.sizeDelta = new Vector2(size * 3f, size * 0.4f);
+            label.raycastTarget = false;
+        }
+
+        button = GetComponent<Button>();
+        button.transition = Selectable.Transition.None;
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => clickCallback?.Invoke(this));
     }
 
-    private TMP_Text AddText(string name, string text, float fontSize, Vector2 position, Vector2 size)
+    public void SetLook(Color fillColor, Color iconColor, Color ringColor, bool showRing, bool interactable, bool current)
     {
-        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-        rect.SetParent(transform, false);
-        rect.anchoredPosition = position;
-        rect.sizeDelta = size;
+        if (ring != null) ring.color = showRing ? ringColor : Color.clear;
+        if (fill != null) fill.color = fillColor;
+        if (icon != null) icon.color = iconColor;
+        if (label != null)
+        {
+            label.color = ringColor;
+            label.gameObject.SetActive(current);
+        }
 
-        TextMeshProUGUI tmp = rect.gameObject.AddComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = fontSize;
-        tmp.fontStyle = FontStyles.Bold;
-        tmp.alignment = TextAlignmentOptions.Center;
-        tmp.textWrappingMode = TextWrappingModes.NoWrap;
-        tmp.raycastTarget = false;
-        return tmp;
+        if (button != null) button.interactable = interactable;
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        onInspect?.Invoke(this);
+    }
+
+    public void OnSelect(BaseEventData eventData)
+    {
+        onInspect?.Invoke(this);
     }
 }

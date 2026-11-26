@@ -20,6 +20,9 @@ public class MapBehaviour : MonoBehaviour
     [Tooltip("Generation and room numbers. Edit the asset in Data/Map.")]
     [SerializeField] private MapConfig config;
 
+    [Header("HUD")]
+    [SerializeField] private MapHudView hudView;
+
     [Header("Colors")]
     [SerializeField] private Color gold = new Color(1f, 0.78f, 0.22f);
     [SerializeField] private Color grey = new Color(0.55f, 0.55f, 0.55f);
@@ -29,10 +32,6 @@ public class MapBehaviour : MonoBehaviour
     private readonly Node[,] nodes = new Node[MapGrid.Rows, MapGrid.Columns];
     private readonly List<(Image image, int row, int from, int to)> lines = new List<(Image, int, int, int)>();
     private MapProgress progress;
-
-    private TMP_Text header;
-    private TMP_Text hud;
-    private TMP_Text inspect;
 
     private Node entered;
     private Node focusTarget;
@@ -265,9 +264,9 @@ public class MapBehaviour : MonoBehaviour
     private void LoadRoom()
     {
         PlannedRoom room = rooms[roomIndex];
-        roomCompleted = room.Room == RoomType.Shop || room.Room == RoomType.Treasure;
+        roomCompleted = room.IsCalmSpecialRoom;
         Action<WaveManager> setup = room.HasSetup ? room.Apply : null;
-        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0, room.IsElite);
+        SceneController.Instance.LoadLevel(room.Room, setup, entered.Row, roomIndex == 0, room.IsElite, room.SpecialRoom, room.Rewards);
     }
 
     public void LeaveRoom()
@@ -327,61 +326,34 @@ public class MapBehaviour : MonoBehaviour
 
     private void BuildHud()
     {
-        if (header != null) return;
+        if (hudView == null)
+        {
+            hudView = GetComponent<MapHudView>();
+            if (hudView == null) hudView = gameObject.AddComponent<MapHudView>();
+        }
 
-        Transform canvas = nodeArea.GetComponentInParent<Canvas>().transform;
-        header = MakeText(canvas, "Header", new Vector2(0f, 1f), TextAlignmentOptions.TopLeft, 34f);
-        hud = MakeText(canvas, "Hud", new Vector2(1f, 1f), TextAlignmentOptions.TopRight, 34f);
-        inspect = MakeText(canvas, "Inspect", new Vector2(0.5f, 0f), TextAlignmentOptions.Bottom, 30f);
-        inspect.rectTransform.anchoredPosition += Vector2.up * 70f;
-
-        TMP_Text legend = MakeText(canvas, "Legend", new Vector2(0.5f, 0f), TextAlignmentOptions.Bottom, 22f);
-        legend.color = grey;
-        legend.text = "Select a room to enter";
+        Canvas parentCanvas = nodeArea != null ? nodeArea.GetComponentInParent<Canvas>() : null;
+        hudView.EnsureBuilt(parentCanvas != null ? parentCanvas.transform : null);
     }
 
     private void RefreshHud()
     {
+        if (hudView == null) return;
+
         var run = Services.Run;
         bool active = run != null && run.IsActive;
-        header.text = $"ACT {(active ? run.Act + 1 : 1)} · SCENE {(active ? run.Scene + 1 : 1)}\n<size=70%>Take {(active ? run.CurrentTake : 1)}</size>";
-
         var stats = PlayerStatsManager.Instance;
-        string health = stats != null && stats.MaxHealth > 0f ? $"{stats.CurrentHealth:0} / {stats.MaxHealth:0}" : "-- / --";
-        hud.text = $"HP {health}\n<size=70%>Buttons {(stats != null ? stats.CurrentCoins : 0)}</size>";
-        inspect.text = "";
+        hudView.Refresh(
+            active ? run.Act + 1 : 1,
+            active ? run.Scene + 1 : 1,
+            active ? run.CurrentTake : 1,
+            stats != null ? stats.CurrentHealth : 0f,
+            stats != null ? stats.MaxHealth : 0f,
+            stats != null ? stats.CurrentCoins : 0);
     }
 
     private void Inspect(Node node)
     {
-        string description = node.Row == 0 ? "First Spot · 4-5 rooms" : node.Type switch
-        {
-            NodeTypeEnum.Combat => "Combat · 4-5 rooms",
-            NodeTypeEnum.Health => "Health · rest",
-            NodeTypeEnum.Shop => "Shop · merchant",
-            NodeTypeEnum.Treasure => "Treasure · rewards",
-            NodeTypeEnum.Elite => "Elite · high-risk fight",
-            NodeTypeEnum.Mystery => "Mystery · ?",
-            NodeTypeEnum.FinalFight => "Final Fight · Boss",
-            _ => ""
-        };
-        inspect.text = description;
-    }
-
-    private static TMP_Text MakeText(Transform parent, string name, Vector2 corner, TextAlignmentOptions alignment, float size)
-    {
-        RectTransform rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-        rect.SetParent(parent, false);
-        rect.anchorMin = corner;
-        rect.anchorMax = corner;
-        rect.pivot = corner;
-        rect.anchoredPosition = new Vector2((0.5f - corner.x) * 80f, (0.5f - corner.y) * 60f);
-        rect.sizeDelta = new Vector2(corner.x == 0.5f ? 1200f : 560f, 120f);
-
-        TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
-        text.fontSize = size;
-        text.alignment = alignment;
-        text.raycastTarget = false;
-        return text;
+        hudView?.ShowInspect(node.Row, node.Type);
     }
 }
