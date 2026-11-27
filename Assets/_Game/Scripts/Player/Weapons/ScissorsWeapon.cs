@@ -377,6 +377,7 @@ public class ScissorsWeapon : MonoBehaviour, IWeapon
     public bool CanAttack => _combo != null && _combo.CanAttack;
     public float AttackCooldownRemaining => _combo != null ? _combo.AttackCooldownRemaining : 0f;
     public float SpecialTimer => _specialTimer;
+    public float SpecialCooldown => _data != null ? _data.specialCooldown : 0f;
     public float AttackAnimationSpeed => _data != null ? _data.attackAnimationSpeed : 1.5f;
     public float SpecialAnimationSpeed => _data != null ? _data.specialAttackAnimationSpeed : 1.2f;
     public bool CanUseSpecial => _specialTimer <= 0f;

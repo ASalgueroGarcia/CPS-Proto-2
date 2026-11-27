@@ -59,7 +59,10 @@ public class SceneController : MonoBehaviour
 
     public void UnloadLevel()
     {
-        SceneManager.UnloadSceneAsync(CurrentLevelScene);
+        if (SceneManager.GetSceneByName(CurrentLevelScene).isLoaded)
+        {
+            SceneManager.UnloadSceneAsync(CurrentLevelScene);
+        }
         SetMapVisible(true);
         Time.timeScale = 1f;
         if (spawnedInstance) Destroy(spawnedInstance);
@@ -111,7 +114,9 @@ public class SceneController : MonoBehaviour
         }
 
         if (firstOfNode) usedInNode.Clear();
-        GameObject[] pool = firstOfNode ? hl1Layouts : mapRow <= 2 ? earlyRows : lateRows;
+        // GDD > Arena Layouts: only the very first room of a scene is forced calm; after that the row decides.
+        bool firstOfScene = firstOfNode && mapRow == 0;
+        GameObject[] pool = firstOfScene ? hl1Layouts : mapRow <= 2 ? earlyRows : lateRows;
         GameObject layout = Draw(pool);
         usedInNode.Add(layout);
         return layout;

@@ -1,14 +1,14 @@
 using System.Collections;
 using UnityEngine;
 
-public class ExplodingTrap : MonoBehaviour
+public class ExplodingTrap : MonoBehaviour, IExplosive
 {
     [Header("DAMAGE SETTINGS")]
-    [SerializeField] private float damageToPlayer = 20f;
-    [SerializeField] private float damageToEnemy = 20f;
+    [SerializeField] private float damageToPlayer = 40f;
+    [SerializeField] private float damageToEnemy = 50f;
 
     [Header("EXPLODING TRAP SETTINGS")]
-    [SerializeField] private float explosionRadius = 20.0f;
+    [SerializeField] private float explosionRadius = 5.0f;
     [SerializeField] private float delayBetweenTrigger = 1.5f;
     [SerializeField] private float knockbackEffect = 10.0f;
 
@@ -21,6 +21,15 @@ public class ExplodingTrap : MonoBehaviour
     [SerializeField] private AudioClip explosionClip;
     
     private bool _isTriggered = false;
+    private bool _exploded;
+
+    /// <summary>Explodes at once, without the fuse. Used when an enemy is knocked into it.</summary>
+    public void Detonate()
+    {
+        StopAllCoroutines();
+        _isTriggered = true;
+        Explode();
+    }
 
     // detect -> player or enemy tag.
     private void OnTriggerEnter(Collider other)
@@ -40,7 +49,6 @@ public class ExplodingTrap : MonoBehaviour
         }
     }
 
-    // Coroutine
     IEnumerator ExplodeC()
     {
         if (trapRender != null){
@@ -52,6 +60,14 @@ public class ExplodingTrap : MonoBehaviour
         }
 
         yield return new WaitForSeconds(delayBetweenTrigger);
+        Explode();
+    }
+
+    private void Explode()
+    {
+        if (_exploded) return;
+        _exploded = true;
+
         if(explosionEffectRef != null)
         {
             ParticleSystem ef= Instantiate(explosionEffectRef, transform.position, Quaternion.identity);

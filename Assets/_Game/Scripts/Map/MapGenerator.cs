@@ -3,25 +3,24 @@ using System.Collections.Generic;
 
 public static class MapGenerator
 {
-    private const int PathCount = 4;
-    private const int ShopFirstRow = 2;
-    private const int ShopLastRow = 5;
+    public static MapGrid Generate(Random rng) => Generate(rng, new MapGenerationSettings());
 
-    public static MapGrid Generate(Random rng)
+    /// <summary>Rolls a map. The same seed and settings always give the same map.</summary>
+    public static MapGrid Generate(Random rng, MapGenerationSettings settings)
     {
         MapGrid map = new MapGrid();
-        DrawPaths(map, rng);
-        var shop = PlaceShop(map, rng);
-        RollTypes(map, rng, shop);
+        DrawPaths(map, rng, settings.pathCount);
+        var shop = PlaceShop(map, rng, settings);
+        RollTypes(map, rng, shop, settings);
         map.SetType(0, 0, NodeTypeEnum.Combat);
         map.SetType(MapGrid.LastRow, 0, NodeTypeEnum.FinalFight);
         return map;
     }
 
-    private static void DrawPaths(MapGrid map, Random rng)
+    private static void DrawPaths(MapGrid map, Random rng, int pathCount)
     {
         int firstColumn = -1;
-        for (int p = 0; p < PathCount; p++)
+        for (int p = 0; p < pathCount; p++)
         {
             int column;
             do
@@ -64,7 +63,7 @@ public static class MapGenerator
         return false;
     }
 
-    private static (int row, int column) PlaceShop(MapGrid map, Random rng)
+    private static (int row, int column) PlaceShop(MapGrid map, Random rng, MapGenerationSettings settings)
     {
         long[,] fromStart = new long[MapGrid.Rows, MapGrid.Columns];
         long[,] toEnd = new long[MapGrid.Rows, MapGrid.Columns];
@@ -95,7 +94,7 @@ public static class MapGenerator
 
         List<(int, int)> best = new List<(int, int)>();
         long bestCount = -1;
-        for (int row = ShopFirstRow; row <= ShopLastRow; row++)
+        for (int row = settings.shopFirstRow; row <= settings.shopLastRow; row++)
         {
             foreach (int c in map.NodesInRow(row))
             {
@@ -117,7 +116,7 @@ public static class MapGenerator
         return shop;
     }
 
-    private static void RollTypes(MapGrid map, Random rng, (int row, int column) shop)
+    private static void RollTypes(MapGrid map, Random rng, (int row, int column) shop, MapGenerationSettings settings)
     {
         for (int row = 1; row < MapGrid.LastRow; row++)
         {
@@ -126,7 +125,7 @@ public static class MapGenerator
 
             foreach (int c in columns)
             {
-                map.SetType(row, c, RollType(map, rng, row, c));
+                map.SetType(row, c, RollType(map, rng, row, c, settings));
             }
 
             if (columns.Count < 2) continue;
@@ -136,19 +135,24 @@ public static class MapGenerator
             int last = columns[columns.Count - 1];
             while (map.TypeAt(row, last) == first)
             {
-                map.SetType(row, last, RollType(map, rng, row, last));
+                map.SetType(row, last, RollType(map, rng, row, last, settings));
             }
         }
     }
 
-    private static NodeTypeEnum RollType(MapGrid map, Random rng, int row, int column)
+    private static NodeTypeEnum RollType(MapGrid map, Random rng, int row, int column, MapGenerationSettings settings)
     {
+        int combat = settings.combatWeight;
+        int moreHealth = combat + settings.moreHealthWeight;
+        int moreButtons = moreHealth + settings.moreButtonsWeight;
+        int total = moreButtons + settings.treasureWeight;
+
         while (true)
         {
-            int roll = rng.Next(100);
-            NodeTypeEnum type = roll < 40 ? NodeTypeEnum.Combat
-                : roll < 60 ? NodeTypeEnum.MoreHealth
-                : roll < 80 ? NodeTypeEnum.MoreButtons
+            int roll = rng.Next(total);
+            NodeTypeEnum type = roll < combat ? NodeTypeEnum.Combat
+                : roll < moreHealth ? NodeTypeEnum.MoreHealth
+                : roll < moreButtons ? NodeTypeEnum.MoreButtons
                 : NodeTypeEnum.Treasure;
 
             if (type == NodeTypeEnum.Treasure && (row == 1 || FollowsTreasure(map, row, column))) continue;
