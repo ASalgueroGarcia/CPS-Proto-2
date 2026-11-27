@@ -192,10 +192,10 @@ Ownership moves from "your folder" to the `Owner:` line in each README.
 Optional: a GitHub `CODEOWNERS` file, so a PR that touches your folders asks you
 for review automatically.
 
-- **Dima**: Player, Enemies, Waves, Pickups, Core · Data/Enemies · Art/Characters
+- **Dima**: Player (with Mario), Waves, Pickups, Core · Prefabs/Player, Prefabs/Pickups · Art/Characters (except Enemies)
+- **Mario**: Player (with Dima), Enemies · Data/Enemies · Prefabs/Enemies · Art/Characters/Enemies · Dialog system
 - **Antonio**: Map, Audio · Scenes · Art/Map
 - **Ivan**: Shop, UI, Obstacles (code) · Data/Items · Art/UI, Art/VFX
-- **Ana**: Rooms · Art/Environment · Obstacles (prefabs)
 - **Dima + Ivan**: Menus (menu logic; the views stay in UI)
 - **Everyone, ask first**: Settings, ThirdParty
 
