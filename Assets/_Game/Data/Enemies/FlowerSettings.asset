@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d9a1c3e7b424f8091a6c2e4b7d80512, type: 3}
+  m_Name: FlowerSettings
+  m_EditorClassIdentifier: Spectracle.Enemies::FlowerSettings
+  maxHealth: 10
+  defaultTier: 2
+  detectionRange: 6
+  growDuration: 6
+  grownScaleMultiplier: 1.25
+  biteRange: 1.5
+  biteDamage: 15
+  biteWindup: 0.5
+  biteCooldown: 1.5
+  projectileRange: 6
+  projectileDamage: 10
+  projectileSpeed: 5
+  projectileCooldown: 2
+  projectileSize: 0.35
+  pollinatingMinTier: 2
+  pollinatingDamage: 10
+  pollinatingArcHeight: 2.5
+  pollinatingFlightTime: 0.9
+  maxSpawnedFlowersAlive: 2
+  burrowMinTier: 3
+  burrowWindup: 1
+  burrowUndergroundTime: 2
+  burrowCooldown: 3
+  burrowMaxHopDistance: 6
+  resurfaceMinOffset: 1
+  resurfaceMaxOffset: 2
+  resurfaceAttempts: 5
+  sinkDepth: 1.5
+  crackWidth: 0.5

@@ -96,23 +96,14 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d4e2f6a1b8c4e53a7c0d1e5f3b62a18, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FlowerAttack
-  burrowDelay: 1
-  undergroundTravelTime: 2
-  resurfaceOffset: 1.2
-  sinkDepth: 1.5
-  biteRange: 1.5
-  biteDamage: 15
-  projectileRange: 6
-  projectileDamage: 10
-  projectileSpeed: 10
-  projectileSize: 0.35
+  m_EditorClassIdentifier: Spectracle.Enemies::FlowerAttack
+  settings: {fileID: 11400000, guid: 8f31c4e9b6a24570a9d1c2e7b4f83061, type: 2}
+  tierOverride: 0
+  spawnedFlowerPrefab: {fileID: 0}
   shootPoint: {fileID: 5000000000301}
   projectileMaterial: {fileID: 2100000, guid: f407c0577e6d45958aac4d92205d0067, type: 2}
-  attackDuration: 0.4
   visualRoot: {fileID: 5000000000001}
   crackMaterial: {fileID: 2100000, guid: 17c93f1b9a764129931e0e7531174970, type: 2}
-  crackWidth: 0.5
 --- !u!114 &7200000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -125,8 +116,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe4325505ab27b1418af3837b2e0e300, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  _maxHealth: 25
-  _currentHealth: 25
+  _maxHealth: 10
+  _currentHealth: 10
   OnHealthChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -157,7 +148,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   settings:
-    maxHealth: 25
+    maxHealth: 10
     damage: 10
     speed: 0
     alertRange: 10
