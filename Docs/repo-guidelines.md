@@ -52,11 +52,12 @@ In every case: the code owner's review + **APPROVAL is obligatory** before merge
 
 **For the PR author / merger (CLI only):** never run `gh pr merge --delete-branch` on a hand-rolled stack base with open child PRs — it can close them. Merge without deletion, retarget each child to `dev`, then delete the old base. GitHub Desktop users do not run this command; Desktop is for branch checkout, while PR merges happen on GitHub.com or via `gh`.
 
-## 5. Enforcing approvals (optional)
+## 5. GitHub enforcement
 
-Today the approval rule above is a team agreement; nothing blocks a merge. If we want GitHub to enforce it, the repo admin (Antonio) can turn on the built-in option: **Settings → Branches → Add branch protection rule** on `dev` → **Require a pull request before merging** → **Require review from Code Owners**. The repo is public, so this is free.
-
-Note: GitHub then asks for an owner's approval for every owned path a PR touches, so a PR that crosses two owners' areas needs both.
+Repository rulesets `DevRules` and `MainRules` are active (checked 2026-11-27). They require a PR,
+one approval and approval of the last push; they block deletion and non-fast-forward updates.
+They do **not** require code-owner review or resolved threads, and they do not dismiss stale
+reviews when new commits are pushed. The team rule in §3 still requires the code owner's approval.
 
 ## 6. Hygiene
 
@@ -66,3 +67,9 @@ Note: GitHub then asks for an owner's approval for every owned path a PR touches
 - **Disposables welcome** — mark them in the PR body so nobody merges reluctantly
 - **PR size:** one feature per PR; keep it reviewable with clean commits. Split PRs only when layers must merge separately (see §4)
 - **Review comments say how they were checked:** a claim about behaviour ("X goes through Y", "this breaks Z") says whether it was tested in play mode / by a test, or is from reading the code. Opinions are marked as suggestions or nits
+
+## 7. Review evidence
+
+Gameplay PRs follow [ReviewEvidence.md](ReviewEvidence.md): 3–8 acceptance criteria, a Unity
+behavior map for the touched paths, before/after evidence, and a short **Merge Danger** section.
+The author supplies the evidence; the reviewer verifies it and posts the review.
